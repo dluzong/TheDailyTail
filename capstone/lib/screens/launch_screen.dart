@@ -33,7 +33,6 @@ class LaunchScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 25),
 
-                  // Just the dog image (no border)
                   Image.asset(
                     'assets/dog.png',
                     width: 120,
@@ -71,7 +70,6 @@ class LaunchScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  // Sign Up button
                   SizedBox(
                     width: 180,
                     child: ElevatedButton(
