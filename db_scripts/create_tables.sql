@@ -5,6 +5,8 @@
 CREATE TABLE IF NOT EXISTS users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(100) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
     password VARCHAR(100) NOT NULL,
     role VARCHAR(50) DEFAULT 'general', -- roles: owner, foster, rescue, adoption, general (should i make this an enum?)
@@ -17,7 +19,8 @@ CREATE TABLE IF NOT EXISTS pets (
     name VARCHAR(100) NOT NULL,
     species VARCHAR(100) NOT NULL,
     breed VARCHAR(100) NOT NULL,
-    age INT NOT NULL
+    age INT NOT NULL,
+    weight FLOAT NOT NULL
 );
 
 -- POSTS TABLE
@@ -54,7 +57,7 @@ CREATE TABLE IF NOT EXISTS daily_logs (
     notes TEXT OPTIONAL
 );
 
--- DAILY LOGS DETAILS TABLE
+-- DAILY LOGS DETAILS TABLE (Activities in the Diagram)
 CREATE TABLE IF NOT EXISTS daily_log_details (
     detail_id SERIAL PRIMARY KEY,
     log_id INT REFERENCES daily_logs(log_id),
@@ -62,4 +65,6 @@ CREATE TABLE IF NOT EXISTS daily_log_details (
     walk_entries JSONB,
     medication_entries JSONB
 );
+
+CREATE INDEX idx_user_id ON users(user_id);
 
