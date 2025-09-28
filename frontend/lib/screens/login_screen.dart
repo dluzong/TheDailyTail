@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'starting_widgets.dart';
+import '../shared/starting_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'starting_widgets.dart';
+import '../shared/starting_widgets.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 
