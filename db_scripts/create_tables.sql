@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     role VARCHAR(50) DEFAULT 'general',
-    photo_url TEXT,
+    photo_url TEXT
 );
 
 -- PETS TABLE
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS pets (
     breed VARCHAR(100),
     age INT,
     weight FLOAT,
-    photo_url TEXT,
+    photo_url TEXT
 );
 
 -- POSTS TABLE
