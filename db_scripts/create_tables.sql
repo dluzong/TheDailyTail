@@ -4,67 +4,84 @@
 -- USERS TABLE
 CREATE TABLE IF NOT EXISTS users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(100) NOT NULL,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    password VARCHAR(100) NOT NULL,
-    role VARCHAR(50) DEFAULT 'general', -- roles: owner, foster, rescue, adoption, general (should i make this an enum?)
+    email VARCHAR(100) NOT NULL UNIQUE,
+    role VARCHAR(50) DEFAULT 'general',
+    photo_url TEXT,
 );
 
 -- PETS TABLE
 CREATE TABLE IF NOT EXISTS pets (
     pet_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(user_id),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     species VARCHAR(100) NOT NULL,
-    breed VARCHAR(100) NOT NULL,
-    age INT NOT NULL,
-    weight FLOAT NOT NULL
+    breed VARCHAR(100),
+    age INT,
+    weight FLOAT,
+    photo_url TEXT,
 );
 
 -- POSTS TABLE
 CREATE TABLE IF NOT EXISTS posts (
-    post_id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(user_id),
+    post_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     content JSONB NOT NULL,
     created_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- COMMENTS TABLE
 CREATE TABLE IF NOT EXISTS comments (
-    comment_id SERIAL PRIMARY KEY,
-    post_id INT REFERENCES posts(post_id),
-    user_id UUID REFERENCES users(user_id),
+    comment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id UUID NOT NULL REFERENCES posts(post_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     created_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- HEALTH_RECORDS TABLE
 CREATE TABLE IF NOT EXISTS health_records (
-    record_id SERIAL PRIMARY KEY,
-    pet_id UUID REFERENCES pets(pet_id),
-    record_type VARCHAR(100) NOT NULL, -- e.g., vaccination, check-up (should i make this an enum?)
+    record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pet_id UUID NOT NULL REFERENCES pets(pet_id) ON DELETE CASCADE,
+    record_type VARCHAR(100) NOT NULL,
     details JSONB NOT NULL,
     date DATE NOT NULL
 );
 
 -- DAILY LOGS TABLE
 CREATE TABLE IF NOT EXISTS daily_logs (
-    log_id SERIAL PRIMARY KEY,
-    pet_id UUID REFERENCES pets(pet_id),
-    log_date TIMESTAMP NOT NULL,
-    notes TEXT OPTIONAL
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pet_id UUID NOT NULL REFERENCES pets(pet_id) ON DELETE CASCADE,
+    log_date DATE NOT NULL,
+    notes TEXT
 );
 
 -- DAILY LOGS DETAILS TABLE (Activities in the Diagram)
 CREATE TABLE IF NOT EXISTS daily_log_details (
-    detail_id SERIAL PRIMARY KEY,
-    log_id INT REFERENCES daily_logs(log_id),
+    detail_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    log_id UUID NOT NULL REFERENCES daily_logs(log_id) ON DELETE CASCADE,
     food_entries JSONB,
     walk_entries JSONB,
     medication_entries JSONB
 );
 
-CREATE INDEX idx_user_id ON users(user_id);
+-- ROLES Lookup TABLE
+CREATE TABLE IF NOT EXISTS roles (
+    role_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_name VARCHAR(50) UNIQUE NOT NULL
+);
 
+-- Health Record Types Lookup TABLE
+CREATE TABLE IF NOT EXISTS health_record_types (
+    type_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name VARCHAR(100) UNIQUE NOT NULL
+);
+
+-- Indexes for performance optimization
+CREATE INDEX idx_posts_user_id ON posts(user_id);
+CREATE INDEX idx_pets_user_id ON pets(user_id);
+CREATE INDEX idx_comments_post_id ON comments(post_id);
+CREATE INDEX idx_health_records_pet_id ON health_records(pet_id);
