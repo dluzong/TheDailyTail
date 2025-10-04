@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'screens/launch_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'default');
-const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'default');
+const supabaseUrl =
+    String.fromEnvironment('SUPABASE_URL', defaultValue: 'default');
+const supabaseAnonKey =
+    String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'default');
 
 void main() async {
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
