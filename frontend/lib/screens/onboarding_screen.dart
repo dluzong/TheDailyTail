@@ -104,6 +104,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             setState(() {
               selectedRole = role;
             });
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DashboardScreen(),
+              ),
+            );
           },
           child: Text(
             role,
