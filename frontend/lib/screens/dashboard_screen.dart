@@ -148,7 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 32),
 
             // Recent activity
-            Text('Recent activity',
+            Text('Recent Activity',
                 style: GoogleFonts.lato(
                     fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
