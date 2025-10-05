@@ -1,7 +1,0 @@
-fastapi==0.116.1
-supabase==2.18.1
-uvicorn==0.35.0
-httpx==0.28.1 # for making HTTP requests to Supabase REST API
-#python-dotenv=
-#psycopg2-binary     # PostgreSQL driver
-#sqlalchemy          # ORM / query builder
