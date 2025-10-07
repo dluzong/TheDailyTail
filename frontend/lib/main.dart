@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/launch_screen.dart';
+import 'screens/dailylog_meal.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl =
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const LaunchScreen(),
+      home: const DailyLogMealScreen(),
     );
   }
 }

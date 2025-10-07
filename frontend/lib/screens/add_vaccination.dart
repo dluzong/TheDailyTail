@@ -16,11 +16,31 @@ class _VaccinationFormDialogState extends State<VaccinationFormDialog> {
   DateTime? _nextDue;
 
   Future<void> _pickDate(BuildContext context, bool isNextDue) async {
+    const Color customColor = Color(0xFF7496B3);
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+
+      // 👇 Custom theme for calendar color
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: customColor,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.pink,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -44,7 +64,6 @@ class _VaccinationFormDialogState extends State<VaccinationFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Name Field
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: "Vaccine Name"),
@@ -52,14 +71,16 @@ class _VaccinationFormDialogState extends State<VaccinationFormDialog> {
                     value == null || value.isEmpty ? "Enter a name" : null,
               ),
               const SizedBox(height: 16),
-
-              // Date Given Picker
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_dateGiven == null
-                      ? "Date Given: Not selected"
-                      : "Date Given: ${DateFormat.yMMMd().format(_dateGiven!)}"),
+                  Expanded(
+                    child: Text(
+                      _dateGiven == null
+                          ? "Date Given: Not selected"
+                          : "Date Given: ${DateFormat.yMMMd().format(_dateGiven!)}",
+                    ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.calendar_today),
                     onPressed: () => _pickDate(context, false),
@@ -67,8 +88,6 @@ class _VaccinationFormDialogState extends State<VaccinationFormDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-
-              // Checkbox for Next Due
               Row(
                 children: [
                   Checkbox(
@@ -79,15 +98,17 @@ class _VaccinationFormDialogState extends State<VaccinationFormDialog> {
                   const Text("Has next due date"),
                 ],
               ),
-
-              // Next Due Date Picker (if applicable)
               if (_hasNextDue)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_nextDue == null
-                        ? "Next Due: Not selected"
-                        : "Next Due: ${DateFormat.yMMMd().format(_nextDue!)}"),
+                    Expanded(
+                      child: Text(
+                        _nextDue == null
+                            ? "Next Due: Not selected"
+                            : "Next Due: ${DateFormat.yMMMd().format(_nextDue!)}",
+                      ),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.calendar_today),
                       onPressed: () => _pickDate(context, true),
