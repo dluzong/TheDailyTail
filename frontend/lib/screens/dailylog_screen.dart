@@ -15,9 +15,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  // No tab selected at first
   final Set<String> _selectedTabs = {};
 
+//Dummy event data
   final Map<String, List<Map<String, String>>> _events = {
     'Appointments': [
       {
@@ -76,13 +76,11 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     'Other': const Color(0xFFFBBF24),
   };
 
-  // Collect all events for markers (respecting tab filters)
   List<Map<String, String>> _getVisibleMarkersForDay(DateTime day) {
     final dateKey =
         '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
     List<Map<String, String>> visibleEvents = [];
 
-    // If no tab selected, show all markers
     final activeTabs = _selectedTabs.isEmpty ? _events.keys : _selectedTabs;
 
     for (var tab in activeTabs) {
@@ -96,7 +94,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     return visibleEvents;
   }
 
-  // Events list under calendar
   List<Map<String, String>> _getEventsForDay(DateTime day) {
     final dateKey =
         '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
@@ -145,7 +142,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
           children: [
             const SizedBox(height: 8),
 
-            // --- Top Buttons ---
             Row(
               children: [
                 Expanded(
@@ -164,7 +160,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
             const SizedBox(height: 16),
 
-            // --- Toggle Tabs ---
+            // Tabs
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -224,7 +220,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
             const SizedBox(height: 14),
 
-            // --- Calendar ---
+            //calendar
             Flexible(
               flex: 3,
               child: TableCalendar(
@@ -286,7 +282,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
             const SizedBox(height: 8),
 
-            // --- Add Event Button ---
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF7496B3),
@@ -300,7 +295,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
             const SizedBox(height: 12),
 
-            // --- Event List ---
             Expanded(
               child: ListView(
                 children: _getEventsForDay(_selectedDay ?? DateTime.now())
@@ -330,7 +324,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     );
   }
 
-  // --- Top Icon Buttons ---
   Widget _topButton(
       {required IconData icon,
       required String label,
