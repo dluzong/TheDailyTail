@@ -60,3 +60,5 @@ app.*.map.json
 # Windows / Linux
 windows/flutter/
 linux/flutter/
+
+.env
