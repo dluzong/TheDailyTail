@@ -62,4 +62,4 @@ windows/flutter/
 linux/flutter/
 
 #environmental variables
-.env
+.env*
