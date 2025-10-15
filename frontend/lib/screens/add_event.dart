@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class AddEventPage extends StatefulWidget {
-  final DateTime selectedDate;
-  const AddEventPage({super.key, required this.selectedDate});
+  final DateTime? selectedDate;
+  const AddEventPage({super.key, this.selectedDate});
 
   @override
   State<AddEventPage> createState() => _AddEventPageState();
@@ -14,26 +14,27 @@ class _AddEventPageState extends State<AddEventPage> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
   String _desc = '';
-  late DateTime _selectedDate;
+  DateTime? _selectedDate;
   String _selectedCategory = 'Appointments';
 
   final Map<String, Color> tabColors = {
-    'Appointments': const Color(0xFF34D399), // Green
-    'Vaccinations': const Color(0xFF8B5CF6), // Purple
-    'Events': const Color(0xFF60A5FA), // Blue
-    'Other': const Color(0xFFFBBF24), // Yellow/Orange
+    'Appointments': const Color(0xFF34D399),
+    'Vaccinations': const Color(0xFF8B5CF6),
+    'Events': const Color(0xFF60A5FA),
+    'Other': const Color(0xFFFBBF24),
   };
 
   @override
   void initState() {
     super.initState();
+    // Only prefill if a date was explicitly passed in
     _selectedDate = widget.selectedDate;
   }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
@@ -74,17 +75,23 @@ class _AddEventPageState extends State<AddEventPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}',
-                    style: GoogleFonts.inknutAntiqua(fontSize: 12),
+                  Expanded(
+                    child: Text(
+                      _selectedDate == null
+                          ? 'No date selected'
+                          : 'Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}',
+                      style: GoogleFonts.inknutAntiqua(fontSize: 12),
+                    ),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7496B3),
                     ),
                     onPressed: _pickDate,
-                    child: const Text('Select Date',
-                        style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Select Date',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -131,7 +138,6 @@ class _AddEventPageState extends State<AddEventPage> {
               ),
               const SizedBox(height: 30),
 
-              // --- Save Button ---
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7496B3),
@@ -142,19 +148,31 @@ class _AddEventPageState extends State<AddEventPage> {
                 ),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
+                    if (_selectedDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Please select a date first.')),
+                      );
+                      return;
+                    }
+
                     _formKey.currentState!.save();
                     Navigator.pop(context, {
                       'title': _title,
                       'desc': _desc,
                       'category': _selectedCategory,
                       'date':
-                          '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+                          '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
                     });
                   }
                 },
-                child: Text('Save Event',
-                    style: GoogleFonts.inknutAntiqua(
-                        fontSize: 12, color: Colors.white)),
+                child: Text(
+                  'Save Event',
+                  style: GoogleFonts.inknutAntiqua(
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ],
           ),
