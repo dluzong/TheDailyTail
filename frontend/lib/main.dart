@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
 import 'screens/launch_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'default');
-const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'default');
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
+  await dotenv.load(fileName: ".env");
+
+  // read values from dotenv (runtime, not compile-time)
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+
+
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
     throw Exception(
         'Supabase URL and Anon Key must be provided at compile time.');
   }
 
   WidgetsFlutterBinding.ensureInitialized();
-
   await Supabase.initialize(
     url: supabaseUrl,
-    anonKey: supabaseAnonKey,
+    anonKey: supabaseAnonKey
   );
 
+  debugPrint('Supabase initialized');
+  debugPrint('supabaseUrl: $supabaseUrl');
   runApp(const MyApp());
 }
 
