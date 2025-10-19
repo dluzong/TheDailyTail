@@ -104,7 +104,6 @@ class _MedicationPopupState extends State<MedicationPopup> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Title
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text(
@@ -227,11 +226,10 @@ class _MedicationPopupState extends State<MedicationPopup> {
     );
   }
 
-  // Dropdown that visually matches _inputField
   Widget _dropdownField() {
     return SizedBox(
       width: 150,
-      height: 40, // 👈 Force same height as TextField visually
+      height: 40,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
@@ -239,7 +237,7 @@ class _MedicationPopupState extends State<MedicationPopup> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.grey.shade300),
         ),
-        alignment: Alignment.center, // 👈 Centers the dropdown text
+        alignment: Alignment.center,
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: _selectedFrequency,
