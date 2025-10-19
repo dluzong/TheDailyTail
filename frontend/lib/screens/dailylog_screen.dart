@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../shared/app_layout.dart';
 import 'add_event.dart';
+import 'meal_plan_popup.dart';
+import 'medication_popup.dart';
 
 class DailyLogScreen extends StatefulWidget {
   const DailyLogScreen({super.key});
@@ -16,7 +19,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   DateTime? _selectedDay;
   final Set<String> _selectedTabs = {};
 
-//---- Dummy Data----
+  // ---- Dummy Data ----
   final Map<String, List<Map<String, String>>> _events = {
     'Appointments': [
       {
@@ -125,6 +128,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 children: [
                   const SizedBox(height: 8),
 
+                  // ---- Top Buttons ----
                   Row(
                     children: [
                       Expanded(
@@ -135,17 +139,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                             'Meal Plan',
                             const Icon(Icons.restaurant_menu,
                                 size: 50, color: Color(0xFF7496B3)),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Breakfast: Chicken & Rice',
-                                    style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 12)),
-                                Text('Dinner: Salmon & Veggies',
-                                    style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 12)),
-                              ],
-                            ),
+                            const MealPlanPopup(),
                           ),
                         ),
                       ),
@@ -158,17 +152,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                             'Medication',
                             const Icon(Icons.medication,
                                 size: 50, color: Color(0xFF7496B3)),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Heartworm Pill: Oct 10',
-                                    style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 12)),
-                                Text('Flea Treatment: Oct 12',
-                                    style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 12)),
-                              ],
-                            ),
+                            const MedicationPopup(),
                           ),
                         ),
                       ),
@@ -177,6 +161,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
                   const SizedBox(height: 16),
 
+                  // ---- Category Tabs ----
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
@@ -227,7 +212,8 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                   ),
 
                   const SizedBox(height: 10),
-                  //---- Calendar ---
+
+                  // ---- Calendar ----
                   TableCalendar(
                     firstDay: DateTime.utc(2020, 1, 1),
                     lastDay: DateTime.utc(2030, 12, 31),
@@ -287,6 +273,8 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                   ),
 
                   const SizedBox(height: 14),
+
+                  // ---- Add Event Button ----
                   Center(
                     child: SizedBox(
                       width: 180,
@@ -308,6 +296,8 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 ],
               ),
             ),
+
+            // ---- Event List ----
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -340,6 +330,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                     _getEventsForDay(_selectedDay ?? DateTime.now()).length,
               ),
             ),
+
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         ),
@@ -377,13 +368,19 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   void _showDialog(String title, Widget front, Widget back) {
     showDialog(
       context: context,
-      builder: (context) =>
-          FlipCardDialog(title: title, frontContent: front, backContent: back),
+      builder: (context) => FlipCardDialog(
+        title: title,
+        frontContent: front,
+        backContent: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: back,
+        ),
+      ),
     );
   }
 }
 
-//---- Widget popup animation---
+// ---- Widget popup animation ----
 class FlipCardDialog extends StatefulWidget {
   final String title;
   final Widget frontContent;
@@ -416,6 +413,9 @@ class _FlipCardDialogState extends State<FlipCardDialog>
 
   @override
   Widget build(BuildContext context) {
+    final double dialogHeight = MediaQuery.of(context).size.height * 0.7;
+    final double dialogWidth = MediaQuery.of(context).size.width * 0.85;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24),
@@ -431,7 +431,8 @@ class _FlipCardDialogState extends State<FlipCardDialog>
             transform: transform,
             alignment: Alignment.center,
             child: Container(
-              height: 260,
+              width: dialogWidth,
+              height: dialogHeight,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -457,28 +458,35 @@ class _FlipCardDialogState extends State<FlipCardDialog>
     );
   }
 
-  Widget _buildFront(BuildContext context) => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(widget.title,
-              style: GoogleFonts.inknutAntiqua(
-                  fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          widget.frontContent,
-        ],
+  Widget _buildFront(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(widget.title,
+                style: GoogleFonts.inknutAntiqua(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            widget.frontContent,
+          ],
+        ),
       );
 
-  Widget _buildBack(BuildContext context) => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          widget.backContent,
-          const SizedBox(height: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7496B3)),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+  Widget _buildBack(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(child: widget.backContent),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7496B3)),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       );
 }
