@@ -17,10 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _supabase = Supabase.instance.client;
 
   Future<void> _signIn() async {
-  setState(() => _isLoading = true); // <-- ensure loading state
-   try {
-    //debugPrint('supabaseUrl: $supabaseUrl');
-    //debugPrint('supabaseAnonKey: ${supabaseAnonKey.substring(0, 10)}...');
+    setState(() => _isLoading = true); // <-- ensure loading state
+    try {
       debugPrint('Attempting sign in with email=${_email.text}');
       final res = await _supabase.auth.signInWithPassword(
         email: _email.text,
@@ -37,23 +35,13 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-        // update a profiles table so you can see last access in the DB client
-        await _supabase
-            .from('profiles')
-            .update({'last_login': DateTime.now().toIso8601String()})
-            .eq('id', user.id);
-
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged in')));
         // navigate or refresh UI as needed
       } catch (err) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.toString())));
-        debugPrint('signIn error');
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Signed in?')),
-      );
-    }
+        debugPrint('Log in error');
+      }
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -81,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     buildDogIcon(),
                     const SizedBox(height: 35),
                     buildAppTextField(
-                      hint: "Username or Email",
+                      hint: "Email",
                       controller: _email
                     ),
                     const SizedBox(height: 15),
