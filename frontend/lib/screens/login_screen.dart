@@ -17,8 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _supabase = Supabase.instance.client;
 
   Future<void> _signIn() async {
-  setState(() => _isLoading = true); // <-- ensure loading state
-   try {
+    setState(() => _isLoading = true); // <-- ensure loading state
+    try {
       debugPrint('Attempting sign in with email=${_email.text}');
       final res = await _supabase.auth.signInWithPassword(
         email: _email.text,
@@ -40,12 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } catch (err) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.toString())));
         debugPrint('Log in error');
-      } //finally {
-        //if (mounted) setState(() => _isLoading = false);
-        //ScaffoldMessenger.of(context).showSnackBar(
-        //SnackBar(content: Text('Log in successful!')),
-      //);r
-    //}
+      }
     if (mounted) setState(() => _isLoading = false);
   }
 
@@ -74,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     buildDogIcon(),
                     const SizedBox(height: 35),
                     buildAppTextField(
-                      hint: "Username or Email",
+                      hint: "Email",
                       controller: _email
                     ),
                     const SizedBox(height: 15),
