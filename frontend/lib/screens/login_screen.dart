@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../shared/starting_widgets.dart';
 
@@ -36,6 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged in')));
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          (Route<dynamic> route) => false,
+        );
         // navigate or refresh UI as needed
       } catch (err) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.toString())));
