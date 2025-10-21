@@ -33,7 +33,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
         'desc': 'Check recovery progress'
       },
     ],
-    'Medication': [
+    'Vaccinations': [
       {
         'date': '2025-10-10',
         'title': 'Heartworm Pill',
@@ -73,7 +73,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
   final Map<String, Color> tabColors = {
     'Appointments': const Color(0xFF34D399),
-    'Medication': const Color(0xFF8B5CF6),
+    'Vaccinations': const Color(0xFF8B5CF6),
     'Events': const Color(0xFF60A5FA),
     'Other': const Color(0xFFFBBF24),
   };
@@ -165,8 +165,12 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: ['Events', 'Appointments', 'Medication', 'Other']
-                        .map((tab) {
+                    children: [
+                      'Events',
+                      'Appointments',
+                      'Vaccinations',
+                      'Other'
+                    ].map((tab) {
                       final isSelected = _selectedTabs.contains(tab);
                       return GestureDetector(
                         onTap: () {
