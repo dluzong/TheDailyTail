@@ -77,6 +77,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   
   late List<Pet> _pets;
 
+  bool _isDirty = false;
+
   late TextEditingController _nameController;
   late TextEditingController _usernameController;
   List<TextEditingController> _petNameControllers = [];
@@ -94,10 +96,29 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   void _initializePetControllers() {
-    _petNameControllers = _pets.map((pet) => TextEditingController(text: pet.name)).toList();
-    _petTypeControllers = _pets.map((pet) => TextEditingController(text: pet.type)).toList();
-    _petBreedControllers = _pets.map((pet) => TextEditingController(text: pet.breed)).toList();
-    _petAgeControllers = _pets.map((pet) => TextEditingController(text: pet.age.toString())).toList();
+    _petNameControllers = _pets.map((pet) {
+      final c = TextEditingController(text: pet.name);
+      c.addListener(() => _markDirty());
+      return c;
+    }).toList();
+
+    _petTypeControllers = _pets.map((pet) {
+      final c = TextEditingController(text: pet.type);
+      c.addListener(() => _markDirty());
+      return c;
+    }).toList();
+
+    _petBreedControllers = _pets.map((pet) {
+      final c = TextEditingController(text: pet.breed);
+      c.addListener(() => _markDirty());
+      return c;
+    }).toList();
+
+    _petAgeControllers = _pets.map((pet) {
+      final c = TextEditingController(text: pet.age.toString());
+      c.addListener(() => _markDirty());
+      return c;
+    }).toList();
   }
 
   @override
@@ -119,6 +140,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     super.dispose();
   }
 
+  void _markDirty() {
+    if (!_isDirty) setState(() => _isDirty = true);
+  }
+
   void _saveSettings() {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -134,15 +159,23 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           );
         }
         
-        // add code to update the pet list
+        // notify parent with updated pet list
+        try {
+          widget.onPetsUpdated(List<Pet>.from(_pets));
+        } catch (_) {
+          // ignore if parent doesn't care
+        }
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Settings saved successfully!'),
-          backgroundColor: Colors.green,
+          content: Text('Settings have been saved!'),
+          backgroundColor: const Color.fromARGB(255, 114, 201, 182),
         ),
       );
+      // close settings and return to previous screen
+      _isDirty = false;
+      Navigator.of(context).pop();
     }
   }
 
@@ -151,8 +184,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       final newPet = Pet(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: 'pet name',
-        type: 'pet type',
-        breed: 'pet breed',
+        type: '',
+        breed: '',
         age: 0,
       );
       _pets.add(newPet);
@@ -160,6 +193,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       _petTypeControllers.add(TextEditingController(text: newPet.type));
       _petBreedControllers.add(TextEditingController(text: newPet.breed));
       _petAgeControllers.add(TextEditingController(text: newPet.age.toString()));
+      _markDirty();
       
       // add functionality back to pet_list
     });
@@ -173,7 +207,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         _petTypeControllers.removeAt(index);
         _petBreedControllers.removeAt(index);
         _petAgeControllers.removeAt(index);
-        
+        _markDirty();
         // add functionality back to pet_list
       });
     } else {
@@ -186,13 +220,67 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     }
   }
 
+  Future<bool> _onWillPop() async {
+    if (!_isDirty) return true;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved changes'),
+        content: const Text('You have unsaved changes. Save before leaving or discard changes?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('discard'),
+            child: const Text('Discard'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop('save'),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'save') {
+      _saveSettings();
+      // _saveSettings will pop the page
+      return false;
+    }
+
+    if (result == 'discard') {
+      return true; // allow pop without saving
+    }
+
+    return false; // cancel
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
       currentIndex: widget.currentIndex,
       onTabSelected: widget.onTabSelected,
-      child: Stack(
-        children: [
+      child: WillPopScope(
+        onWillPop: _onWillPop,
+        child: Stack(
+          children: [
+          // back button at top-left
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                onPressed: () async {
+                  final shouldPop = await _onWillPop();
+                  if (shouldPop) Navigator.of(context).pop();
+                },
+                tooltip: 'Back',
+              ),
+            ),
+          ),
           SingleChildScrollView(
             padding: EdgeInsets.all(16.0),
             child: Form(
@@ -246,7 +334,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSectionHeader(String title) {
@@ -364,9 +453,27 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             ),
             SizedBox(height: 16),
             Center(
-              child: buildAppTextField(
-                hint: 'Breed',
-                controller: _petBreedControllers[index],
+              child: SizedBox(
+                width: 300,
+                child: TextField(
+                  controller: _petBreedControllers[index],
+                  style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                  decoration: InputDecoration(
+                    hintText: 'Breed',
+                    hintStyle: GoogleFonts.inknutAntiqua(color: Colors.grey[600]),
+                    filled: true,
+                    fillColor: Colors.grey[200],
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 15,
+                      horizontal: 20,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (_) => _markDirty(),
+                ),
               ),
             ),
           ],
