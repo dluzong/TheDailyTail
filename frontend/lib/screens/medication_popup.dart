@@ -33,8 +33,6 @@ class _MedicationPopupState extends State<MedicationPopup> {
         _medications.clear();
         _medications.addAll(decoded.map((e) => Map<String, dynamic>.from(e)));
       });
-    } else {
-      // No saved medications, start with an empty list
     }
   }
 
@@ -76,127 +74,73 @@ class _MedicationPopupState extends State<MedicationPopup> {
 
   @override
   Widget build(BuildContext context) {
-    final maxHeight = MediaQuery.of(context).size.height * 0.78;
-    final maxListHeight =
-        maxHeight * 0.5; // list won't exceed half the popup height
-
-    return SafeArea(
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          constraints: BoxConstraints(
-            maxWidth: 600,
-            maxHeight: maxHeight,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    'Medications',
-                    style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-
-                _medications.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
-                        child: Text(
-                          'No medications yet — add one below.',
-                          style: GoogleFonts.inknutAntiqua(fontSize: 12),
-                        ),
-                      )
-                    : ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: maxListHeight,
-                        ),
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: _medications.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final med = _medications[index];
-                            return ListTile(
-                              dense: true,
-                              title: Text(med['name'],
-                                  style:
-                                      GoogleFonts.inknutAntiqua(fontSize: 13)),
-                              subtitle: Text(
-                                'Dosage: ${med['dosage']}  •  ${med['freq']}',
-                                style: GoogleFonts.inknutAntiqua(fontSize: 11),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () => _removeMedication(index),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                const Divider(height: 1),
-                const SizedBox(height: 8),
-
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _inputField(_nameController, 'Medication'),
-                      _inputField(_dosageController, 'Dosage'),
-                      _dropdownField(),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7496B3),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: _addMedication,
-                        child: Text(
-                          'Add',
-                          style: GoogleFonts.inknutAntiqua(
-                              fontSize: 13, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Close/save row
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text('Close',
-                          style: GoogleFonts.inknutAntiqua(fontSize: 13)),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 420),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _medications.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Text(
+                      'No medications yet — add one below.',
+                      style: GoogleFonts.inknutAntiqua(fontSize: 12),
                     ),
-                  ],
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _medications.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final med = _medications[index];
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          med['name'],
+                          style: GoogleFonts.inknutAntiqua(fontSize: 13),
+                        ),
+                        subtitle: Text(
+                          'Dosage: ${med['dosage']}  •  ${med['freq']}',
+                          style: GoogleFonts.inknutAntiqua(fontSize: 11),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _removeMedication(index),
+                        ),
+                      );
+                    },
+                  ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                _inputField(_nameController, 'Medication'),
+                _inputField(_dosageController, 'Dosage'),
+                _dropdownField(),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7496B3),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: _addMedication,
+                  child: Text(
+                    'Add',
+                    style: GoogleFonts.inknutAntiqua(
+                        fontSize: 13, color: Colors.white, letterSpacing: 0.5),
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );

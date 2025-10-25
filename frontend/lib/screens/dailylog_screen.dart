@@ -19,57 +19,78 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   DateTime? _selectedDay;
   final Set<String> _selectedTabs = {};
 
-  // ---- Dummy Data ----
-  final Map<String, List<Map<String, String>>> _events = {
-    'Appointments': [
-      {
-        'date': '2025-10-02',
-        'title': 'Vet Checkup',
-        'desc': 'Dental check at Whisker Wellness'
-      },
-      {
-        'date': '2025-10-12',
-        'title': 'Follow-up Visit',
-        'desc': 'Check recovery progress'
-      },
-    ],
-    'Vaccinations': [
-      {
-        'date': '2025-10-10',
-        'title': 'Heartworm Pill',
-        'desc': 'Monthly preventive dose'
-      },
-      {
-        'date': '2025-10-12',
-        'title': 'Flea Treatment',
-        'desc': 'Apply topical treatment'
-      },
-    ],
-    'Events': [
-      {
-        'date': '2025-10-04',
-        'title': 'Play date with Bella',
-        'desc': 'At the dog park, 3 PM'
-      },
-      {
-        'date': '2025-10-12',
-        'title': 'Agility Training',
-        'desc': 'At Paw Park, 9 AM'
-      },
-    ],
-    'Other': [
-      {
-        'date': '2025-10-08',
-        'title': 'Grooming Day',
-        'desc': 'Nail trim & bath'
-      },
-      {
-        'date': '2025-10-12',
-        'title': 'Pet Photoshoot',
-        'desc': 'Holiday-themed session'
-      },
-    ],
+  // --- Pet selection ---
+  final List<String> _pets = ['Daisy', 'Teddy', 'Aries'];
+  String _selectedPet = 'Daisy';
+
+  // ---- Dummy data per pet ----
+  final Map<String, Map<String, List<Map<String, String>>>> _allPetEvents = {
+    'Daisy': {
+      'Appointments': [
+        {
+          'date': '2025-10-02',
+          'title': 'Vet Checkup',
+          'desc': 'Dental check at Whisker Wellness'
+        },
+        {
+          'date': '2025-10-12',
+          'title': 'Follow-up Visit',
+          'desc': 'Check recovery progress'
+        },
+      ],
+      'Vaccinations': [
+        {
+          'date': '2025-10-10',
+          'title': 'Heartworm Pill',
+          'desc': 'Monthly preventive dose'
+        },
+        {
+          'date': '2025-10-12',
+          'title': 'Flea Treatment',
+          'desc': 'Apply topical treatment'
+        },
+      ],
+      'Events': [
+        {
+          'date': '2025-10-04',
+          'title': 'Play date with Bella',
+          'desc': 'At the dog park, 3 PM'
+        },
+        {
+          'date': '2025-10-12',
+          'title': 'Agility Training',
+          'desc': 'At Paw Park, 9 AM'
+        },
+      ],
+      'Other': [
+        {
+          'date': '2025-10-08',
+          'title': 'Grooming Day',
+          'desc': 'Nail trim & bath'
+        },
+        {
+          'date': '2025-10-12',
+          'title': 'Pet Photoshoot',
+          'desc': 'Holiday-themed session'
+        },
+      ],
+    },
+    'Teddy': {
+      'Appointments': [],
+      'Vaccinations': [],
+      'Events': [],
+      'Other': [],
+    },
+    'Aries': {
+      'Appointments': [],
+      'Vaccinations': [],
+      'Events': [],
+      'Other': [],
+    },
   };
+
+  Map<String, List<Map<String, String>>> get _events =>
+      _allPetEvents[_selectedPet]!;
 
   final Map<String, Color> tabColors = {
     'Appointments': const Color(0xFF34D399),
@@ -115,7 +136,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      currentIndex: 1,
+      currentIndex: 0,
       onTabSelected: (index) {},
       child: Container(
         color: const Color(0xFFEFF6FB),
@@ -127,6 +148,34 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
+
+                  // ---- Pet Dropdown ----
+                  Row(
+                    children: [
+                      const Text('Pet: ', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 10),
+                      DropdownButton<String>(
+                        value: _selectedPet,
+                        items: _pets
+                            .map((p) => DropdownMenuItem(
+                                  value: p,
+                                  child: Text(
+                                    p,
+                                    style: GoogleFonts.lato(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() => _selectedPet = v);
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
 
                   // ---- Top Buttons ----
                   Row(

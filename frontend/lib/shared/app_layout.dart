@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/dailylog_meal.dart';
+import '../screens/dailylog_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/community_screen.dart';
 
@@ -33,7 +33,7 @@ class _AppLayoutState extends State<AppLayout> {
     Widget? destination;
     switch (index) {
       case 0:
-        destination = const DailyLogMealScreen();
+        destination = const DailyLogScreen();
         break;
       case 1:
         destination = const DashboardScreen();
