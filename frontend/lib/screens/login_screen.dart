@@ -1,15 +1,48 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../shared/starting_widgets.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _supabase = Supabase.instance.client;
+
+  Future<void> _signIn() async {
+    setState(() => _isLoading = true); // <-- ensure loading state
+    try {
+      debugPrint('Attempting sign in with email=${_email.text}');
+      final res = await _supabase.auth.signInWithPassword(
+        email: _email.text,
+        password: _password.text,
+      );
+
+      final user = res.user;
+      debugPrint('signIn response: $res');
+      if (user == null) {
+          // SDK doesn't expose `res.error` here — show a generic messages.
+          debugPrint('User == null');
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Login failed')));
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged in')));
+        // navigate or refresh UI as needed
+      } catch (err) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.toString())));
+        debugPrint('Log in error');
+      }
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +68,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 25),
                     buildDogIcon(),
                     const SizedBox(height: 35),
-                    buildAppTextField(hint: "Username or Email"),
+                    buildAppTextField(
+                      hint: "Email",
+                      controller: _email
+                    ),
                     const SizedBox(height: 15),
                     buildAppTextField(
                       hint: "Password",
                       obscure: _obscurePassword,
+                      controller: _password,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -55,11 +92,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 25),
-                    buildAppButton(
-                      text: "Login",
-                      onPressed: () {
-                        // TODO: Add login logic
-                      },
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : () { _signIn(); },
+                      child: Text(_isLoading ? 'Logging in...' : 'Log In'),
                     ),
                   ],
                 ),
