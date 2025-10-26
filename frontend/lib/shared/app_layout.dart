@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../screens/dailylog_screen.dart';
+import '../screens/dashboard_screen.dart';
+import '../screens/community_screen.dart';
 
-class AppLayout extends StatelessWidget {
+class AppLayout extends StatefulWidget {
   final Widget child;
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
@@ -12,6 +15,47 @@ class AppLayout extends StatelessWidget {
     required this.currentIndex,
     required this.onTabSelected,
   });
+
+  @override
+  State<AppLayout> createState() => _AppLayoutState();
+}
+
+class _AppLayoutState extends State<AppLayout> {
+  late int currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.currentIndex;
+  }
+
+  void _navigateToIndex(int index) {
+    Widget? destination;
+    switch (index) {
+      case 0:
+        destination = const DailyLogScreen();
+        break;
+      case 1:
+        destination = const DashboardScreen();
+        break;
+      case 2:
+        destination = const CommunityBoardScreen();
+        break;
+    }
+
+    if (destination != null) {
+      // Replace current route so tabs don't stack
+      Navigator.pushReplacement(
+        context,
+        // MaterialPageRoute(builder: (_) => destination!),
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => destination!,
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +92,7 @@ class AppLayout extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: child),
+          Expanded(child: widget.child),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -59,7 +103,14 @@ class AppLayout extends StatelessWidget {
                   currentIndex: currentIndex,
                   selectedItemColor: Colors.black,
                   unselectedItemColor: Colors.grey,
-                  onTap: onTabSelected,
+                  onTap: (index) {
+                    if (index == currentIndex) return;
+                    widget.onTabSelected(index);
+                    setState(() {
+                      currentIndex = index;
+                    });
+                    _navigateToIndex(index);
+                  },
                   elevation: 0,
                   type: BottomNavigationBarType.fixed,
                   selectedLabelStyle: GoogleFonts.inknutAntiqua(
