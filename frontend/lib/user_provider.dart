@@ -44,15 +44,28 @@ class UserProvider extends ChangeNotifier {
       return;
     }
 
+    debugPrint("User logged in");
     // if logged in, get user id
     final userId = session.user.id;
 
-    // get user data from 'users' table in supabase
-    final response =
-        await _supabase.from('users').select().eq('user_id', userId).single();
+    debugPrint("User id retrieved");
 
-    // save user data to _user
+    // get user data from 'users' table in supabase
+    final response = await _supabase
+        .from('users')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (response == null) {
+      debugPrint("No user row found for user_id: $userId");
+      _user = null;
+      notifyListeners();
+      return;
+    }
+
     _user = AppUser.fromMap(response);
+    debugPrint("saved user data");
     notifyListeners();
   }
 
