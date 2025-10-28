@@ -167,7 +167,7 @@ class _AppLayoutState extends State<AppLayout> {
 
                 // Floating home button with label
                 Positioned(
-                  bottom: 70, // slightly higher
+                  bottom: 70,
                   child: Column(
                     children: [
                       GestureDetector(
