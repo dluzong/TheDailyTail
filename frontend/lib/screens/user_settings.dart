@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../shared/app_layout.dart';
 import '../shared/starting_widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'add_pet_screen.dart';
 
 class Pet {
   final String id;
@@ -55,6 +56,7 @@ class UserSettingsPage extends StatefulWidget {
   final ValueChanged<int> onTabSelected;
   final List<Pet> initialPets;
   final ValueChanged<List<Pet>> onPetsUpdated;
+  final ValueChanged<Map<String, String>>? onProfileUpdated;
 
   const UserSettingsPage({
     super.key,
@@ -62,10 +64,10 @@ class UserSettingsPage extends StatefulWidget {
     required this.onTabSelected,
     required this.initialPets,
     required this.onPetsUpdated,
+    this.onProfileUpdated,
   });
 
   @override
-  // ignore: library_private_types_in_public_api
   _UserSettingsPageState createState() => _UserSettingsPageState();
 }
 
@@ -79,12 +81,13 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
   bool _isDirty = false;
 
+  // Notification preferences
+  bool _notifyEmail = true;
+  bool _notifyPush = true;
+
   late TextEditingController _nameController;
   late TextEditingController _usernameController;
-  List<TextEditingController> _petNameControllers = [];
-  List<TextEditingController> _petTypeControllers = [];
-  List<TextEditingController> _petBreedControllers = [];
-  List<TextEditingController> _petAgeControllers = [];
+  // Settings now only show pet name and photo; no per-pet edit controllers required here.
 
   @override
   void initState() {
@@ -92,51 +95,12 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     _pets = List.from(widget.initialPets);
     _nameController = TextEditingController(text: _name);
     _usernameController = TextEditingController(text: _username);
-    _initializePetControllers();
-  }
-
-  void _initializePetControllers() {
-    _petNameControllers = _pets.map((pet) {
-      final c = TextEditingController(text: pet.name);
-      c.addListener(() => _markDirty());
-      return c;
-    }).toList();
-
-    _petTypeControllers = _pets.map((pet) {
-      final c = TextEditingController(text: pet.type);
-      c.addListener(() => _markDirty());
-      return c;
-    }).toList();
-
-    _petBreedControllers = _pets.map((pet) {
-      final c = TextEditingController(text: pet.breed);
-      c.addListener(() => _markDirty());
-      return c;
-    }).toList();
-
-    _petAgeControllers = _pets.map((pet) {
-      final c = TextEditingController(text: pet.age.toString());
-      c.addListener(() => _markDirty());
-      return c;
-    }).toList();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _usernameController.dispose();
-    for (var controller in _petNameControllers) {
-      controller.dispose();
-    }
-    for (var controller in _petTypeControllers) {
-      controller.dispose();
-    }
-    for (var controller in _petBreedControllers) {
-      controller.dispose();
-    }
-    for (var controller in _petAgeControllers) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
@@ -149,21 +113,16 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       setState(() {
         _name = _nameController.text;
         _username = _usernameController.text;
-        
-        for (int i = 0; i < _pets.length; i++) {
-          _pets[i] = _pets[i].copyWith(
-            name: _petNameControllers[i].text,
-            type: _petTypeControllers[i].text,
-            breed: _petBreedControllers[i].text,
-            age: int.tryParse(_petAgeControllers[i].text) ?? _pets[i].age,
-          );
-        }
-        
-        // notify parent with updated pet list
+        // Pets are managed by add/remove; individual per-pet editing is not exposed here.
+        // Notify parent about profile (name/username) changes if they provided a callback.
+        try {
+          widget.onProfileUpdated?.call({'name': _name, 'username': _username});
+        } catch (_) {}
+        // attempt to update the pet list
         try {
           widget.onPetsUpdated(List<Pet>.from(_pets));
         } catch (_) {
-          // ignore if parent doesn't care
+          // parent doesn't update pet list
         }
       });
 
@@ -179,23 +138,28 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     }
   }
 
-  void _addNewPet() {
+  Future<void> _addNewPet() async {
+    // Push the AddPetScreen and expect a Map<String, dynamic> describing the pet.
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(builder: (context) => const AddPetScreen()),
+    );
+
+    if (result == null) return;
+
     setState(() {
       final newPet = Pet(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: 'pet name',
-        type: '',
-        breed: '',
-        age: 0,
+        id: result['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        name: result['name'] as String? ?? '',
+        type: result['type'] as String? ?? '',
+        breed: result['breed'] as String? ?? '',
+        age: (result['age'] is int)
+            ? result['age'] as int
+            : int.tryParse(result['age']?.toString() ?? '') ?? 0,
+        imageUrl: result['imageUrl'] as String? ?? '',
       );
+
       _pets.add(newPet);
-      _petNameControllers.add(TextEditingController(text: newPet.name));
-      _petTypeControllers.add(TextEditingController(text: newPet.type));
-      _petBreedControllers.add(TextEditingController(text: newPet.breed));
-      _petAgeControllers.add(TextEditingController(text: newPet.age.toString()));
       _markDirty();
-      
-      // add functionality back to pet_list
     });
   }
 
@@ -203,10 +167,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     if (_pets.length > 1) {
       setState(() {
         _pets.removeAt(index);
-        _petNameControllers.removeAt(index);
-        _petTypeControllers.removeAt(index);
-        _petBreedControllers.removeAt(index);
-        _petAgeControllers.removeAt(index);
         _markDirty();
         // add functionality back to pet_list
       });
@@ -247,15 +207,15 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
     if (result == 'save') {
       _saveSettings();
-      // _saveSettings will pop the page
+      // leave the page after saving settings
       return false;
     }
 
     if (result == 'discard') {
-      return true; // allow pop without saving
+      return true; // leave page without saving
     }
 
-    return false; // cancel
+    return false; // cancel 'leaving page'
   }
 
   @override
@@ -263,23 +223,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     return AppLayout(
       currentIndex: widget.currentIndex,
       onTabSelected: widget.onTabSelected,
-      child: WillPopScope(
-        onWillPop: _onWillPop,
+      child: PopScope(
         child: Stack(
           children: [
-          // back button at top-left
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                onPressed: () async {
-                  final shouldPop = await _onWillPop();
-                  if (shouldPop) Navigator.of(context).pop();
-                },
-                tooltip: 'Back',
-              ),
-            ),
+          // back button
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Back',
           ),
           SingleChildScrollView(
             padding: EdgeInsets.all(16.0),
@@ -311,8 +262,13 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                   ),
                   
                   SizedBox(height: 32),
-
                   _buildPetsSection(),
+
+                  const SizedBox(height: 20),
+                  _buildNotificationsSection(),
+
+                  const SizedBox(height: 12),
+                  _buildLogoutButton(),
                   
                   SizedBox(height: 100),
                 ],
@@ -376,107 +332,91 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             ),
           ],
         ),
-        
         ...List.generate(_pets.length, (index) {
-          return _buildPetCard(index);
+          final pet = _pets[index];
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+              leading: CircleAvatar(
+                radius: 28,
+                backgroundImage: pet.imageUrl.isNotEmpty ? AssetImage(pet.imageUrl) as ImageProvider : null,
+                backgroundColor: const Color(0xFFBFD4E6),
+                child: pet.imageUrl.isEmpty ? const Icon(Icons.pets, color: Colors.white) : null,
+              ),
+              title: Text(pet.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _removePet(index),
+                tooltip: 'Remove Pet',
+              ),
+            ),
+          );
         }),
       ],
     );
   }
 
-  Widget _buildPetCard(int index) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Pet ${index + 1}',
-                  style: GoogleFonts.inknutAntiqua(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Color(0xFF7496B3),
-                  ),
-                ),
-                if (_pets.length > 1)
-                  IconButton(
-                    onPressed: () => _removePet(index),
-                    icon: Icon(Icons.delete, color: Colors.black, size: 24),
-                    tooltip: 'Remove Pet',
-                  ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Center(
-              child: buildAppTextField(
-                hint: 'Pet Name',
-                controller: _petNameControllers[index],
+  Widget _buildNotificationsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Notifications'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Column(
+            children: [
+              SwitchListTile(
+                title: Text('Email notifications', style: GoogleFonts.inknutAntiqua(fontSize: 16)),
+                value: _notifyEmail,
+                onChanged: (v) => setState(() {
+                  _notifyEmail = v;
+                  _markDirty();
+                }),
               ),
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Center(
-                    child: SizedBox(
-                      width: 140,
-                      child: buildAppTextField(
-                        hint: 'Type',
-                        controller: _petTypeControllers[index],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Center(
-                    child: SizedBox(
-                      width: 140,
-                      child: buildAppTextField(
-                        hint: 'Age',
-                        controller: _petAgeControllers[index],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Center(
-              child: SizedBox(
-                width: 300,
-                child: TextField(
-                  controller: _petBreedControllers[index],
-                  style: GoogleFonts.inknutAntiqua(fontSize: 16),
-                  decoration: InputDecoration(
-                    hintText: 'Breed',
-                    hintStyle: GoogleFonts.inknutAntiqua(color: Colors.grey[600]),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 15,
-                      horizontal: 20,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: (_) => _markDirty(),
-                ),
+              SwitchListTile(
+                title: Text('Push notifications', style: GoogleFonts.inknutAntiqua(fontSize: 16)),
+                value: _notifyPush,
+                onChanged: (v) => setState(() {
+                  _notifyPush = v;
+                  _markDirty();
+                }),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Center(
+        child: buildAppButton(
+          text: 'Log out',
+          onPressed: () async {
+            final should = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Log out'),
+                content: const Text('Are you sure you want to log out?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+                  ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Log out')),
+                ],
+              ),
+            );
+
+            if (should == true) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged out')));
+              // Close settings and return to previous screen. Real logout flow can be added later.
+              Navigator.of(context).pop();
+            }
+          },
+          width: 200,
         ),
       ),
     );

@@ -13,6 +13,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  String _fullName = 'Your Name';
+  String _username = 'username';
   final List<Pet> _pets = [
     Pet(
       name: 'Daisy',
@@ -31,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final PageController _pageController;
   // simulates a infinite scroll so the user can scroll in a loop on both ends
   static const int _kFakeMiddle = 10000;
-  int _currentPage = 0; // logical index into _pets
+  int _currentPage = 0; // index for pets list
 
   @override
   void initState() {
@@ -42,6 +44,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // set initial logical page
     _currentPage = 0;
+    // initial profile values (can be updated from settings)
+    _fullName = 'Your Name';
+    _username = 'username';
   }
 
   @override
@@ -66,9 +71,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AppLayout(
       currentIndex: 0,
       onTabSelected: (index) {},
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -99,24 +106,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   horizontal: 20,
                                   vertical: 6,
                                 ),
-                        child: const Text(
-                          'Your Name',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                          child: Text(
+                            _fullName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
                       ),
 
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 6,
-                                ),
-                        child: const Text(
-                          'username',
-                          style: TextStyle(
+                          horizontal: 20,
+                          vertical: 6,
+                        ),
+                        child: Text(
+                          _username,
+                          style: const TextStyle(
                             fontSize: 18,
                             color: Colors.black,
                           ),
@@ -194,17 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  buildAppButton(
-                    text: 'View All',
-                    width: 120,
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AllPetsScreen(pets: _pets),
-                        ),
-                      );
-                    },
-                  ),
+                  // Top page no longer shows View All here; moved to bottom with Modify/Settings action.
                 ],
               ),
             ),
@@ -282,35 +279,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Centered View All button
                 buildAppButton(
-                  text: 'Modify Pets',
+                  text: 'View All',
+                  width: 160,
                   onPressed: () {
-                    // Map current simple Pet list to the more detailed UserSettings Pet
-                    final initialForSettings = _pets.map((p) {
-                      return user_settings.Pet(
-                        id: '${p.name}-${DateTime.now().millisecondsSinceEpoch}',
-                        name: p.name,
-                        type: '',
-                        breed: '',
-                        age: 0,
-                        imageUrl: p.imageUrl,
-                      );
-                    }).toList();
-
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => user_settings.UserSettingsPage(
-                          currentIndex: 0,
-                          onTabSelected: (i) {},
-                          initialPets: initialForSettings,
-                          onPetsUpdated: (updated) {
-                            // Map back to the simple Pet model and update UI
-                            setState(() {
-                              _pets.clear();
-                              _pets.addAll(updated.map((u) => Pet(name: u.name, imageUrl: u.imageUrl)).toList());
-                            });
-                          },
-                        ),
+                        builder: (_) => AllPetsScreen(pets: _pets),
                       ),
                     );
                   },
@@ -320,6 +296,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 60),
           ],
         ),
+      ),
+          // settings icon positioned at top-right of the screen and aligned near the full name
+          Positioned(
+            top: 14,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.settings, size: 32, color: Color(0xFF7496B3)),
+              tooltip: 'Modify Pets',
+              onPressed: () {
+                final initialForSettings = _pets.map((p) {
+                  return user_settings.Pet(
+                    id: '${p.name}-${DateTime.now().millisecondsSinceEpoch}',
+                    name: p.name,
+                    type: '',
+                    breed: '',
+                    age: 0,
+                    imageUrl: p.imageUrl,
+                  );
+                }).toList();
+
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => user_settings.UserSettingsPage(
+                      currentIndex: 0,
+                      onTabSelected: (i) {},
+                      initialPets: initialForSettings,
+                      onPetsUpdated: (updated) {
+                        setState(() {
+                          _pets.clear();
+                          _pets.addAll(updated.map((u) => Pet(name: u.name, imageUrl: u.imageUrl)).toList());
+                        });
+                      },
+                      onProfileUpdated: (map) {
+                        setState(() {
+                          _fullName = map['name'] ?? _fullName;
+                          _username = map['username'] ?? _username;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

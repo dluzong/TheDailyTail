@@ -18,10 +18,9 @@ class PetList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Make size responsive so PetList fits inside GridView cells and the carousel
     return LayoutBuilder(
       builder: (context, constraints) {
-        // choose a size that's at most 160 but no larger than the available width
+        // responsive size for screen
         final double size = min(160.0, constraints.maxWidth == double.infinity ? 160.0 : constraints.maxWidth);
 
         return Padding(
