@@ -117,7 +117,6 @@ class _AppLayoutState extends State<AppLayout> {
                   ),
                 ),
 
-                // INNER darker blue navigation bar
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
@@ -183,7 +182,7 @@ class _AppLayoutState extends State<AppLayout> {
                           width: 70,
                           height: 70,
                           decoration: BoxDecoration(
-                            color: Colors.white, // button background white
+                            color: Colors.white, 
                             shape: BoxShape.circle,
                             border: Border.all(color: outerBlue, width: 4),
                             boxShadow: const [
@@ -196,7 +195,7 @@ class _AppLayoutState extends State<AppLayout> {
                           ),
                           child: Icon(
                             Icons.home,
-                            color: outerBlue, // icon in blue
+                            color: outerBlue,
                             size: 36,
                           ),
                         ),
