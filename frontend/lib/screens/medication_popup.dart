@@ -50,10 +50,23 @@ class _MedicationPopupState extends State<MedicationPopup> {
         'name': _nameController.text.trim(),
         'dosage': _dosageController.text.trim(),
         'freq': _selectedFrequency,
+        'taken': false,
+        'lastTaken':
+            null, // For tracking and scheduling notifications in future
       });
       _nameController.clear();
       _dosageController.clear();
       _selectedFrequency = 'Daily';
+    });
+    _saveMeds();
+  }
+
+  void _toggleTaken(int index, bool value) {
+    setState(() {
+      _medications[index]['taken'] = value;
+      if (value) {
+        _medications[index]['lastTaken'] = DateTime.now().toIso8601String();
+      }
     });
     _saveMeds();
   }
@@ -105,6 +118,11 @@ class _MedicationPopupState extends State<MedicationPopup> {
                         subtitle: Text(
                           'Dosage: ${med['dosage']}  •  ${med['freq']}',
                           style: GoogleFonts.inknutAntiqua(fontSize: 11),
+                        ),
+                        leading: Switch(
+                          activeColor: const Color(0xFF7496B3),
+                          value: med['taken'] ?? false,
+                          onChanged: (val) => _toggleTaken(index, val),
                         ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),

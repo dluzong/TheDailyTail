@@ -133,6 +133,133 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     }
   }
 
+  // ---- Show Event with Edit/Delete ----
+  void _showEventDialog(Map<String, String> event, String category) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Event Details'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Title: ${event['title']}'),
+              const SizedBox(height: 8),
+              Text('Description: ${event['desc']}'),
+              const SizedBox(height: 8),
+              Text('Date: ${event['date']}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // close details dialog
+                _showEditEventDialog(event, category); // open edit dialog
+              },
+              child: const Text('Edit'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _events[category]!.removeWhere((e) =>
+                      e['title'] == event['title'] &&
+                      e['date'] == event['date']);
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditEventDialog(Map<String, String> event, String category) {
+    final titleController = TextEditingController(text: event['title']);
+    final descController = TextEditingController(text: event['desc']);
+    DateTime eventDate = DateTime.parse(event['date']!);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Event'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('Date: '),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: eventDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            eventDate = picked;
+                          });
+                        }
+                      },
+                      child: Text(
+                        '${eventDate.year}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  final idx = _events[category]!.indexWhere((e) =>
+                      e['title'] == event['title'] &&
+                      e['date'] == event['date']);
+                  if (idx != -1) {
+                    _events[category]![idx] = {
+                      'title': titleController.text,
+                      'desc': descController.text,
+                      'date':
+                          '${eventDate.year}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}',
+                    };
+                  }
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
@@ -350,7 +477,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
               ),
             ),
 
-            // ---- Event List ----
+            // ---- Event List with Edit/Delete ----
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -363,19 +490,23 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                     baseColor.withOpacity(0.2),
                     Colors.white,
                   );
-                  return Card(
-                    color: pastelColor,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    margin:
-                        const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                    child: ListTile(
-                      leading: Icon(Icons.circle, color: baseColor, size: 12),
-                      title: Text(event['title']!,
-                          style: GoogleFonts.inknutAntiqua(
-                              fontSize: 14, fontWeight: FontWeight.bold)),
-                      subtitle: Text(event['desc']!,
-                          style: GoogleFonts.inknutAntiqua(fontSize: 12)),
+
+                  return GestureDetector(
+                    onTap: () => _showEventDialog(event, category),
+                    child: Card(
+                      color: pastelColor,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 6, horizontal: 4),
+                      child: ListTile(
+                        leading: Icon(Icons.circle, color: baseColor, size: 12),
+                        title: Text(event['title'] ?? '',
+                            style: GoogleFonts.inknutAntiqua(
+                                fontSize: 14, fontWeight: FontWeight.bold)),
+                        subtitle: Text(event['desc'] ?? '',
+                            style: GoogleFonts.inknutAntiqua(fontSize: 12)),
+                      ),
                     ),
                   );
                 },
