@@ -60,106 +60,110 @@ class _AppLayoutState extends State<AppLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          // Top light blue border
-          Container(height: 50, color: outerBlue),
+    // Add safe area padding
+    final double bottomInset = MediaQuery.of(context).padding.bottom;
 
-          // Inner top bar (darker blue)
-          Container(
-            height: 60,
-            width: double.infinity,
-            color: innerBlue,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Center(
-                  child: Text(
-                    "The Daily Tail",
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+    // Use base height values to adjust for all devices
+    const double baseTotalHeight = 120;
+    const double baseOuterHeight = 50;
+    const double baseInnerHeight = 70;
+    const double floatingButtonSize = 85;
+
+    final double adjustedTotalHeight = baseTotalHeight + bottomInset;
+    final double adjustedInnerHeight = baseInnerHeight + (bottomInset / 2);
+
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Column(
+          children: [
+            Container(height: 50, color: outerBlue),
+
+            Container(
+              height: 60,
+              width: double.infinity,
+              color: innerBlue,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Center(
+                    child: Text(
+                      "The Daily Tail",
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                const Positioned(
-                  right: 0,
-                  child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Color(0xFF7496B3),
-                    child: Icon(Icons.person, color: Colors.white),
+                  const Positioned(
+                    right: 0,
+                    child: CircleAvatar(
+                      radius: 22,
+                      backgroundColor: Color(0xFF7496B3),
+                      child: Icon(Icons.person, color: Colors.white),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-
-          // Main content
-          Expanded(child: widget.child),
-
-          // Bottom navigation + floating button
-          SizedBox(
-            height: 120,
-            width: double.infinity,
-            child: Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                // OUTER bottom light blue border
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 50,
-                    color: outerBlue,
-                  ),
-                ),
 
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 50),
                     child: Container(
-                      height: 70,
-                      color: innerBlue,
-                      child: BottomNavigationBar(
-                        backgroundColor: innerBlue,
-                        currentIndex: currentIndex,
-                        selectedItemColor: Colors.white,
-                        unselectedItemColor: Colors.white,
-                        onTap: (index) {
-                          if (index == currentIndex) return;
-                          widget.onTabSelected(index);
-                          setState(() => currentIndex = index);
-                          _navigateToIndex(index);
-                        },
-                        elevation: 0,
-                        type: BottomNavigationBarType.fixed,
-                        selectedLabelStyle: GoogleFonts.inknutAntiqua(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      height: baseOuterHeight,
+                      color: outerBlue,
+                    ),
+                  ),
+
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: baseOuterHeight),
+                      child: Container(
+                        height: adjustedInnerHeight,
+                        color: innerBlue,
+                        child: BottomNavigationBar(
+                          backgroundColor: innerBlue,
+                          currentIndex: currentIndex,
+                          selectedItemColor: Colors.white,
+                          unselectedItemColor: Colors.white,
+                          onTap: (index) {
+                            if (index == currentIndex) return;
+                            widget.onTabSelected(index);
+                            setState(() => currentIndex = index);
+                            _navigateToIndex(index);
+                          },
+                          elevation: 0,
+                          type: BottomNavigationBarType.fixed,
+                          selectedLabelStyle: GoogleFonts.inknutAntiqua(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          unselectedLabelStyle: GoogleFonts.inknutAntiqua(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                          items: const [
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.note, color: Colors.white),
+                              label: "Logs",
+                            ),
+                            BottomNavigationBarItem(
+                              icon: SizedBox.shrink(),
+                              label: "",
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.group, color: Colors.white),
+                              label: "Community",
+                            ),
+                          ],
                         ),
-                        unselectedLabelStyle: GoogleFonts.inknutAntiqua(
-                          fontSize: 12,
-                          color: Colors.white,
-                        ),
-                        items: const [
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.note, color: Colors.white),
-                            label: "Logs",
-                          ),
-                          BottomNavigationBarItem(
-                            icon: SizedBox.shrink(),
-                            label: "",
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.group, color: Colors.white),
-                            label: "Community",
-                          ),
-                        ],
                       ),
                     ),
                   ),
@@ -199,23 +203,23 @@ class _AppLayoutState extends State<AppLayout> {
                             size: 36,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Home",
-                        style: GoogleFonts.inknutAntiqua(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(height: 4),
+                        Text(
+                          "Home",
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
