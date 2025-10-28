@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +7,7 @@ import '../user_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -89,15 +89,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 25),
                     buildDogIcon(),
                     const SizedBox(height: 35),
-                    buildAppTextField(
-                      hint: "Email",
-                      controller: _email
-                    ),
+                    buildAppTextField(hint: "Username or Email"),
                     const SizedBox(height: 15),
                     buildAppTextField(
                       hint: "Password",
                       obscure: _obscurePassword,
-                      controller: _password,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
