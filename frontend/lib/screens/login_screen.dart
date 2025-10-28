@@ -42,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint('Log in error');
       }
     if (mounted) setState(() => _isLoading = false);
+    
   }
 
   @override
