@@ -110,10 +110,18 @@ class _AppLayoutState extends State<AppLayout> {
               ),
             ),
 
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 50),
+            Expanded(child: widget.child),
+
+            // Bottom navigation + floating button
+            SizedBox(
+              height: adjustedTotalHeight,
+              width: double.infinity,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  Align(
+                    alignment: Alignment.bottomCenter,
                     child: Container(
                       height: baseOuterHeight,
                       color: outerBlue,
@@ -167,40 +175,40 @@ class _AppLayoutState extends State<AppLayout> {
                       ),
                     ),
                   ),
-                ),
 
-                // Floating home button with label
-                Positioned(
-                  bottom: 70,
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (currentIndex != 1) {
-                            widget.onTabSelected(1);
-                            _navigateToIndex(1);
-                            setState(() => currentIndex = 1);
-                          }
-                        },
-                        child: Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: Colors.white, 
-                            shape: BoxShape.circle,
-                            border: Border.all(color: outerBlue, width: 4),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 6,
-                                offset: Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.home,
-                            color: outerBlue,
-                            size: 36,
+                  // Floating Home Button
+                  Positioned(
+                    bottom: baseInnerHeight - 10 + (bottomInset / 2),
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            if (currentIndex != 1) {
+                              widget.onTabSelected(1);
+                              _navigateToIndex(1);
+                              setState(() => currentIndex = 1);
+                            }
+                          },
+                          child: Container(
+                            width: floatingButtonSize,
+                            height: floatingButtonSize,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: outerBlue, width: 4),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.home,
+                              color: outerBlue,
+                              size: 36,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
