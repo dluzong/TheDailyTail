@@ -69,9 +69,6 @@ flutter:
   assets:
     - .env
     - assets/dog.png
-    - assets/home.png
-    - assets/logs.png
-    - assets/community.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
