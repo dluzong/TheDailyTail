@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../shared/app_layout.dart';
 import 'add_event.dart';
 import 'meal_plan_popup.dart';
@@ -133,7 +132,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     }
   }
 
-  // ---- Show Event with Edit/Delete ----
+  //show events with a edit and delete option
   void _showEventDialog(Map<String, String> event, String category) {
     showDialog(
       context: context,
