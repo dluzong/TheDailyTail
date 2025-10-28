@@ -46,7 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Text(
                     "Welcome, user!",
                     style: GoogleFonts.inknutAntiqua(
-                      fontSize: 34,
+                      fontSize: 30,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF5F7C94),
                     ),
@@ -56,7 +56,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Text(
                     "The Daily Tail is an all-in-one pet health tracker app that allows you to add logs for your pet’s daily food, medications, vaccinations, and track behavior. You can also connect with fellow pet owners and dog sitters. To begin, select between the following:",
                     style: GoogleFonts.inknutAntiqua(
-                      fontSize: 20,
+                      fontSize: 16,
                       height: 1.5,
                       color: const Color(0xFF5F7C94),
                     ),

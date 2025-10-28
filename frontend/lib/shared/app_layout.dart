@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/dailylog_meal.dart';
+import '../screens/dailylog_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/community_screen.dart';
 
@@ -23,6 +23,9 @@ class AppLayout extends StatefulWidget {
 class _AppLayoutState extends State<AppLayout> {
   late int currentIndex;
 
+  final Color outerBlue = const Color(0xFF7496B3);
+  final Color innerBlue = const Color(0xFF5F7C94);
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +36,7 @@ class _AppLayoutState extends State<AppLayout> {
     Widget? destination;
     switch (index) {
       case 0:
-        destination = const DailyLogMealScreen();
+        destination = const DailyLogScreen();
         break;
       case 1:
         destination = const DashboardScreen();
@@ -44,10 +47,8 @@ class _AppLayoutState extends State<AppLayout> {
     }
 
     if (destination != null) {
-      // Replace current route so tabs don't stack
       Navigator.pushReplacement(
         context,
-        // MaterialPageRoute(builder: (_) => destination!),
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => destination!,
           transitionDuration: Duration.zero,
@@ -62,11 +63,14 @@ class _AppLayoutState extends State<AppLayout> {
     return Scaffold(
       body: Column(
         children: [
-          Container(height: 50, color: const Color(0xFF7496B3)),
+          // Top light blue border
+          Container(height: 50, color: outerBlue),
+
+          // Inner top bar (darker blue)
           Container(
             height: 60,
             width: double.infinity,
-            color: const Color(0xFFBCD9EC),
+            color: innerBlue,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Stack(
               alignment: Alignment.center,
@@ -77,7 +81,7 @@ class _AppLayoutState extends State<AppLayout> {
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -92,46 +96,124 @@ class _AppLayoutState extends State<AppLayout> {
               ],
             ),
           ),
+
+          // Main content
           Expanded(child: widget.child),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                color: const Color(0xFFBCD9EC),
-                child: BottomNavigationBar(
-                  backgroundColor: const Color(0xFFBCD9EC),
-                  currentIndex: currentIndex,
-                  selectedItemColor: Colors.black,
-                  unselectedItemColor: Colors.grey,
-                  onTap: (index) {
-                    if (index == currentIndex) return;
-                    widget.onTabSelected(index);
-                    setState(() {
-                      currentIndex = index;
-                    });
-                    _navigateToIndex(index);
-                  },
-                  elevation: 0,
-                  type: BottomNavigationBarType.fixed,
-                  selectedLabelStyle: GoogleFonts.inknutAntiqua(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+
+          // Bottom navigation + floating button
+          SizedBox(
+            height: 120,
+            width: double.infinity,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // OUTER bottom light blue border
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    height: 50,
+                    color: outerBlue,
                   ),
-                  unselectedLabelStyle: GoogleFonts.inknutAntiqua(
-                    fontSize: 12,
-                  ),
-                  items: const [
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.note), label: "Logs"),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.home), label: "Home"),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.group), label: "Community"),
-                  ],
                 ),
-              ),
-              Container(height: 50, color: const Color(0xFF7496B3)),
-            ],
+
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 50),
+                    child: Container(
+                      height: 70,
+                      color: innerBlue,
+                      child: BottomNavigationBar(
+                        backgroundColor: innerBlue,
+                        currentIndex: currentIndex,
+                        selectedItemColor: Colors.white,
+                        unselectedItemColor: Colors.white,
+                        onTap: (index) {
+                          if (index == currentIndex) return;
+                          widget.onTabSelected(index);
+                          setState(() => currentIndex = index);
+                          _navigateToIndex(index);
+                        },
+                        elevation: 0,
+                        type: BottomNavigationBarType.fixed,
+                        selectedLabelStyle: GoogleFonts.inknutAntiqua(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        unselectedLabelStyle: GoogleFonts.inknutAntiqua(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
+                        items: const [
+                          BottomNavigationBarItem(
+                            icon: Icon(Icons.note, color: Colors.white),
+                            label: "Logs",
+                          ),
+                          BottomNavigationBarItem(
+                            icon: SizedBox.shrink(),
+                            label: "",
+                          ),
+                          BottomNavigationBarItem(
+                            icon: Icon(Icons.group, color: Colors.white),
+                            label: "Community",
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Floating home button with label
+                Positioned(
+                  bottom: 70, // slightly higher
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          if (currentIndex != 1) {
+                            widget.onTabSelected(1);
+                            _navigateToIndex(1);
+                            setState(() => currentIndex = 1);
+                          }
+                        },
+                        child: Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            color: Colors.white, 
+                            shape: BoxShape.circle,
+                            border: Border.all(color: outerBlue, width: 4),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 6,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.home,
+                            color: outerBlue,
+                            size: 36,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Home",
+                        style: GoogleFonts.inknutAntiqua(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
