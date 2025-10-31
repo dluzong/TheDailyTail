@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/dashboard_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:frontend/screens/dashboard_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
