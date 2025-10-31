@@ -1,14 +1,17 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../shared/starting_widgets.dart';
-
+import 'package:provider/provider.dart';
+import '../user_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -28,21 +31,38 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = res.user;
       debugPrint('signIn response: $res');
       if (user == null) {
-          // SDK doesn't expose `res.error` here — show a generic messages.
-          debugPrint('User == null');
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Login failed')));
-          return;
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged in')));
-        // navigate or refresh UI as needed
-      } catch (err) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.toString())));
-        debugPrint('Log in error');
+        // SDK doesn't expose `res.error` here — show a generic messages.
+        debugPrint('User == null');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Login failed')));
+        return;
       }
+
+      try {
+        await context.read<UserProvider>().fetchUser();
+      } catch (e) {
+        debugPrint('fetchUser failed: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load user: $e')),
+        );
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Logged in')));
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        (Route<dynamic> route) => false,
+      );
+      // navigate or refresh UI as needed
+    } catch (err) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(err.toString())));
+      debugPrint('Log in error');
+    }
     if (mounted) setState(() => _isLoading = false);
-    
   }
 
   @override
@@ -94,7 +114,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 25),
                     ElevatedButton(
-                      onPressed: _isLoading ? null : () { _signIn(); },
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              _signIn();
+                            },
                       child: Text(_isLoading ? 'Logging in...' : 'Log In'),
                     ),
                   ],

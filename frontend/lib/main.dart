@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/dashboard_screen.dart';
 import 'screens/launch_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'user_provider.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -10,21 +13,23 @@ void main() async {
   final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
-
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
     throw Exception(
         'Supabase URL and Anon Key must be provided at compile time.');
   }
 
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey
-  );
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
   debugPrint('Supabase initialized');
   debugPrint('supabaseUrl: $supabaseUrl');
-  runApp(const MyApp());
+  // runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => UserProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -37,7 +42,15 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const LaunchScreen(),
+      home: Consumer<UserProvider>(
+        builder: (context, userProvider, _) {
+          if (userProvider.isAuthenticated) {
+            return const DashboardScreen();
+          } else {
+            return const LaunchScreen();
+          }
+        },
+      ),
     );
   }
 }

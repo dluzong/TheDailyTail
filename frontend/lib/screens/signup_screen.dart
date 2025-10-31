@@ -31,6 +31,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         data: {'username': _username.text, 'first_name': _firstName.text, 'last_name': _lastName.text},
       );
 
+      //IMPORTANT ---> FIX ERR ????
+      //check if email exists 
       final user = res.user;
       debugPrint('sign up response: $res');
       if (user == null) {
