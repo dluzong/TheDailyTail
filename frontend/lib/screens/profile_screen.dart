@@ -42,9 +42,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       initialPage: _kFakeMiddle,
     );
 
-    // set initial logical page
     _currentPage = 0;
-    // initial profile values (can be updated from settings)
+    // initial profile values
     _fullName = 'Your Name';
     _username = 'username';
   }
@@ -187,11 +186,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 50),
 
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 8.0, bottom: 12.0),
+            const Padding(
+              padding: EdgeInsets.only(left: 16.0, right: 8.0, bottom: 12.0),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'My Pets',
                       style: TextStyle(
@@ -201,7 +200,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  // Top page no longer shows View All here; moved to bottom with Modify/Settings action.
                 ],
               ),
             ),
@@ -297,13 +295,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-          // settings icon positioned at top-right of the screen and aligned near the full name
+          // settings button
           Positioned(
             top: 14,
             right: 16,
             child: IconButton(
               icon: const Icon(Icons.settings, size: 32, color: Color(0xFF7496B3)),
-              tooltip: 'Modify Pets',
+              tooltip: 'User Settings',
               onPressed: () {
                 final initialForSettings = _pets.map((p) {
                   return user_settings.Pet(

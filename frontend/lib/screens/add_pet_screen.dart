@@ -13,7 +13,7 @@ class AddPetScreen extends StatefulWidget {
 class _AddPetScreenState extends State<AddPetScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _breedController = TextEditingController();
-  final TextEditingController _bornController = TextEditingController(); // mm/dd/yy
+  final TextEditingController _bornController = TextEditingController();
   String? _sex;
   final TextEditingController _weightController = TextEditingController();
   String? _imagePath;
@@ -28,7 +28,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
   }
 
   void _pickImage() async {
-    // implement add image aspect
+    // TODO: implement add image to connect with user photos/album
     setState(() {
       _imagePath = _imagePath == null ? 'assets/dog.png' : null;
     });
@@ -36,7 +36,10 @@ class _AddPetScreenState extends State<AddPetScreen> {
 
   void _save() {
     final name = _nameController.text.trim();
-    if (name.isEmpty) {
+    final breed = _breedController.text.trim();
+    final born = _bornController.text.trim();
+    final weight = _weightController.text.trim();
+    if (name.isEmpty || breed.isEmpty || born.isEmpty || weight.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a pet name')));
       return;
     }
@@ -63,15 +66,14 @@ class _AddPetScreenState extends State<AddPetScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Top row: back button (left) and title aligned with form labels (left-padded)
-            Container(
+            SizedBox(
               height: 56,
               child: Stack(
                 children: [
-                  // Back button at the very left
+                  // Back button
                   Positioned(
                     left: 0,
-                    top: 0,
+                    top: 2,
                     bottom: 0,
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.black87),
@@ -79,11 +81,11 @@ class _AddPetScreenState extends State<AddPetScreen> {
                       tooltip: 'Back',
                     ),
                   ),
-                  // Centered title (back button stays at left)
+                  // Header
                   Center(
                     child: Text(
                       'Pet Profile',
-                      style: GoogleFonts.inknutAntiqua(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF7496B3)),
+                      style: GoogleFonts.inknutAntiqua(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
                     ),
                   ),
                 ],
@@ -92,13 +94,13 @@ class _AddPetScreenState extends State<AddPetScreen> {
 
             const SizedBox(height: 8),
 
-            // Photo field (label)
+            // Insert pet photo (optional)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: Center(
                   child: Text(
                     'Upload a photo',
-                    style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF7496B3)),
+                    style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
                   ),
                 ),
               ),
@@ -118,48 +120,48 @@ class _AddPetScreenState extends State<AddPetScreen> {
 
             const SizedBox(height: 16),
 
-            // Pet Name
+            // Insert pet name
             Padding(
               padding: EdgeInsets.only(top: 6.0, bottom: 6.0, left: MediaQuery.of(context).size.width * 0.05),
               child: Text(
-                "What's your pet's name?",
-                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF7496B3)),
+                "Pet Name",
+                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(widthFactor: 0.9, child: buildAppTextField(hint: 'Pet Name', controller: _nameController)),
 
             const SizedBox(height: 12),
 
-            // Breed
+            // Insert breed
             Padding(
               padding: EdgeInsets.only(top: 6.0, bottom: 6.0, left: MediaQuery.of(context).size.width * 0.05),
               child: Text(
-                "What’s your pet’s breed?",
-                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF7496B3)),
+                "Breed",
+                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(widthFactor: 0.9, child: buildAppTextField(hint: 'Breed', controller: _breedController)),
 
             const SizedBox(height: 12),
 
-            // Born
+            // Insert birthday
             Padding(
               padding: EdgeInsets.only(top: 6.0, bottom: 6.0, left: MediaQuery.of(context).size.width * 0.05),
               child: Text(
-                "When was your pet born?",
-                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF7496B3)),
+                "Birthday",
+                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(widthFactor: 0.9, child: buildAppTextField(hint: 'Born (mm/dd/yy)', controller: _bornController)),
 
             const SizedBox(height: 12),
 
-            // Sex
+            // Insert sex
             Padding(
               padding: EdgeInsets.only(top: 6.0, bottom: 6.0, left: MediaQuery.of(context).size.width * 0.05),
               child: Text(
-                "Select your pet’s sex",
-                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF7496B3)),
+                "Sex",
+                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(
@@ -172,6 +174,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 ],
                 decoration: InputDecoration(
                   hintText: 'Sex',
+                  prefixStyle: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
                   filled: true,
                   fillColor: Colors.grey[200],
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
@@ -182,18 +185,18 @@ class _AddPetScreenState extends State<AddPetScreen> {
 
             const SizedBox(height: 12),
 
-            // Weight
+            // Insert weight
             Padding(
               padding: EdgeInsets.only(top: 6.0, bottom: 6.0, left: MediaQuery.of(context).size.width * 0.05),
               child: Text(
-                "Select your pet’s weight",
-                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF7496B3)),
+                "Weight",
+                style: GoogleFonts.inknutAntiqua(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(widthFactor: 0.9, child: buildAppTextField(hint: 'Weight (lbs)', controller: _weightController)),
 
             const SizedBox(height: 24),
-            // Save button centered
+            // Add pet button
             Center(
               child: SizedBox(
                 width: 160,
@@ -207,7 +210,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 15),
                   ),
                   onPressed: _save,
-                  child: Text('Save Pet', style: GoogleFonts.inknutAntiqua(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                  child: Text('Add Pet', style: GoogleFonts.inknutAntiqua(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                 ),
               ),
             ),

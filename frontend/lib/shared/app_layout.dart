@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../screens/dailylog_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/community_screen.dart';
+import '../screens/profile_screen.dart';
 
 class AppLayout extends StatefulWidget {
   final Widget child;
@@ -98,12 +99,23 @@ class _AppLayoutState extends State<AppLayout> {
                       ),
                     ),
                   ),
-                  const Positioned(
+                  Positioned(
                     right: 0,
-                    child: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Color(0xFF7496B3),
-                      child: Icon(Icons.person, color: Colors.white),
+                    child: GestureDetector(
+                      onTap: () {
+                        // Navigate to the profile screen when the avatar is tapped
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        );
+                      },
+                      child: const CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Color(0xFF7496B3),
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],

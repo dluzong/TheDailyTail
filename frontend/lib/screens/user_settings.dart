@@ -127,9 +127,9 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Settings have been saved!'),
-          backgroundColor: const Color.fromARGB(255, 114, 201, 182),
+          backgroundColor: Color.fromARGB(255, 114, 201, 182),
         ),
       );
       // close settings and return to previous screen
@@ -139,7 +139,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   Future<void> _addNewPet() async {
-    // Push the AddPetScreen and expect a Map<String, dynamic> describing the pet.
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(builder: (context) => const AddPetScreen()),
     );
@@ -172,50 +171,12 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('You must have at least one pet.'),
           backgroundColor: Colors.red,
         ),
       );
     }
-  }
-
-  Future<bool> _onWillPop() async {
-    if (!_isDirty) return true;
-
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsaved changes'),
-        content: const Text('You have unsaved changes. Save before leaving or discard changes?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop('cancel'),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop('discard'),
-            child: const Text('Discard'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop('save'),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == 'save') {
-      _saveSettings();
-      // leave the page after saving settings
-      return false;
-    }
-
-    if (result == 'discard') {
-      return true; // leave page without saving
-    }
-
-    return false; // cancel 'leaving page'
   }
 
   @override
@@ -233,27 +194,27 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             tooltip: 'Back',
           ),
           SingleChildScrollView(
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
+                  const Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 0.0),
+                      padding: EdgeInsets.symmetric(vertical: 0.0),
                     ),
                   ),
                   
                   _buildSectionHeader('Profile Information'),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Center(
                     child: buildAppTextField(
                       hint: 'Enter your full name',
                       controller: _nameController,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Center(
                     child: buildAppTextField(
                       hint: 'Enter your username',
@@ -261,7 +222,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                     ),
                   ),
                   
-                  SizedBox(height: 32),
+                  const SizedBox(height: 32),
                   _buildPetsSection(),
 
                   const SizedBox(height: 20),
@@ -270,7 +231,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                   const SizedBox(height: 12),
                   _buildLogoutButton(),
                   
-                  SizedBox(height: 100),
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -303,7 +264,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           style: GoogleFonts.inknutAntiqua(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF7496B3),
+            color: const Color(0xFF7496B3),
           ),
         ),
       ),
@@ -326,7 +287,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
               padding: const EdgeInsets.only(right: 16.0),
               child: IconButton(
                 onPressed: _addNewPet,
-                icon: Icon(Icons.add_circle, color: Color(0xFF7496B3), size: 32),
+                icon: const Icon(Icons.add_circle, color: Color(0xFF7496B3), size: 32),
                 tooltip: 'Add New Pet',
               ),
             ),
@@ -412,7 +373,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
             if (should == true) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged out')));
-              // Close settings and return to previous screen. Real logout flow can be added later.
+              // TODO: currently the log out function just leaves settings page. update so it sends user to launch screen
               Navigator.of(context).pop();
             }
           },
