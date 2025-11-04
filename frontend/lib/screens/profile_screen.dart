@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'pet_list.dart' as pet_list;
 import '../shared/app_layout.dart';
-// import 'pet_list.dart';
 import '../shared/starting_widgets.dart';
-import 'all_pets_screen.dart';
+import 'all_pets_screen.dart' as all_pets;
 import 'user_settings.dart' as user_settings;
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
-import 'pet_list.dart' as pet_list;
 import 'package:provider/provider.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,6 +17,12 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  String _fullName = '';
+  String _username = '';
+  String _role = '';
+  // keep local profile state; pets are provided by PetProvider
+  List<pet_list.Pet> _pets = [];
+
   late final PageController _pageController;
   static const int _kFakeMiddle = 10000;
   int _currentPage = 0;
@@ -26,17 +31,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _kFakeMiddle);
+    _pageController = PageController(initialPage: _kFakeMiddle);
     _currentPage = 0;
-    
-    // Fetch pets if not already loaded
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final user = userProvider.user;
+    _fullName = user != null ? '${user.firstName} ${user.lastName}'.trim() : 'Your Name';
+    _username = user?.username ?? 'username';
+    _role = user?.role ?? 'User';
+    // ask the PetProvider to fetch pets
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final petProvider =
-          Provider.of<pet_provider.PetProvider>(context, listen: false);
-      if (petProvider.pets.isEmpty && !petProvider.isLoading) {
-        petProvider.fetchPets();
-      }
+      final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
+      petProv.fetchPets();
     });
   }
+
+  // pet data is managed by PetProvider; no local fetch needed
 
   @override
   void dispose() {
@@ -56,293 +66,275 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<UserProvider, pet_provider.PetProvider>(
-      builder: (context, userProvider, petProvider, child) {
-        final user = userProvider.user;
-        final pets = petProvider.pets;
-        final isLoading = petProvider.isLoading;
-        final fullName = user != null
-            ? '${user.firstName} ${user.lastName}'.trim()
-            : 'Your Name';
-        final username = user?.username ?? 'username';
-        final role = user?.role ?? 'User';
+    final size = MediaQuery.of(context).size;
+    final textScale = MediaQuery.of(context).textScaleFactor;
 
-        // Map pet_provider.Pet to pet_list.Pet for UI
-        List<pet_list.Pet> petListForUI = pets
-            .map((p) => pet_list.Pet(
-                  name: p.name,
-                  imageUrl:
-                      '', // No imageUrl in pet_provider.Pet, set as needed
-                ))
-            .toList();
+    double avatarSize = size.width * 0.30;
+    double carouselHeight = size.height * 0.22;
+    double arrowSize = size.width * 0.08;
 
-        return AppLayout(
-          currentIndex: 0,
-          onTabSelected: (index) {},
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return AppLayout(
+      currentIndex: 0,
+      onTabSelected: (_) {},
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(size.width * 0.04),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                
+                Row(
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 125,
-                          height: 125,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFFBFD4E6),
-                            border: Border.all(
-                                color: const Color(0xFF7496B3), width: 4),
-                          ),
-                          child: const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 60,
-                          ),
+                    Container(
+                      width: avatarSize,
+                      height: avatarSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFBFD4E6),
+                        border: Border.all(
+                          color: const Color(0xFF7496B3),
+                          width: size.width * 0.01,
                         ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 6,
-                                ),
-                                child: Text(
-                                  fullName,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 6,
-                                ),
-                                child: Text(
-                                  username,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[50],
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: Colors.blue[100]!,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      role,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color:
-                                            Color.fromARGB(255, 67, 145, 213),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 50),
-
-                    const Padding(
-                      padding:
-                          EdgeInsets.only(left: 16.0, right: 8.0, bottom: 12.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'My Pets',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
+                      ),
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: avatarSize * 0.5,
                       ),
                     ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: size.width * 0.03),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _fullName,
+                              style: GoogleFonts.inknutAntiqua(
+                                fontSize: 20 * textScale,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              _username,
+                              style: GoogleFonts.inknutAntiqua(
+                                fontSize: 16 * textScale,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Center(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: size.width * 0.05,
+                                  vertical: size.height * 0.005,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.blue[100]!,
+                                    width: size.width * 0.005,
+                                  ),
+                                ),
+                                child: Text(
+                                  _role,
+                                  style: GoogleFonts.inknutAntiqua(
+                                    fontSize: 12 * textScale,
+                                    color: const Color.fromARGB(255, 67, 145, 213),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: size.height * 0.04),
 
-                    // pet view carousel
-                    SizedBox(
-                      height: 200,
-                      child: isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : petListForUI.isEmpty
-                              ? const Center(child: Text('No pets found.'))
-                              : Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    PageView.builder(
-                                      controller: _pageController,
-                                      itemCount: null, // infinite loop
-                                      onPageChanged: (fakeIndex) {
-                                        setState(() {
-                                          final logical =
-                                              fakeIndex % petListForUI.length;
-                                          _currentPage = logical < 0
-                                              ? logical + petListForUI.length
-                                              : logical;
-                                        });
-                                      },
-                                      itemBuilder: (context, fakeIndex) {
-                                        final logical =
-                                            fakeIndex % petListForUI.length;
-                                        final pet = petListForUI[logical];
-                                        return AnimatedBuilder(
-                                          animation: _pageController,
-                                          builder: (context, child) {
-                                            double value = 1.0;
-                                            if (_pageController
-                                                .position.haveDimensions) {
-                                              final page =
-                                                  (_pageController.page ??
-                                                          _pageController
-                                                              .initialPage)
-                                                      .toDouble();
-                                              value =
-                                                  (page - fakeIndex).toDouble();
-                                              value = (1 - (value.abs() * 0.15))
-                                                  .clamp(0.85, 1.0);
-                                            }
-                                            return Center(
-                                              child: Transform.scale(
-                                                scale: value,
-                                                child: child,
-                                              ),
-                                            );
-                                          },
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 8.0, vertical: 0.0),
-                                            child: pet_list.PetList(pet: pet),
+                Padding(
+                  padding: EdgeInsets.only(bottom: size.height * 0.015),
+                  child: Text(
+                    'My Pets',
+                    style: GoogleFonts.inknutAntiqua(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF7496B3),
+                    ),
+                  ),
+                ),
+
+                // Pet Carousel
+                SizedBox(
+                  height: carouselHeight,
+                  child: Builder(builder: (context) {
+                    final petProv = Provider.of<pet_provider.PetProvider>(context);
+                    final isLoading = petProv.isLoading;
+                    final pets = petProv.pets
+                        .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
+                        .toList();
+
+                    return isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : pets.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No pets found.',
+                                  style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                                ),
+                              )
+                            : Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                PageView.builder(
+                                  controller: _pageController,
+                                  itemCount: null,
+                                  onPageChanged: (fakeIndex) {
+                                    setState(() {
+                                      final logical = fakeIndex % pets.length;
+                                      _currentPage =
+                                          logical < 0 ? logical + pets.length : logical;
+                                    });
+                                  },
+                                  itemBuilder: (context, fakeIndex) {
+                                    final logical = fakeIndex % pets.length;
+                                    final pet = pets[logical];
+
+                                    return AnimatedBuilder(
+                                      animation: _pageController,
+                                      builder: (context, child) {
+                                        double value = 1.0;
+                                        if (_pageController.position.haveDimensions) {
+                                          final page =
+                                              (_pageController.page ??
+                                                      _pageController.initialPage)
+                                                  .toDouble();
+                                          value = (1 - ((page - fakeIndex).abs() * 0.15))
+                                              .clamp(0.85, 1.0);
+                                        }
+                                        return Center(
+                                          child: Transform.scale(
+                                            scale: value,
+                                            child: child,
                                           ),
                                         );
                                       },
-                                    ),
-                                    // left arrow button
-                                    Positioned(
-                                      left: 4,
-                                      child: IconButton(
-                                        iconSize: 32,
-                                        color: Colors.black87,
-                                        onPressed: () =>
-                                            _goToPage(_currentPage - 1),
-                                        icon: const Icon(Icons.arrow_back_ios),
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: size.width * 0.02,
+                                        ),
+                                        child: pet_list.PetList(pet: pet),
                                       ),
-                                    ),
-                                    // right arrow button
-                                    Positioned(
-                                      right: 4,
-                                      child: IconButton(
-                                        iconSize: 32,
-                                        color: Colors.black87,
-                                        onPressed: () =>
-                                            _goToPage(_currentPage + 1),
-                                        icon:
-                                            const Icon(Icons.arrow_forward_ios),
-                                      ),
-                                    ),
-                                  ],
+                                    );
+                                  },
                                 ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        buildAppButton(
-                          text: 'View All',
-                          width: 160,
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AllPetsScreen(pets: petListForUI),
-                              ),
+                                if (pets.length > 1) ...[
+                                  Positioned(
+                                    left: size.width * 0.01,
+                                    child: IconButton(
+                                      iconSize: arrowSize,
+                                      onPressed: () => _goToPage(_currentPage - 1),
+                                      icon: const Icon(Icons.arrow_back_ios),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: size.width * 0.01,
+                                    child: IconButton(
+                                      iconSize: arrowSize,
+                                      onPressed: () => _goToPage(_currentPage + 1),
+                                      icon: const Icon(Icons.arrow_forward_ios),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 60),
-                  ],
+                  }),
                 ),
-              ),
-              // settings button
-              Positioned(
-                top: 14,
-                right: 16,
-                child: IconButton(
-                  icon: const Icon(Icons.settings,
-                      size: 32, color: Color(0xFF7496B3)),
-                  tooltip: 'User Settings',
-                  onPressed: () {
-                    final initialForSettings = petListForUI.map((p) {
-                      return user_settings.Pet(
-                        id: '${p.name}-${DateTime.now().millisecondsSinceEpoch}',
-                        name: p.name,
-                        type: '',
-                        breed: '',
-                        age: 0,
-                        imageUrl: p.imageUrl,
-                      );
-                    }).toList();
+                SizedBox(height: size.height * 0.03),
 
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => user_settings.UserSettingsPage(
-                          currentIndex: 0,
-                          onTabSelected: (i) {},
-                          initialPets: initialForSettings,
-                          onPetsUpdated: (updated) {
-                            // No direct update to provider, just refresh UI if needed
-                            setState(() {});
-                          },
-                          onProfileUpdated: (map) {
-                            // No direct update to provider, just refresh UI if needed
-                            setState(() {});
-                          },
+                Center(
+                  child: buildAppButton(
+                    text: 'View All',
+                    width: size.width * 0.45,
+                    onPressed: () {
+                      final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
+                      final pets = petProv.pets
+                          .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
+                          .toList();
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => all_pets.AllPetsScreen(pets: pets),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+
+                SizedBox(height: size.height * 0.07),
+              ],
+            ),
           ),
-        );
-      },
+
+          // Settings button
+          Positioned(
+            top: size.height * 0.025,
+            right: size.width * 0.025,
+                child: IconButton(
+              icon: Icon(
+                Icons.settings,
+                size: size.width * 0.08,
+                color: const Color(0xFF7496B3),
+              ),
+              tooltip: 'User Settings',
+              onPressed: () {
+                final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
+                final initialForSettings = petProv.pets.map((p) {
+                  return user_settings.Pet(
+                    id: p.petId,
+                    name: p.name,
+                    type: '',
+                    breed: p.breed,
+                    age: p.age,
+                    imageUrl: '',
+                  );
+                }).toList();
+
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => user_settings.UserSettingsPage(
+                      currentIndex: 0,
+                      onTabSelected: (_) {},
+                      initialPets: initialForSettings,
+                      onPetsUpdated: (updated) {
+                        setState(() {
+                          _pets
+                            ..clear()
+                            ..addAll(
+                              updated.map((u) => pet_list.Pet(
+                                    name: u.name,
+                                    imageUrl: u.imageUrl,
+                                  )),
+                            );
+                        });
+                      },
+                      onProfileUpdated: (map) {
+                        setState(() {
+                          _fullName = map['name'] ?? _fullName;
+                          _username = map['username'] ?? _username;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
