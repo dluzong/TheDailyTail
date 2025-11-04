@@ -44,6 +44,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "animation": "assets/lottie/dog_roles.json",
     },
     {
+      "title": "Add your first pet?",
+      "subtitle":
+          "No worries if you're not ready — you can always add pets later from your profile.",
+      "isAddPetPrompt": true,
+      "animation": "assets/lottie/happy_dog.json",
+    },
+    {
       "title": "You’re all set!",
       "subtitle":
           "You’re ready to begin your pet care journey with The Daily Tail.\nThanks for joining us!",
@@ -66,9 +73,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       MaterialPageRoute(builder: (context) => const AddPetScreen()),
     );
 
-    // After returning, go to final slide
+    // After returning, go to the last slide (add-pet prompt)
     _pageController.animateToPage(
-      4,
+      _pages.length - 1,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
@@ -193,11 +200,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                             const SizedBox(height: 25),
 
-                            // Role buttons (for role slide)
+                            // Role buttons (for role slide) — select/highlight only
                             if (page["roles"] != null)
                               Column(
                                 children:
                                     (page["roles"] as List<String>).map((role) {
+                                  final isSelected = selectedRole == role;
                                   return Padding(
                                     padding:
                                         const EdgeInsets.symmetric(vertical: 8),
@@ -205,7 +213,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                       width: 220,
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: buttonBlue,
+                                          backgroundColor:
+                                              isSelected ? titleColor : buttonBlue,
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
@@ -215,8 +224,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                               vertical: 14),
                                         ),
                                         onPressed: () {
+                                          // only highlight — do not navigate here
                                           setState(() => selectedRole = role);
-                                          _goToAddPet();
                                         },
                                         child: Text(
                                           role,
@@ -240,59 +249,92 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const SizedBox(height: 30),
 
                   // Bottom controls
-                  _currentPage == _pages.length - 1
-                      ? Center(
-                          child: ElevatedButton(
-                            onPressed: _finishOnboarding,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: buttonBlue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 40, vertical: 14),
-                            ),
-                            child: const Text(
-                              "Get Started",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            TextButton(
-                              onPressed: _finishOnboarding,
-                              child: const Text("Skip"),
-                            ),
-                            SmoothPageIndicator(
-                              controller: _pageController,
-                              count: _pages.length,
-                              effect: const WormEffect(
-                                activeDotColor: Color(0xFF5F7C94),
-                                dotColor: Colors.grey,
-                                dotHeight: 8,
-                                dotWidth: 8,
-                              ),
-                            ),
-                            ElevatedButton(
-                              onPressed: _nextPage,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: buttonBlue,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 10),
-                              ),
-                              child: const Text("Next"),
-                            ),
-                          ],
+                  if (_pages[_currentPage]["isAddPetPrompt"] == true)
+                    // Show Skip -> move to "You're all set" page, and Add Pet
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            // go to the final "You're all set!" page
+                            _pageController.animateToPage(
+                              _pages.length - 1,
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: const Text("Skip for now"),
                         ),
+                        ElevatedButton(
+                          onPressed: () => _goToAddPet(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: buttonBlue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 10),
+                          ),
+                          child: const Text("Add Pet"),
+                        ),
+                      ],
+                    )
+                  else if (_currentPage == _pages.length - 1)
+                    // Final page: Get Started
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _finishOnboarding,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: buttonBlue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 40, vertical: 14),
+                        ),
+                        child: const Text(
+                          "Get Started",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    // Default controls: Skip, Page Indicator, Next
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: _finishOnboarding,
+                          child: const Text("Skip"),
+                        ),
+                        SmoothPageIndicator(
+                          controller: _pageController,
+                          count: _pages.length,
+                          effect: const WormEffect(
+                            activeDotColor: Color(0xFF5F7C94),
+                            dotColor: Colors.grey,
+                            dotHeight: 8,
+                            dotWidth: 8,
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: _nextPage,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: buttonBlue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 10),
+                          ),
+                          child: const Text("Next"),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
