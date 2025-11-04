@@ -19,42 +19,86 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
   final _supabase = Supabase.instance.client;
+  bool _isLoading = false;
+  
+  Future<void> _signUp() async {
+    // Basic validation
+    if (_password.text != _confirmPassword.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return; // Exit early
+    }
+    if (_email.text.isEmpty || !_email.text.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email')),
+      );
+      return; // Exit early
+    }
 
-    Future<bool> _signUp() async {
-    //setState(() => _isLoading = true); // <-- ensure loading state
+    setState(() => _isLoading = true);
     try {
       debugPrint('Attempting sign up with email=${_email.text}');
       final res = await _supabase.auth.signUp(
         email: _email.text,
         password: _password.text,
-        data: {'username': _username.text, 'first_name': _firstName.text, 'last_name': _lastName.text},
+        data: {
+          'username': _username.text,
+          'first_name': _firstName.text,
+          'last_name': _lastName.text
+        },
       );
+      debugPrint('Sign-Up Response: $res');
 
-      //IMPORTANT ---> FIX ERR ????
-      //check if email exists 
-      final user = res.user;
-      debugPrint('sign up response: $res');
-      if (user == null) {
-          // SDK doesn't expose `res.error` here — show a generic messages.
-          debugPrint('User == null');
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Sign up failed')));
-          return false;
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed up')));
-        return true;
-
-        // navigate or refresh UI as needed
-      } catch (err) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.toString())));
-        debugPrint('Sign up error');
-        debugPrint(err.toString());
-        return false;
+      // Safely try to get the created user
+      dynamic user;
+      try {
+        user = (res as dynamic).user ?? (res as dynamic).data?['user'];
+      } catch (_) {
+        user = null;
       }
-    //if (mounted) setState(() => _isLoading = false);
+
+      if (user == null) {
+        // Extract an error/message safely for user feedback
+        String message = 'Sign up did not complete. The email may already be registered.';
+        try {
+          final dynamic maybeErr = (res as dynamic).error ?? (res as dynamic).message ?? (res as dynamic).errorMessage;
+          if (maybeErr != null) message = maybeErr.toString();
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        return; // Exit early
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed up')));
+      // Navigate to OnboardingScreen after successful signup
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const OnboardingScreen(),
+        ),
+      );
+      
+    } catch (err) {
+      final message = err is AuthException ? err.message : err.toString();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      debugPrint('Sign up error: $err');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
+
+    @override
+    void dispose() {
+      _firstName.dispose();
+      _lastName.dispose();
+      _username.dispose();
+      _email.dispose();
+      _password.dispose();
+      _confirmPassword.dispose();
+      super.dispose();
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +153,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 15),
                     buildAppTextField(
                       hint: "Confirm Password",
+                      controller: _confirmPassword,
                       obscure: _obscureConfirmPassword,
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -126,17 +171,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     const SizedBox(height: 25),
                     const SizedBox(height: 25),
-                    buildAppButton(
-                      text: "Sign Up",
-                      onPressed: () {
-                        _signUp();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const OnboardingScreen(),
-                          ),
-                        );
-                      },
+                    ElevatedButton(
+                      onPressed: _isLoading
+                       ? null 
+                       : () {
+                          _signUp(); 
+                        },
+                      child: Text(_isLoading ? 'Signing Up...' : 'Sign Up'),
                     ),
                   ],
                 ),
@@ -149,3 +190,5 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
+
+
