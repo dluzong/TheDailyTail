@@ -31,6 +31,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Get User and User Pets
     await userProvider.fetchUser();
+    debugPrint('User authenticated: ${userProvider.isAuthenticated}');
+
 
     if (userProvider.isAuthenticated && mounted) {
       await petProvider.fetchPets();
