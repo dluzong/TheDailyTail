@@ -23,15 +23,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // keep local profile state; pets are provided by PetProvider
   List<pet_list.Pet> _pets = [];
 
-  late final PageController _pageController;
+  final PageController _pageController = PageController(initialPage: _kFakeMiddle);
   static const int _kFakeMiddle = 10000;
   int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: _kFakeMiddle);
-    _pageController = PageController(initialPage: _kFakeMiddle);
     _currentPage = 0;
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
