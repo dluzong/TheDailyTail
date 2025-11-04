@@ -48,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "subtitle":
           "No worries if you're not ready — you can always add pets later from your profile.",
       "isAddPetPrompt": true,
-      "animation": "assets/lottie/happy_dog.json",
+      "animation": "assets/lottie/owner_n_dog.json",
     },
     {
       "title": "You’re all set!",
