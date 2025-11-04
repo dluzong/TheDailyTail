@@ -256,7 +256,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     OutlinedButton.icon(
                       onPressed: _isLoading ? null : signInWithGoogle,
                       icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-                      label: Text(_isLoading ? 'Please wait...' : 'Sign in with Google',
+                      label: Text(_isLoading ? 'Please wait...' : 'Sign up with Google',
                         style: const TextStyle(color: Color(0xFF7496B3))),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFF7496B3)),
