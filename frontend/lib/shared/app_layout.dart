@@ -59,6 +59,28 @@ class _AppLayoutState extends State<AppLayout> {
     }
   }
 
+  // ✅ Prevent duplicate ProfileScreen creation
+  void _openProfile() {
+    bool isAlreadyOnProfile = false;
+
+    Navigator.popUntil(context, (route) {
+      if (route.settings.name == 'profile') {
+        isAlreadyOnProfile = true;
+      }
+      return true;
+    });
+
+    if (!isAlreadyOnProfile) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ProfileScreen(),
+          settings: const RouteSettings(name: 'profile'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Add safe area padding
@@ -99,18 +121,12 @@ class _AppLayoutState extends State<AppLayout> {
                       ),
                     ),
                   ),
+
+                  // ✅ Updated Profile Avatar Action
                   Positioned(
                     right: 0,
                     child: GestureDetector(
-                      onTap: () {
-                        // Navigate to the profile screen when the avatar is tapped
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ProfileScreen(),
-                          ),
-                        );
-                      },
+                      onTap: _openProfile,
                       child: const CircleAvatar(
                         radius: 22,
                         backgroundColor: Color(0xFF7496B3),

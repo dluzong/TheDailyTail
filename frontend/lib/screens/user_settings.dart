@@ -75,21 +75,19 @@ class UserSettingsPage extends StatefulWidget {
 
 class _UserSettingsPageState extends State<UserSettingsPage> {
   final _formKey = GlobalKey<FormState>();
-  
+
   String _name = 'Your name';
   String _username = 'name123';
-  
+
   late List<Pet> _pets;
 
   bool _isDirty = false;
 
-  // Notification preferences
   bool _notifyEmail = true;
   bool _notifyPush = true;
 
   late TextEditingController _nameController;
   late TextEditingController _usernameController;
-  // Settings now only show pet name and photo; no per-pet edit controllers required here.
 
   @override
   void initState() {
@@ -115,17 +113,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       setState(() {
         _name = _nameController.text;
         _username = _usernameController.text;
-        // Pets are managed by add/remove; individual per-pet editing is not exposed here.
-        // Notify parent about profile (name/username) changes if they provided a callback.
+
         try {
           widget.onProfileUpdated?.call({'name': _name, 'username': _username});
         } catch (_) {}
-        // attempt to update the pet list
+
         try {
           widget.onPetsUpdated(List<Pet>.from(_pets));
-        } catch (_) {
-          // parent doesn't update pet list
-        }
+        } catch (_) {}
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,7 +129,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           backgroundColor: Color.fromARGB(255, 114, 201, 182),
         ),
       );
-      // close settings and return to previous screen
+
       _isDirty = false;
       Navigator.of(context).pop();
     }
@@ -149,7 +144,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
     setState(() {
       final newPet = Pet(
-        id: result['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id: result['id'] as String? ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         name: result['name'] as String? ?? '',
         type: result['type'] as String? ?? '',
         breed: result['breed'] as String? ?? '',
@@ -169,7 +165,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       setState(() {
         _pets.removeAt(index);
         _markDirty();
-        // add functionality back to pet_list
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -181,80 +176,128 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     }
   }
 
+  Future<bool> _onWillPop() async {
+    if (!_isDirty) return true;
+
+    final action = await showDialog<String?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved changes'),
+        content: const Text('You have unsaved changes. Save before leaving?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('discard'),
+            child: const Text('Discard'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop('save'),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (action == 'save') {
+      // _saveSettings will call Navigator.pop() after saving, so return false to avoid double-pop
+      _saveSettings();
+      return false;
+    }
+
+    if (action == 'discard') {
+      // allow pop and discard changes
+      return true;
+    }
+
+    // cancel or null -> don't pop
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
       currentIndex: widget.currentIndex,
       onTabSelected: widget.onTabSelected,
-      child: PopScope(
+      child: WillPopScope(
+        onWillPop: _onWillPop,
         child: Stack(
           children: [
-          // back button
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.of(context).pop(),
-            tooltip: 'Back',
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 0.0),
-                    ),
-                  ),
-                  
-                  _buildSectionHeader('Profile Information'),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: buildAppTextField(
-                      hint: 'Enter your full name',
-                      controller: _nameController,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: buildAppTextField(
-                      hint: 'Enter your username',
-                      controller: _usernameController,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  _buildPetsSection(),
+            // ✅ Back button removed
 
-                  const SizedBox(height: 20),
-                  _buildNotificationsSection(),
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Back button aligned on same row as the "Profile Information" header
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios),
+                          onPressed: () async {
+                            final shouldPop = await _onWillPop();
+                            if (shouldPop) Navigator.of(context).pop();
+                          },
+                          tooltip: 'Back',
+                        ),
+                        Expanded(child: _buildSectionHeader('Profile Information')),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 12),
-                  _buildLogoutButton(),
-                  
-                  const SizedBox(height: 100),
-                ],
+                    Center(
+                      child: buildAppTextField(
+                        hint: 'Enter your full name',
+                        controller: _nameController,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Center(
+                      child: buildAppTextField(
+                        hint: 'Enter your username',
+                        controller: _usernameController,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+                    _buildPetsSection(),
+
+                    const SizedBox(height: 20),
+                    _buildNotificationsSection(),
+
+                    const SizedBox(height: 12),
+                    _buildLogoutButton(),
+
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-          ),
-          
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 30,
-            child: Center(
-              child: buildAppButton(
-                text: 'Save Settings',
-                onPressed: _saveSettings,
-                width: 200,
+
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 30,
+              child: Center(
+                child: buildAppButton(
+                  text: 'Save Settings',
+                  onPressed: _saveSettings,
+                  width: 200,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildSectionHeader(String title) {
@@ -289,7 +332,11 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
               padding: const EdgeInsets.only(right: 16.0),
               child: IconButton(
                 onPressed: _addNewPet,
-                icon: const Icon(Icons.add_circle, color: Color(0xFF7496B3), size: 32),
+                icon: const Icon(
+                  Icons.add_circle,
+                  color: Color(0xFF7496B3),
+                  size: 32,
+                ),
                 tooltip: 'Add New Pet',
               ),
             ),
@@ -300,16 +347,25 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               leading: CircleAvatar(
                 radius: 28,
-                backgroundImage: pet.imageUrl.isNotEmpty ? AssetImage(pet.imageUrl) as ImageProvider : null,
+                backgroundImage: pet.imageUrl.isNotEmpty
+                    ? AssetImage(pet.imageUrl) as ImageProvider
+                    : null,
                 backgroundColor: const Color(0xFFBFD4E6),
-                child: pet.imageUrl.isEmpty ? const Icon(Icons.pets, color: Colors.white) : null,
+                child: pet.imageUrl.isEmpty
+                    ? const Icon(Icons.pets, color: Colors.white)
+                    : null,
               ),
-              title: Text(pet.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                pet.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               trailing: IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () => _removePet(index),
@@ -332,7 +388,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           child: Column(
             children: [
               SwitchListTile(
-                title: Text('Email notifications', style: GoogleFonts.inknutAntiqua(fontSize: 16)),
+                title: Text(
+                  'Email notifications',
+                  style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                ),
                 value: _notifyEmail,
                 onChanged: (v) => setState(() {
                   _notifyEmail = v;
@@ -340,7 +399,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                 }),
               ),
               SwitchListTile(
-                title: Text('Push notifications', style: GoogleFonts.inknutAntiqua(fontSize: 16)),
+                title: Text(
+                  'Push notifications',
+                  style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                ),
                 value: _notifyPush,
                 onChanged: (v) => setState(() {
                   _notifyPush = v;
@@ -367,16 +429,23 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                 title: const Text('Log out'),
                 content: const Text('Are you sure you want to log out?'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-                  ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Log out')),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Log out'),
+                  ),
                 ],
               ),
             );
 
             if (should == true) {
               await Supabase.instance.client.auth.signOut();
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged out')));
-              // Navigate to launch screen and remove all previous routes
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(const SnackBar(content: Text('Logged out')));
+
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const LaunchScreen()),
