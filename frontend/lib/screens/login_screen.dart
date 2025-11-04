@@ -19,6 +19,66 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   final _supabase = Supabase.instance.client;
 
+    Future<void> signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
+      );
+
+      // Handle SDK differences: some versions return bool, others return an object
+      if (response is bool) {
+        if (response == false) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Google sign-in failed or was cancelled')),
+            );
+          }
+          return;
+        }
+        // response == true -> continue
+      } else {
+        // Try to safely detect an error on dynamic response objects
+        try {
+          final dynamic maybeError = (response as dynamic).error ?? (response as dynamic).message ?? (response as dynamic)['error'];
+          if (maybeError != null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Google sign-in failed: $maybeError')),
+              );
+            }
+            return;
+          }
+        } catch (_) {
+          // ignore parsing errors and continue
+        }
+      }
+
+      // Attempt to load user/profile after OAuth flow
+      try {
+        await context.read<UserProvider>().fetchUser();
+      } catch (e) {
+        debugPrint('fetchUser after Google sign-in failed: $e');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+      debugPrint('Google sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _signIn() async {
     setState(() => _isLoading = true); // <-- ensure loading state
     try {
@@ -118,6 +178,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                       child: Text(_isLoading ? 'Logging in...' : 'Log In'),
                     ),
+                    const SizedBox(height: 12),
+                    '''
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : signInWithGoogle,
+                      icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
+                      label: Text(_isLoading ? 'Please wait...' : 'Sign in with Google',
+                        style: const TextStyle(color: Color(0xFF7496B3))),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF7496B3)),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      ),
+                    ),
+                    '''
                   ],
                 ),
               ),
