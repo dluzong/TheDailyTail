@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'user_provider.dart';
+import 'pet_provider.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -25,8 +26,11 @@ void main() async {
   debugPrint('supabaseUrl: $supabaseUrl');
   // runApp(const MyApp());
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => UserProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => UserProvider()),
+        ChangeNotifierProvider(create: (context) => PetProvider()),
+      ],
       child: const MyApp(),
     ),
   );
