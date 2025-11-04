@@ -20,7 +20,7 @@ This project uses Flutter; make sure you have Flutter and Dart installed.
 ### Prerequisites
 
 - Git
-- Flutter (3.x or newer) and Dart SDK
+- Flutter and Dart SDK
 - An editor such as VS Code or Android Studio
 - For iOS development: Xcode (macOS only)
 - For Android development: Android SDK (via Android Studio)
@@ -31,7 +31,7 @@ Run `flutter doctor` to verify your environment. Fix any issues the doctor repor
 
 Open a terminal and run:
 
-```bash
+```
 git clone https://github.com/dluzong/TheDailyTail.git
 cd frontend
 ```
@@ -44,13 +44,17 @@ Add a `.env` file in the `frontend/` folder **(.env file will be emailed upon re
 
 Install Dart/Flutter packages and CocoaPods (iOS) if needed:
 
-```bash
+```
 flutter pub get
 ```
 
 ### Run the app
 
-- Launch on an Android emulator, iOS simulator, or connected device:
+- Launch on an Android emulator, iOS simulator, or connected device
+
+```
+flutter run
+```
 
 <!-- 
 ```bash
