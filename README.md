@@ -79,6 +79,7 @@ flutter run -d macos
 
 - If CocoaPods warns about platform or base configurations: open `ios/Podfile` and ensure `platform :ios, '13.0'` is set, then run `pod install` in `ios/`.
 - If you see merge conflicts in `ios/Podfile.lock`, resolve the conflict, then run `pod install` and commit the resolved file.
+- If you run into build or dependency errors, run `flutter clean` to clear out cache and rebuild the app.
 
 
 

@@ -48,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "subtitle":
           "No worries if you're not ready — you can always add pets later from your profile.",
       "isAddPetPrompt": true,
-      "animation": "assets/lottie/happy_dog.json",
+      "animation": "assets/lottie/owner_n_dog.json",
     },
     {
       "title": "You’re all set!",
@@ -249,6 +249,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const SizedBox(height: 30),
 
                   // Bottom controls
+                  // Page indicator (shown on all pages)
+                  Center(
+                    child: SmoothPageIndicator(
+                      controller: _pageController,
+                      count: _pages.length,
+                      effect: const WormEffect(
+                        activeDotColor: Color(0xFF5F7C94),
+                        dotColor: Colors.grey,
+                        dotHeight: 8,
+                        dotWidth: 8,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+
                   if (_pages[_currentPage]["isAddPetPrompt"] == true)
                     // Show Skip -> move to "You're all set" page, and Add Pet
                     Row(
@@ -310,16 +326,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         TextButton(
                           onPressed: _finishOnboarding,
                           child: const Text("Skip"),
-                        ),
-                        SmoothPageIndicator(
-                          controller: _pageController,
-                          count: _pages.length,
-                          effect: const WormEffect(
-                            activeDotColor: Color(0xFF5F7C94),
-                            dotColor: Colors.grey,
-                            dotHeight: 8,
-                            dotWidth: 8,
-                          ),
                         ),
                         ElevatedButton(
                           onPressed: _nextPage,

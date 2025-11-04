@@ -5,8 +5,8 @@ import '../shared/starting_widgets.dart';
 import 'all_pets_screen.dart' as all_pets;
 import 'user_settings.dart' as user_settings;
 import '../user_provider.dart';
+import '../pet_provider.dart' as pet_provider;
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -20,8 +20,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _fullName = '';
   String _username = '';
   String _role = '';
+  // keep local profile state; pets are provided by PetProvider
   List<pet_list.Pet> _pets = [];
-  bool _isLoading = false;
 
   late final PageController _pageController;
   static const int _kFakeMiddle = 10000;
@@ -31,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _kFakeMiddle);
+    _pageController = PageController(initialPage: _kFakeMiddle);
     _currentPage = 0;
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -38,42 +39,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fullName = user != null ? '${user.firstName} ${user.lastName}'.trim() : 'Your Name';
     _username = user?.username ?? 'username';
     _role = user?.role ?? 'User';
-    _fetchPets();
+    // ask the PetProvider to fetch pets
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
+      petProv.fetchPets();
+    });
   }
 
-  Future<void> _fetchPets() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final supabaseClient = Supabase.instance.client;
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final user = userProvider.user;
-      if (user == null) {
-        debugPrint("No user logged in. Failed to fetch pets.");
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      final data = await supabaseClient
-          .from('pets')
-          .select()
-          .eq('user_id', user.userId)
-          .order('name');
-
-      setState(() {
-    _pets = data
-      .map<pet_list.Pet>((pet) => pet_list.Pet(
-          name: pet['name'] ?? 'Unknown',
-          imageUrl: pet['image_url'] ?? '',
-        ))
-      .toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint("Exception while fetching pets: $e");
-      setState(() => _isLoading = false);
-    }
-  }
+  // pet data is managed by PetProvider; no local fetch needed
 
   @override
   void dispose() {
@@ -110,6 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                
                 Row(
                   children: [
                     Container(
@@ -196,16 +170,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Pet Carousel
                 SizedBox(
                   height: carouselHeight,
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _pets.isEmpty
-                          ? Center(
-                              child: Text(
-                                'No pets found.',
-                                style: GoogleFonts.inknutAntiqua(fontSize: 16),
-                              ),
-                            )
-                          : Stack(
+                  child: Builder(builder: (context) {
+                    final petProv = Provider.of<pet_provider.PetProvider>(context);
+                    final isLoading = petProv.isLoading;
+                    final pets = petProv.pets
+                        .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
+                        .toList();
+
+                    return isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : pets.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No pets found.',
+                                  style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                                ),
+                              )
+                            : Stack(
                               alignment: Alignment.center,
                               children: [
                                 PageView.builder(
@@ -213,14 +194,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   itemCount: null,
                                   onPageChanged: (fakeIndex) {
                                     setState(() {
-                                      final logical = fakeIndex % _pets.length;
+                                      final logical = fakeIndex % pets.length;
                                       _currentPage =
-                                          logical < 0 ? logical + _pets.length : logical;
+                                          logical < 0 ? logical + pets.length : logical;
                                     });
                                   },
                                   itemBuilder: (context, fakeIndex) {
-                                    final logical = fakeIndex % _pets.length;
-                                    final pet = _pets[logical];
+                                    final logical = fakeIndex % pets.length;
+                                    final pet = pets[logical];
 
                                     return AnimatedBuilder(
                                       animation: _pageController,
@@ -250,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     );
                                   },
                                 ),
-                                if (_pets.length > 1) ...[
+                                if (pets.length > 1) ...[
                                   Positioned(
                                     left: size.width * 0.01,
                                     child: IconButton(
@@ -269,7 +250,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ],
                               ],
-                            ),
+                            );
+                  }),
                 ),
                 SizedBox(height: size.height * 0.03),
 
@@ -278,9 +260,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     text: 'View All',
                     width: size.width * 0.45,
                     onPressed: () {
+                      final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
+                      final pets = petProv.pets
+                          .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
+                          .toList();
+
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => all_pets.AllPetsScreen(pets: _pets),
+                          builder: (_) => all_pets.AllPetsScreen(pets: pets),
                         ),
                       );
                     },
@@ -296,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Positioned(
             top: size.height * 0.025,
             right: size.width * 0.025,
-            child: IconButton(
+                child: IconButton(
               icon: Icon(
                 Icons.settings,
                 size: size.width * 0.08,
@@ -304,14 +291,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               tooltip: 'User Settings',
               onPressed: () {
-                final initialForSettings = _pets.map((p) {
+                final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
+                final initialForSettings = petProv.pets.map((p) {
                   return user_settings.Pet(
-                    id: '${p.name}-${DateTime.now().millisecondsSinceEpoch}',
+                    id: p.petId,
                     name: p.name,
                     type: '',
-                    breed: '',
-                    age: 0,
-                    imageUrl: p.imageUrl,
+                    breed: p.breed,
+                    age: p.age,
+                    imageUrl: '',
                   );
                 }).toList();
 
