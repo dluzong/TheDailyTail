@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'pet_list.dart' as pet_list;
 
 class AllPetsScreen extends StatelessWidget {
@@ -23,12 +24,12 @@ class AllPetsScreen extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'All Pets',
-                    style: TextStyle(
+                    style: GoogleFonts.inknutAntiqua(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF7496B3),
+                      color: const Color(0xFF7496B3),
                     ),
                   ),
                 ],
@@ -52,11 +53,8 @@ class AllPetsScreen extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(child: pet_list.PetList(pet: pet)),
-                          ],
+                        child: Center(
+                          child: pet_list.PetList(pet: pet),
                         ),
                       ),
                     );
