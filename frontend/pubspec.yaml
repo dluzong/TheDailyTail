@@ -34,6 +34,7 @@ dependencies:
   supabase_flutter: ^2.0.0
   table_calendar: ^3.1.2
   provider: ^6.0.0
+  lottie: ^3.1.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -43,6 +44,7 @@ dependencies:
   intl: ^0.19.0
   shared_preferences: ^2.3.2
   flutter_dotenv: ^6.0.0
+  smooth_page_indicator: ^1.1.0
 
 
 
@@ -72,6 +74,11 @@ flutter:
   assets:
     - .env
     - assets/dog.png
+    - assets/lottie/journaling.json
+    - assets/lottie/connecting.json
+    - assets/lottie/dog_roles.json
+    - assets/lottie/confetti.json
+    - assets/lottie/cat_playing.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
