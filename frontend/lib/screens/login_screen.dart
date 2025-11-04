@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(_isLoading ? 'Logging in...' : 'Log In'),
                     ),
                     const SizedBox(height: 12),
-                    '''
+                    
                     OutlinedButton.icon(
                       onPressed: _isLoading ? null : signInWithGoogle,
                       icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
@@ -190,7 +190,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       ),
                     ),
-                    '''
                   ],
                 ),
               ),
