@@ -7,12 +7,14 @@ class AppUser {
   final String username;
   final String firstName;
   final String lastName;
+  final String role;
 
   AppUser({
     required this.userId,
     required this.username,
     required this.firstName,
     required this.lastName,
+    required this.role,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
@@ -21,6 +23,7 @@ class AppUser {
       username: map['username'],
       firstName: map['first_name'],
       lastName: map['last_name'],
+      role: map['role'],
     );
   }
 }
