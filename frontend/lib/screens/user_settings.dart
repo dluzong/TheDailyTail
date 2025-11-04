@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/launch_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../shared/app_layout.dart';
 import '../shared/starting_widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -372,9 +374,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             );
 
             if (should == true) {
+              await Supabase.instance.client.auth.signOut();
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged out')));
-              // TODO: currently the log out function just leaves settings page. update so it sends user to launch screen
-              Navigator.of(context).pop();
+              // Navigate to launch screen and remove all previous routes
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LaunchScreen()),
+                (route) => false,
+              );
             }
           },
           width: 200,
