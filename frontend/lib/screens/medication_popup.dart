@@ -14,7 +14,7 @@ class _MedicationPopupState extends State<MedicationPopup> {
   final List<Map<String, dynamic>> _medications = [];
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _dosageController = TextEditingController();
-  String _selectedFrequency = 'Daily';
+  final TextEditingController _frequencyController = TextEditingController();
   late SharedPreferences _prefs;
   final String _prefsKey = 'medication_data';
 
@@ -43,20 +43,20 @@ class _MedicationPopupState extends State<MedicationPopup> {
 
   void _addMedication() {
     if (_nameController.text.trim().isEmpty ||
-        _dosageController.text.trim().isEmpty) return;
+        _dosageController.text.trim().isEmpty ||
+        _frequencyController.text.trim().isEmpty) return;
 
     setState(() {
       _medications.add({
         'name': _nameController.text.trim(),
         'dosage': _dosageController.text.trim(),
-        'freq': _selectedFrequency,
+        'freq': _frequencyController.text.trim(),
         'taken': false,
-        'lastTaken':
-            null, // For tracking and scheduling notifications in future
+        'lastTaken': null, // For future tracking/scheduling
       });
       _nameController.clear();
       _dosageController.clear();
-      _selectedFrequency = 'Daily';
+      _frequencyController.clear();
     });
     _saveMeds();
   }
@@ -82,6 +82,7 @@ class _MedicationPopupState extends State<MedicationPopup> {
   void dispose() {
     _nameController.dispose();
     _dosageController.dispose();
+    _frequencyController.dispose();
     super.dispose();
   }
 
@@ -140,7 +141,7 @@ class _MedicationPopupState extends State<MedicationPopup> {
               children: [
                 _inputField(_nameController, 'Medication'),
                 _inputField(_dosageController, 'Dosage'),
-                _dropdownField(),
+                _frequencyField(),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7496B3),
@@ -188,36 +189,25 @@ class _MedicationPopupState extends State<MedicationPopup> {
     );
   }
 
-  Widget _dropdownField() {
+  Widget _frequencyField() {
     return SizedBox(
       width: 150,
-      height: 40,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.grey.shade300),
         ),
-        alignment: Alignment.center,
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _selectedFrequency,
-            isExpanded: true,
-            iconSize: 20,
-            dropdownColor: Colors.white,
-            style: GoogleFonts.inknutAntiqua(fontSize: 13, color: Colors.black),
-            items: const [
-              DropdownMenuItem(value: 'Daily', child: Text('Daily')),
-              DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
-              DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
-              DropdownMenuItem(value: 'Custom', child: Text('Custom')),
-            ],
-            onChanged: (val) {
-              if (val == null) return;
-              setState(() => _selectedFrequency = val);
-            },
+        child: TextField(
+          controller: _frequencyController,
+          decoration: const InputDecoration(
+            hintText: 'Frequency',
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
           ),
+          style: GoogleFonts.inknutAntiqua(fontSize: 13),
         ),
       ),
     );

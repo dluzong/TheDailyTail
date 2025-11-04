@@ -89,10 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 25),
                     buildDogIcon(),
                     const SizedBox(height: 35),
-                    buildAppTextField(
-                      hint: "Email",
-                      controller: _email
-                    ),
+                    buildAppTextField(hint: "Email", controller: _email),
                     const SizedBox(height: 15),
                     buildAppTextField(
                       hint: "Password",
