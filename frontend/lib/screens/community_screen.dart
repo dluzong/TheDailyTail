@@ -129,7 +129,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                   onPressed: () => Navigator.of(context).pop(true),
                                   child: const Text(
                                     'Yes, delete',
-                                    style: TextStyle(color: Colors.black),
+                                    style: TextStyle(color: Colors.white),
                                   ),
                                 ),
                               ],
