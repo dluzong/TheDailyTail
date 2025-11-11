@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 // Pet Data Model
 class Pet {
@@ -25,6 +27,16 @@ class Pet {
       age: map['age'] as int? ?? 0,
       weight: map['weight'] as double? ?? 0.0,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'pet_id': petId,
+      'name': name,
+      'breed': breed,
+      'age': age,
+      'weight': weight,
+    };
   }
 }
 
@@ -63,6 +75,20 @@ class PetProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  static const _cacheKey = 'cached_pets';
+
+  PetProvider() {
+    _loadFromCache();
+
+    // Clear pets on sign-out
+    _supabase.auth.onAuthStateChange.listen((data) async {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedOut) {
+        clearPets();
+      }
+    });
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -93,6 +119,7 @@ class PetProvider extends ChangeNotifier {
 
       _pets = response.map<Pet>((petData) => Pet.fromMap(petData)).toList();
       debugPrint("Saved pets data. Count: ${_pets.length}");
+      await _saveToCache();
     } catch (e) {
       debugPrint("Error fetching pets: $e");
       _setError("Failed to fetch pets. Please try again.");
@@ -207,6 +234,48 @@ class PetProvider extends ChangeNotifier {
     _pets = [];
     _errorMessage = null;
     _isLoading = false;
+    _clearCache();
+    notifyListeners();
+  }
+
+  Future<void> _loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_cacheKey);
+      if (jsonStr == null) return;
+      final List<dynamic> list = json.decode(jsonStr);
+      _pets = list
+          .whereType<Map<String, dynamic>>()
+          .map((m) => Pet.fromMap(m))
+          .toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load cached pets: $e');
+    }
+  }
+
+  Future<void> _saveToCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _cacheKey,
+        json.encode(_pets.map((p) => p.toMap()).toList()),
+      );
+    } catch (e) {
+      debugPrint('Failed to cache pets: $e');
+    }
+  }
+
+  Future<void> _clearCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cacheKey);
+    } catch (_) {}
+  }
+
+  Future<void> setPetsLocal(List<Pet> pets) async {
+    _pets = List.from(pets);
+    await _saveToCache();
     notifyListeners();
   }
 }
