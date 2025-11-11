@@ -17,13 +17,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String _fullName = '';
-  String _username = '';
-  String _role = '';
-  // keep local profile state; pets are provided by PetProvider
-  List<pet_list.Pet> _pets = [];
-
-  final PageController _pageController = PageController(initialPage: _kFakeMiddle);
+  final PageController _pageController =
+      PageController(initialPage: _kFakeMiddle);
   static const int _kFakeMiddle = 10000;
   int _currentPage = 0;
 
@@ -31,17 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _currentPage = 0;
-
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final user = userProvider.user;
-    _fullName = user != null ? '${user.firstName} ${user.lastName}'.trim() : 'Your Name';
-    _username = user?.username ?? 'username';
-    _role = user?.role ?? 'User';
-    // ask the PetProvider to fetch pets
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
-      petProv.fetchPets();
-    });
+    // Providers load from cache on creation. Avoid network fetch here to keep profile lightweight.
   }
 
   // pet data is managed by PetProvider; no local fetch needed
@@ -67,6 +52,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final size = MediaQuery.of(context).size;
     final textScale = MediaQuery.of(context).textScaleFactor;
 
+    final appUser = context.watch<UserProvider>().user;
+    final fullName = appUser != null
+        ? '${appUser.firstName} ${appUser.lastName}'.trim()
+        : 'Your Name';
+    final username = appUser?.username ?? 'username';
+    final role = appUser?.role ?? 'User';
+
     double avatarSize = size.width * 0.30;
     double carouselHeight = size.height * 0.22;
     double arrowSize = size.width * 0.08;
@@ -81,7 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
                 Row(
                   children: [
                     Container(
@@ -108,14 +99,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _fullName,
+                              fullName,
                               style: GoogleFonts.inknutAntiqua(
                                 fontSize: 20 * textScale,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              _username,
+                              username,
                               style: GoogleFonts.inknutAntiqua(
                                 fontSize: 16 * textScale,
                                 color: Colors.black,
@@ -137,10 +128,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  _role,
+                                  role,
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: 12 * textScale,
-                                    color: const Color.fromARGB(255, 67, 145, 213),
+                                    color:
+                                        const Color.fromARGB(255, 67, 145, 213),
                                   ),
                                 ),
                               ),
@@ -169,7 +161,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   height: carouselHeight,
                   child: Builder(builder: (context) {
-                    final petProv = Provider.of<pet_provider.PetProvider>(context);
+                    final petProv =
+                        Provider.of<pet_provider.PetProvider>(context);
                     final isLoading = petProv.isLoading;
                     final pets = petProv.pets
                         .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
@@ -181,74 +174,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ? Center(
                                 child: Text(
                                   'No pets found.',
-                                  style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                                  style:
+                                      GoogleFonts.inknutAntiqua(fontSize: 16),
                                 ),
                               )
                             : Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                PageView.builder(
-                                  controller: _pageController,
-                                  itemCount: null,
-                                  onPageChanged: (fakeIndex) {
-                                    setState(() {
+                                alignment: Alignment.center,
+                                children: [
+                                  PageView.builder(
+                                    controller: _pageController,
+                                    itemCount: null,
+                                    onPageChanged: (fakeIndex) {
+                                      setState(() {
+                                        final logical = fakeIndex % pets.length;
+                                        _currentPage = logical < 0
+                                            ? logical + pets.length
+                                            : logical;
+                                      });
+                                    },
+                                    itemBuilder: (context, fakeIndex) {
                                       final logical = fakeIndex % pets.length;
-                                      _currentPage =
-                                          logical < 0 ? logical + pets.length : logical;
-                                    });
-                                  },
-                                  itemBuilder: (context, fakeIndex) {
-                                    final logical = fakeIndex % pets.length;
-                                    final pet = pets[logical];
+                                      final pet = pets[logical];
 
-                                    return AnimatedBuilder(
-                                      animation: _pageController,
-                                      builder: (context, child) {
-                                        double value = 1.0;
-                                        if (_pageController.position.haveDimensions) {
-                                          final page =
-                                              (_pageController.page ??
-                                                      _pageController.initialPage)
-                                                  .toDouble();
-                                          value = (1 - ((page - fakeIndex).abs() * 0.15))
-                                              .clamp(0.85, 1.0);
-                                        }
-                                        return Center(
-                                          child: Transform.scale(
-                                            scale: value,
-                                            child: child,
+                                      return AnimatedBuilder(
+                                        animation: _pageController,
+                                        builder: (context, child) {
+                                          double value = 1.0;
+                                          if (_pageController
+                                              .position.haveDimensions) {
+                                            final page = (_pageController
+                                                        .page ??
+                                                    _pageController.initialPage)
+                                                .toDouble();
+                                            value = (1 -
+                                                    ((page - fakeIndex).abs() *
+                                                        0.15))
+                                                .clamp(0.85, 1.0);
+                                          }
+                                          return Center(
+                                            child: Transform.scale(
+                                              scale: value,
+                                              child: child,
+                                            ),
+                                          );
+                                        },
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: size.width * 0.02,
                                           ),
-                                        );
-                                      },
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: size.width * 0.02,
+                                          child: pet_list.PetList(pet: pet),
                                         ),
-                                        child: pet_list.PetList(pet: pet),
+                                      );
+                                    },
+                                  ),
+                                  if (pets.length > 1) ...[
+                                    Positioned(
+                                      left: size.width * 0.01,
+                                      child: IconButton(
+                                        iconSize: arrowSize,
+                                        onPressed: () =>
+                                            _goToPage(_currentPage - 1),
+                                        icon: const Icon(Icons.arrow_back_ios),
                                       ),
-                                    );
-                                  },
-                                ),
-                                if (pets.length > 1) ...[
-                                  Positioned(
-                                    left: size.width * 0.01,
-                                    child: IconButton(
-                                      iconSize: arrowSize,
-                                      onPressed: () => _goToPage(_currentPage - 1),
-                                      icon: const Icon(Icons.arrow_back_ios),
                                     ),
-                                  ),
-                                  Positioned(
-                                    right: size.width * 0.01,
-                                    child: IconButton(
-                                      iconSize: arrowSize,
-                                      onPressed: () => _goToPage(_currentPage + 1),
-                                      icon: const Icon(Icons.arrow_forward_ios),
+                                    Positioned(
+                                      right: size.width * 0.01,
+                                      child: IconButton(
+                                        iconSize: arrowSize,
+                                        onPressed: () =>
+                                            _goToPage(_currentPage + 1),
+                                        icon:
+                                            const Icon(Icons.arrow_forward_ios),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
-                            );
+                              );
                   }),
                 ),
                 SizedBox(height: size.height * 0.03),
@@ -258,7 +259,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     text: 'View All',
                     width: size.width * 0.45,
                     onPressed: () {
-                      final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
+                      final petProv = Provider.of<pet_provider.PetProvider>(
+                          context,
+                          listen: false);
                       final pets = petProv.pets
                           .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
                           .toList();
@@ -281,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Positioned(
             top: size.height * 0.025,
             right: size.width * 0.025,
-                child: IconButton(
+            child: IconButton(
               icon: Icon(
                 Icons.settings,
                 size: size.width * 0.08,
@@ -289,42 +292,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               tooltip: 'User Settings',
               onPressed: () {
-                final petProv = Provider.of<pet_provider.PetProvider>(context, listen: false);
-                final initialForSettings = petProv.pets.map((p) {
-                  return user_settings.Pet(
-                    id: p.petId,
-                    name: p.name,
-                    type: '',
-                    breed: p.breed,
-                    age: p.age,
-                    imageUrl: '',
-                  );
-                }).toList();
-
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => user_settings.UserSettingsPage(
                       currentIndex: 0,
-                      onTabSelected: (_) {},
-                      initialPets: initialForSettings,
-                      onPetsUpdated: (updated) {
-                        setState(() {
-                          _pets
-                            ..clear()
-                            ..addAll(
-                              updated.map((u) => pet_list.Pet(
-                                    name: u.name,
-                                    imageUrl: u.imageUrl,
-                                  )),
-                            );
-                        });
-                      },
-                      onProfileUpdated: (map) {
-                        setState(() {
-                          _fullName = map['name'] ?? _fullName;
-                          _username = map['username'] ?? _username;
-                        });
-                      },
+                      onTabSelected: _noop,
                     ),
                   ),
                 );
@@ -336,3 +308,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+// Helper for onTabSelected placeholder
+void _noop(int _) {}
