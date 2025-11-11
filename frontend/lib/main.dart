@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'user_provider.dart';
 import 'pet_provider.dart';
+import 'posts_provider.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -30,6 +31,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => UserProvider()),
         ChangeNotifierProvider(create: (context) => PetProvider()),
+        ChangeNotifierProvider(create: (context) => PostsProvider()),
       ],
       child: const MyApp(),
     ),
