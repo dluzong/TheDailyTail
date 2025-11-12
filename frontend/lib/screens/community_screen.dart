@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/app_layout.dart';
 import '../posts_provider.dart';
+import 'community_filter_popup.dart';
 
 class CommunityBoardScreen extends StatefulWidget {
   const CommunityBoardScreen({super.key});
@@ -34,17 +36,66 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   String _selectedCategory = 'General';
   String _selectedPostTo = 'Public';
   String? _selectedGroup;
+  // Active filters applied from the filter popup
+  String _filterSort = 'recent';
+  List<String> _filterCategories = [];
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
   // Posts are now persisted in PostsProvider
 
   @override
+  void initState() {
+    super.initState();
+    _loadSavedFilters();
+  }
+
+  // reset all forms when leaving community page
+  @override
   void dispose() {
+    _clearSavedFilters();
+
     _searchController.dispose();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  // reset filters when leaving community page
+  Future<void> _clearSavedFilters() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('community_filter_sort');
+      await prefs.remove('community_filter_categories');
+    } catch (e) {
+      // ignore errors
+    }
+  }
+
+  Future<void> _loadSavedFilters() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedSort = prefs.getString('community_filter_sort');
+      final savedCats = prefs.getStringList('community_filter_categories');
+      if (mounted) {
+        setState(() {
+          _filterSort = savedSort ?? _filterSort;
+          _filterCategories = savedCats ?? _filterCategories;
+        });
+      }
+    } catch (e) {
+      // ignore errors
+    }
+  }
+
+  Future<void> _persistFilters() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('community_filter_sort', _filterSort);
+      await prefs.setStringList('community_filter_categories', _filterCategories);
+    } catch (e) {
+      // ignore errors persisting filters
+    }
   }
 
   Widget _buildPostsList({String mode = 'feed'}) {
@@ -54,6 +105,36 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     // If friends mode, filter posts to only those authored by people the user follows
     if (mode == 'friends') {
       posts = posts.where((p) => postsProvider.isFollowing(p['author'] as String)).toList();
+    }
+
+    // Apply category filters (if any selected)
+    if (_filterCategories.isNotEmpty) {
+      posts = posts.where((p) {
+        final cat = (p['category'] ?? '') as String;
+        return _filterCategories.contains(cat);
+      }).toList();
+    }
+
+    // Apply sort: 'popular' sorts by likes descending; 'recent' leaves provider order
+    if (_filterSort == 'popular') {
+      posts.sort((a, b) {
+        final la = (a['likes'] ?? 0) as int;
+        final lb = (b['likes'] ?? 0) as int;
+        return lb.compareTo(la);
+      });
+    }
+
+    // If no posts after filtering, show a friendly empty state message
+    if (posts.isEmpty) {
+      return Center(
+        child: Text(
+          'No posts found. :(',
+          style: GoogleFonts.inknutAntiqua(
+            fontSize: 16,
+            color: const Color(0xFF394957),
+          ),
+        ),
+      );
     }
 
     return ListView.separated(
@@ -513,6 +594,35 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     );
   }
 
+  void _openCommunityFilterPopup() {
+    () async {
+      final result = await showDialog<dynamic>(
+        context: context,
+        barrierDismissible: true,
+        barrierColor: Colors.black.withValues(alpha: 0.35),
+        builder: (context) => CommunityFilterPopup(
+            initialCategory: _selectedCategory,
+            categories: _categories,
+            initialSort: _filterSort,
+            initialSelectedCategories: _filterCategories,
+          ),
+      );
+
+      if (result is Map) {
+        setState(() {
+          _filterSort = (result['sort'] as String?) ?? 'recent';
+          final cats = result['categories'];
+          if (cats is List) {
+            _filterCategories = cats.cast<String>();
+          } else {
+            _filterCategories = [];
+          }
+        });
+        await _persistFilters();
+      }
+    }();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
@@ -561,18 +671,21 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 220, 220, 232),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.filter_list),
-                              onPressed: () {
-                                // TODO: Implement filter
-                              },
-                            ),
-                          ),
+                          Builder(builder: (context) {
+                            // change the filter icon to blue when filters are applied
+                            final bool hasActiveFilters = _filterSort != 'recent' || _filterCategories.isNotEmpty;
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: hasActiveFilters ? const Color(0xFF7496B3) : const Color.fromARGB(255, 220, 220, 232),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: IconButton(
+                                icon: Icon(Icons.filter_list, color: hasActiveFilters ? Colors.white : null),
+                                onPressed: _openCommunityFilterPopup,
+                                tooltip: hasActiveFilters ? 'Filters applied' : 'Filter',
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ],
