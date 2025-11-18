@@ -44,7 +44,9 @@ class _MedicationPopupState extends State<MedicationPopup> {
   void _addMedication() {
     if (_nameController.text.trim().isEmpty ||
         _dosageController.text.trim().isEmpty ||
-        _frequencyController.text.trim().isEmpty) return;
+        _frequencyController.text.trim().isEmpty) {
+      return;
+    }
 
     setState(() {
       _medications.add({
@@ -121,7 +123,7 @@ class _MedicationPopupState extends State<MedicationPopup> {
                           style: GoogleFonts.inknutAntiqua(fontSize: 11),
                         ),
                         leading: Switch(
-                          activeColor: const Color(0xFF7496B3),
+                          activeThumbColor: const Color(0xFF7496B3),
                           value: med['taken'] ?? false,
                           onChanged: (val) => _toggleTaken(index, val),
                         ),

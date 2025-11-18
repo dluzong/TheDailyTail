@@ -5,68 +5,18 @@ import '../shared/app_layout.dart';
 import '../shared/starting_widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'add_pet_screen.dart';
-
-class Pet {
-  final String id;
-  final String name;
-  final String type;
-  final String breed;
-  final int age;
-  final String imageUrl;
-
-  Pet({
-    required this.id,
-    required this.name,
-    required this.type,
-    required this.breed,
-    required this.age,
-    this.imageUrl = '',
-  });
-
-  Pet copyWith({
-    String? id,
-    String? name,
-    String? type,
-    String? breed,
-    int? age,
-    String? imageUrl,
-  }) {
-    return Pet(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      type: type ?? this.type,
-      breed: breed ?? this.breed,
-      age: age ?? this.age,
-      imageUrl: imageUrl ?? this.imageUrl,
-    );
-  }
-
-  Pet toPetListPet() {
-    return Pet(
-      id: id,
-      name: name,
-      type: type,
-      breed: breed,
-      age: age,
-      imageUrl: imageUrl,
-    );
-  }
-}
+import 'package:provider/provider.dart';
+import '../user_provider.dart';
+import '../pet_provider.dart' as pet_provider;
 
 class UserSettingsPage extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
-  final List<Pet> initialPets;
-  final ValueChanged<List<Pet>> onPetsUpdated;
-  final ValueChanged<Map<String, String>>? onProfileUpdated;
 
   const UserSettingsPage({
     super.key,
     required this.currentIndex,
     required this.onTabSelected,
-    required this.initialPets,
-    required this.onPetsUpdated,
-    this.onProfileUpdated,
   });
 
   @override
@@ -79,7 +29,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   String _name = 'Your name';
   String _username = 'name123';
 
-  late List<Pet> _pets;
+  late List<pet_provider.Pet> _pets;
 
   bool _isDirty = false;
 
@@ -92,7 +42,15 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _pets = List.from(widget.initialPets);
+    final up = Provider.of<UserProvider>(context, listen: false);
+    final user = up.user;
+    _name = user != null ? '${user.firstName} ${user.lastName}'.trim() : _name;
+    _username = user?.username ?? _username;
+
+    _pets = List.from(
+      Provider.of<pet_provider.PetProvider>(context, listen: false).pets,
+    );
+
     _nameController = TextEditingController(text: _name);
     _usernameController = TextEditingController(text: _username);
   }
@@ -110,28 +68,46 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
   void _saveSettings() {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _name = _nameController.text;
-        _username = _usernameController.text;
+      _name = _nameController.text;
+      _username = _usernameController.text;
 
-        try {
-          widget.onProfileUpdated?.call({'name': _name, 'username': _username});
-        } catch (_) {}
+      // Split full name into first/last (best-effort)
+      final parts = _name.trim().split(RegExp(r"\s+"));
+      final firstName = parts.isNotEmpty ? parts.first : '';
+      final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
 
-        try {
-          widget.onPetsUpdated(List<Pet>.from(_pets));
-        } catch (_) {}
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final petProvider =
+          Provider.of<pet_provider.PetProvider>(context, listen: false);
+
+      userProvider
+          .updateUserProfile(
+        username: _username,
+        firstName: firstName,
+        lastName: lastName,
+      )
+          .then((_) async {
+        // Persist pets locally (local-only for now)
+        await petProvider.setPetsLocal(_pets);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Settings have been saved!'),
+              backgroundColor: Color.fromARGB(255, 114, 201, 182),
+            ),
+          );
+          _isDirty = false;
+          Navigator.of(context).pop();
+        }
+      }).catchError((e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save settings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Settings have been saved!'),
-          backgroundColor: Color.fromARGB(255, 114, 201, 182),
-        ),
-      );
-
-      _isDirty = false;
-      Navigator.of(context).pop();
     }
   }
 
@@ -143,16 +119,15 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     if (result == null) return;
 
     setState(() {
-      final newPet = Pet(
-        id: result['id'] as String? ??
+      final newPet = pet_provider.Pet(
+        petId: result['id'] as String? ??
             DateTime.now().millisecondsSinceEpoch.toString(),
         name: result['name'] as String? ?? '',
-        type: result['type'] as String? ?? '',
         breed: result['breed'] as String? ?? '',
         age: (result['age'] is int)
             ? result['age'] as int
             : int.tryParse(result['age']?.toString() ?? '') ?? 0,
-        imageUrl: result['imageUrl'] as String? ?? '',
+        weight: 0.0,
       );
 
       _pets.add(newPet);
@@ -246,7 +221,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                           },
                           tooltip: 'Back',
                         ),
-                        Expanded(child: _buildSectionHeader('Profile Information')),
+                        Expanded(
+                            child: _buildSectionHeader('Profile Information')),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -352,15 +328,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             child: ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              leading: CircleAvatar(
+              leading: const CircleAvatar(
                 radius: 28,
-                backgroundImage: pet.imageUrl.isNotEmpty
-                    ? AssetImage(pet.imageUrl) as ImageProvider
-                    : null,
-                backgroundColor: const Color(0xFFBFD4E6),
-                child: pet.imageUrl.isEmpty
-                    ? const Icon(Icons.pets, color: Colors.white)
-                    : null,
+                backgroundColor: Color(0xFFBFD4E6),
+                child: Icon(Icons.pets, color: Colors.white),
               ),
               title: Text(
                 pet.name,

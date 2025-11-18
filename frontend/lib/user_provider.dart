@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 // User Data Model
 class AppUser {
@@ -26,6 +28,16 @@ class AppUser {
       role: map['role'],
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'user_id': userId,
+      'username': username,
+      'first_name': firstName,
+      'last_name': lastName,
+      'role': role,
+    };
+  }
 }
 
 class UserProvider extends ChangeNotifier {
@@ -34,6 +46,26 @@ class UserProvider extends ChangeNotifier {
 
   AppUser? get user => _user;
   bool get isAuthenticated => _user != null;
+
+  // Cache keys
+  static const _cacheKey = 'cached_app_user';
+
+  UserProvider() {
+    // Load cached user eagerly
+    _loadFromCache();
+
+    // React to auth changes
+    _supabase.auth.onAuthStateChange.listen((data) async {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedIn ||
+          event == AuthChangeEvent.tokenRefreshed) {
+        // Optionally fetch fresh user on sign-in
+        await fetchUser();
+      } else if (event == AuthChangeEvent.signedOut) {
+        clearUser();
+      }
+    });
+  }
 
   // fetch user data (public.users) from Supabase and update _user
   Future<void> fetchUser() async {
@@ -69,12 +101,75 @@ class UserProvider extends ChangeNotifier {
 
     _user = AppUser.fromMap(response);
     debugPrint("saved user data");
+    await _saveToCache();
     notifyListeners();
   }
 
   // Clears the user data on sign out.
   void clearUser() {
     _user = null;
+    _clearCache();
     notifyListeners();
+  }
+
+  Future<void> _loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_cacheKey);
+      if (jsonStr == null) return;
+      final Map<String, dynamic> map = json.decode(jsonStr);
+      _user = AppUser.fromMap(map);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load cached user: $e');
+    }
+  }
+
+  Future<void> _saveToCache() async {
+    try {
+      if (_user == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey, json.encode(_user!.toMap()));
+    } catch (e) {
+      debugPrint('Failed to cache user: $e');
+    }
+  }
+
+  Future<void> _clearCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cacheKey);
+    } catch (_) {}
+  }
+
+  Future<void> updateUserProfile({
+    required String username,
+    required String firstName,
+    required String lastName,
+  }) async {
+    final session = _supabase.auth.currentSession;
+    if (session == null) return;
+
+    final userId = session.user.id;
+    try {
+      await _supabase.from('users').update({
+        'username': username,
+        'first_name': firstName,
+        'last_name': lastName,
+      }).eq('user_id', userId);
+
+      _user = AppUser(
+        userId: userId,
+        username: username,
+        firstName: firstName,
+        lastName: lastName,
+        role: _user?.role ?? 'User',
+      );
+      await _saveToCache();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to update user profile: $e');
+      rethrow;
+    }
   }
 }
