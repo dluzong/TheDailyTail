@@ -29,8 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Providers load from cache on creation. Avoid network fetch here to keep profile lightweight.
   }
 
-  // pet data is managed by PetProvider; no local fetch needed
-
   @override
   void dispose() {
     _pageController.dispose();
@@ -64,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     double arrowSize = size.width * 0.08;
 
     return AppLayout(
-      currentIndex: 0,
+      currentIndex: 4,
       onTabSelected: (_) {},
       child: Stack(
         children: [
