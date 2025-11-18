@@ -6,6 +6,7 @@ import '../shared/app_layout.dart';
 import '../posts_provider.dart';
 import 'community_filter_popup.dart';
 import 'community_post_screen.dart';
+import 'org_screen.dart';
 
 class CommunityBoardScreen extends StatefulWidget {
   const CommunityBoardScreen({super.key});
@@ -44,6 +45,25 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   final TextEditingController _contentController = TextEditingController();
 
   // Posts are now persisted in PostsProvider
+
+  // Mock organizations data for the Orgs tab
+  final List<Map<String, dynamic>> _mockOrgs = [
+    {
+      'orgName': 'Org 1',
+      'members': 124,
+      'description': 'A friendly community of local pet volunteers and adopters.',
+    },
+    {
+      'orgName': 'Org 2',
+      'members': 58,
+      'description': 'Focused on fostering and connecting experienced sitters with owners.',
+    },
+    {
+      'orgName': 'Org 3',
+      'members': 241,
+      'description': 'Brings together trainers, vets, and pet lovers for workshops.',
+    },
+  ];
 
   @override
   void initState() {
@@ -361,6 +381,80 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             ),
           ),
         );
+      },
+    );
+  }
+
+  Widget _buildOrgsList() {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _mockOrgs.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final org = _mockOrgs[index];
+        return InkWell(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => OrgScreen(
+                org: org,
+                initiallyJoined: true,
+                onJoinChanged: (joined) {
+                  if (!joined) {
+                    setState(() {
+                      _mockOrgs.removeWhere((o) => o['orgName'] == org['orgName']);
+                    });
+                  }
+                },
+              ),
+            ));
+          },
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: const Color(0xFF7496B3),
+                      child: Text(
+                        org['orgName'].toString().substring(0, 1),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            org['orgName'],
+                            style: GoogleFonts.lato(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${org['members']} members',
+                            style: GoogleFonts.lato(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  org['description'],
+                  style: GoogleFonts.lato(),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        ),
+      );
       },
     );
   }
@@ -739,13 +833,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                     Tab(
                       child: Text(
-                        'Groups',
+                        'Friends',
                         style: GoogleFonts.lato(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Tab(
                       child: Text(
-                        'Friends',
+                            'Organizations',
                         style: GoogleFonts.lato(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -757,10 +851,10 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     children: [
                       // Feed Tab
                       _buildPostsList(mode: 'feed'),
-                      // Groups Tab - same as Feed for now
-                      _buildPostsList(mode: 'groups'),
                       // Friends Tab - only posts from followed authors
                       _buildPostsList(mode: 'friends'),
+                      // Orgs Tab - list of organizations
+                      _buildOrgsList(),
                     ],
                   ),
                 ),
@@ -769,11 +863,35 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             Positioned(
               right: 16,
               bottom: 16,
-              child: FloatingActionButton(
-                onPressed: _showNewPostModal,
-                backgroundColor: const Color(0xFF7496B3),
-                child: const Icon(Icons.add, color: Colors.white),
-              ),
+              child: Builder(builder: (context) {
+                final tabController = DefaultTabController.of(context);
+
+                return AnimatedBuilder(
+                  animation: tabController,
+                  builder: (context, _) {
+                    // Orgs tab is index 1
+                    if (tabController.index == 2) {
+                      return FloatingActionButton.extended(
+                        onPressed: () {
+                          // Placeholder for explore orgs navigation
+                        },
+                        backgroundColor: const Color(0xFF7496B3),
+                        label: Text(
+                          'Explore Orgs',
+                          style: GoogleFonts.lato(color: Colors.white),
+                        ),
+                        icon: const Icon(Icons.explore, color: Colors.white),
+                      );
+                    }
+
+                    return FloatingActionButton(
+                      onPressed: _showNewPostModal,
+                      backgroundColor: const Color(0xFF7496B3),
+                      child: const Icon(Icons.add, color: Colors.white),
+                    );
+                  },
+                );
+              }),
             ),
           ],
         ),

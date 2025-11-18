@@ -4,12 +4,12 @@ import 'pet_list.dart' as pet_list;
 
 class AllPetsScreen extends StatelessWidget {
   final List<pet_list.Pet> pets;
+  final String firstName;
 
-  const AllPetsScreen({super.key, required this.pets});
+  const AllPetsScreen({Key? key, required this.pets, required this.firstName}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Reverted: simple 2-column grid and inline back button (no AppBar)
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -25,7 +25,7 @@ class AllPetsScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'All Pets',
+                    "$firstName's Pets",
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -50,7 +50,13 @@ class AllPetsScreen extends StatelessWidget {
                     final pet = pets[index];
                     return Card(
                       clipBehavior: Clip.antiAlias,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(
+                          color: Colors.grey,
+                          width: 1.0,
+                        ),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Center(
