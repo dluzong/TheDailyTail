@@ -7,6 +7,7 @@ import '../pet_provider.dart' as pet_provider;
 import '../posts_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'all_pets_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,8 +20,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   TabController? _tabController;
   // TODO: replace with backend data
   final String _bio = "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!";
-  
-  int? _expandedPetIndex;
 
   @override
   void initState() {
@@ -84,20 +83,56 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   padding: EdgeInsets.only(bottom: size.height * 0.02),
                   child: pet_list.ExpandablePetCard(
                     pet: petProv.pets[index],
-                    isExpanded: _expandedPetIndex == index,
-                    onTap: () {
-                      setState(() {
-                        _expandedPetIndex = _expandedPetIndex == index ? null : index;
-                      });
-                    },
                   ),
                 );
               }),
               Center(
                 child: Container(
-                  width: size.width * 0.5,
+                  width: size.width * 0.2,
                   height: 1.5,
-                  color: Colors.black,
+                  color: Colors.grey,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+                child: Consumer<UserProvider>(
+                  builder: (context, userProv, _) {
+                    return ElevatedButton(
+                      onPressed: () {
+                        final pets = petProv.pets
+                            .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
+                            .toList();
+                        final firstName = userProv.user?.firstName ?? 'Your';
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AllPetsScreen(
+                              pets: pets,
+                              firstName: firstName,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7496B3),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: size.width * 0.08,
+                          vertical: size.height * 0.015,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'View All',
+                        style: GoogleFonts.lato(
+                          fontSize: size.width * 0.04,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -333,11 +368,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _buildStatColumn('Posts', totalPosts.toString()),
+                    _buildStatColumn('Posts', totalPosts.toString(), onTap: null),
                     SizedBox(width: size.width * 0.08),
-                    _buildStatColumn('Followers', totalFollowers.toString()),
+                    _buildStatColumn('Followers', totalFollowers.toString(), onTap: () => _showFollowersDialog(context)),
                     SizedBox(width: size.width * 0.08),
-                    _buildStatColumn('Following', totalFollowing.toString()),
+                    _buildStatColumn('Following', totalFollowing.toString(), onTap: () => _showFollowingDialog(context)),
                   ],
                 ),
                   ],
@@ -420,9 +455,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildStatColumn(String label, String value) {
+  Widget _buildStatColumn(String label, String value, {VoidCallback? onTap}) {
     final size = MediaQuery.of(context).size;
-    return Container(
+    final child = Container(
       width: size.width * 0.25,
       padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
       child: Column(
@@ -446,6 +481,191 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: child,
+      );
+    }
+    return child;
+  }
+
+  void _showFollowersDialog(BuildContext context) {
+    // TODO: Replace with actual followers data from backend
+    final followers = List.generate(10, (index) => {
+      'fullName': 'Follower Name ${index + 1}',
+      'username': 'follower${index + 1}',
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.75,
+            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 400),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Followers',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inknutAntiqua(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF394957),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: followers.length,
+                    itemBuilder: (context, index) {
+                      final follower = followers[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFF7496B3),
+                          child: Text(
+                            follower['fullName']![0],
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(
+                          follower['username']!,
+                          style: GoogleFonts.inknutAntiqua(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          follower['fullName']!,
+                          style: GoogleFonts.lato(color: Colors.grey[600]),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFollowingDialog(BuildContext context) {
+    final postsProvider = context.read<PostsProvider>();
+    final following = postsProvider.posts
+        .where((post) => postsProvider.isFollowing(post['author'] as String))
+        .map((post) => {
+          'fullName': post['author'] as String,
+          'username': (post['author'] as String).toLowerCase().replaceAll(' ', ''),
+        })
+        .toSet()
+        .toList();
+
+    showDialog(
+      context: context,
+      builder: (context) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.75,
+            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 400),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Following',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inknutAntiqua(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF394957),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: following.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Not following anyone yet.',
+                            style: GoogleFonts.lato(color: Colors.grey[600]),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: following.length,
+                          itemBuilder: (context, index) {
+                            final user = following[index];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFF7496B3),
+                                child: Text(
+                                  user['fullName']![0],
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              title: Text(
+                                user['username']!,
+                                style: GoogleFonts.inknutAntiqua(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(
+                                user['fullName']!,
+                                style: GoogleFonts.lato(color: Colors.grey[600]),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
