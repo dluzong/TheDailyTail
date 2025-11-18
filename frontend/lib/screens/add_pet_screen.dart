@@ -209,7 +209,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
               widthFactor: 0.9,
               child: DropdownButtonFormField<String>(
-                value: _sex,
+                initialValue: _sex,
                 items: const [
                   DropdownMenuItem(value: 'Male', child: Text('Male')),
                   DropdownMenuItem(value: 'Female', child: Text('Female')),
