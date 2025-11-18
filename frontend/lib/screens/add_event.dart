@@ -37,17 +37,19 @@ class _AddEventPageState extends State<AddEventPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       builder: (context, child) {
+        // theme to select date in form
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF7496B3), // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: Colors.black87, // Body text color
+              primary: Color(0xFF7496B3),
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+              background: Colors.white,
             ),
             dialogBackgroundColor: Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF7496B3), // Button text color
+                foregroundColor: const Color(0xFF7496B3),
               ),
             ),
           ),
@@ -100,7 +102,7 @@ class _AddEventPageState extends State<AddEventPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor:
-          Colors.black.withOpacity(0.4), // semi-transparent overlay
+          Colors.black.withValues(alpha: 0.4), // semi-transparent overlay
       appBar: AppBar(
         title: const Text('Add Event'),
         backgroundColor: const Color(0xFF7496B3),
@@ -171,6 +173,7 @@ class _AddEventPageState extends State<AddEventPage> {
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
+                    runSpacing: 10,
                     children: tabColors.keys.map((category) {
                       final isSelected = _selectedCategory == category;
                       return GestureDetector(
@@ -189,7 +192,8 @@ class _AddEventPageState extends State<AddEventPage> {
                             boxShadow: [
                               if (isSelected)
                                 BoxShadow(
-                                  color: tabColors[category]!.withOpacity(0.4),
+                                  color: tabColors[category]!
+                                      .withValues(alpha: 0.4),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
