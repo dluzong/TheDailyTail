@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/app_layout.dart';
 import '../posts_provider.dart';
 import 'community_filter_popup.dart';
+import 'community_post_screen.dart';
 
 class CommunityBoardScreen extends StatefulWidget {
   const CommunityBoardScreen({super.key});
@@ -143,6 +144,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
       separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final post = posts[index];
+        final realIndex = postsProvider.posts.indexOf(post);
         return Card(
           elevation: 2,
           shape: RoundedRectangleBorder(
@@ -269,11 +271,21 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  post['title'],
-                  style: GoogleFonts.lato(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CommunityPostScreen(postIndex: index),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    post['title'],
+                    style: GoogleFonts.lato(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -301,24 +313,47 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                   ),
                 ],
-
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.favorite_border),
-                        const SizedBox(width: 4),
-                        Text('${post['likes']}'),
-                      ],
+                    // LIKE BUTTON
+                    GestureDetector(
+                      onTap: () {
+                        Provider.of<PostsProvider>(context, listen: false)
+                        .toggleLike(realIndex);
+                        },
+                        child: Row(
+                          children: [
+                            Icon(
+                              post['liked'] ? Icons.favorite : Icons.favorite_border,
+                              color: post['liked'] ? Colors.red : Colors.grey,
+                            ),
+                          const SizedBox(width: 4),
+                          Text("${post['likes']}"),
+                          ],
+                      ),
                     ),
-                    const SizedBox(width: 16),
-                    Row(
-                      children: [
-                        const Icon(Icons.comment_outlined),
-                        const SizedBox(width: 4),
-                        Text('${post['comments']}'),
-                      ],
+                    const SizedBox(width: 24),
+                    // COMMENT BUTTON → opens full post + keyboard
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CommunityPostScreen(
+                              postIndex: index,
+                              openKeyboard: true,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          const Icon(Icons.comment_outlined),
+                          const SizedBox(width: 4),
+                          Text("${post['comments'].length}"),
+                        ],
+                      ),
                     ),
                   ],
                 ),
