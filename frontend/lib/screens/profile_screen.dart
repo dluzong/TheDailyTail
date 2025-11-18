@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'pet_list.dart' as pet_list;
 import '../shared/app_layout.dart';
-import '../shared/starting_widgets.dart';
-import 'all_pets_screen.dart' as all_pets;
 import 'user_settings.dart' as user_settings;
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
+import '../posts_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -16,37 +15,223 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final PageController _pageController =
-      PageController(initialPage: _kFakeMiddle);
-  static const int _kFakeMiddle = 10000;
-  int _currentPage = 0;
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+  TabController? _tabController;
+  // TODO: replace with backend data
+  final String _bio = "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!";
+  
+  int? _expandedPetIndex;
 
   @override
   void initState() {
     super.initState();
-    _currentPage = 0;
-    // Providers load from cache on creation. Avoid network fetch here to keep profile lightweight.
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
-  void _goToPage(int page) {
-    final currentFake = _pageController.page?.round() ?? _kFakeMiddle;
-    final targetFake = currentFake + (page - _currentPage);
-    _pageController.animateToPage(
-      targetFake,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
+  Widget _buildAboutTab() {
+    final size = MediaQuery.of(context).size;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(size.width * 0.08),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(height: size.height * 0.015),
+          Text(
+            _bio,
+            style: GoogleFonts.lato(
+              fontSize: size.width * 0.038,
+              color: const Color(0xFF394957),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPetsTab() {
+    final size = MediaQuery.of(context).size;
+
+    return Consumer<pet_provider.PetProvider>(
+      builder: (context, petProv, _) {
+        if (petProv.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (petProv.pets.isEmpty) {
+          return Center(
+            child: Text(
+              'No pets found.',
+              style: GoogleFonts.lato(
+                fontSize: size.width * 0.04,
+                color: const Color(0xFF394957),
+              ),
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+          child: Column(
+            children: [
+              ...List.generate(petProv.pets.length, (index) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: size.height * 0.02),
+                  child: pet_list.ExpandablePetCard(
+                    pet: petProv.pets[index],
+                    isExpanded: _expandedPetIndex == index,
+                    onTap: () {
+                      setState(() {
+                        _expandedPetIndex = _expandedPetIndex == index ? null : index;
+                      });
+                    },
+                  ),
+                );
+              }),
+              Center(
+                child: Container(
+                  width: size.width * 0.5,
+                  height: 1.5,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPostsTab() {
+    final size = MediaQuery.of(context).size;
+    return Consumer<PostsProvider>(
+      builder: (context, postsProvider, _) {
+        final userPosts = postsProvider.posts
+            .where((post) => post['author'] == 'You')
+            .toList();
+
+        if (userPosts.isEmpty) {
+          return Center(
+            child: Text(
+              'No posts yet.',
+              style: GoogleFonts.lato(
+                fontSize: size.width * 0.04,
+                color: const Color(0xFF394957),
+              ),
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: EdgeInsets.all(size.width * 0.04),
+          itemCount: userPosts.length,
+          separatorBuilder: (context, index) => SizedBox(height: size.height * 0.02),
+          itemBuilder: (context, index) {
+            final post = userPosts[index];
+            return Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(size.width * 0.04),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post['title'] ?? '',
+                      style: GoogleFonts.lato(
+                        fontSize: size.width * 0.045,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF394957),
+                      ),
+                    ),
+                    SizedBox(height: size.height * 0.01),
+                    Text(
+                      post['content'] ?? '',
+                      style: GoogleFonts.lato(
+                        fontSize: size.width * 0.038,
+                        color: const Color(0xFF394957),
+                      ),
+                    ),
+                    SizedBox(height: size.height * 0.015),
+                    if (post['category'] != null && (post['category'] as String).isNotEmpty)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: size.width * 0.03,
+                          vertical: size.height * 0.007,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF7FB),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFBCD9EC)),
+                        ),
+                        child: Text(
+                          post['category'],
+                          style: GoogleFonts.lato(
+                            color: const Color(0xFF7496B3),
+                            fontWeight: FontWeight.w600,
+                            fontSize: size.width * 0.03,
+                          ),
+                        ),
+                      ),
+                    SizedBox(height: size.height * 0.015),
+                    Row(
+                      children: [
+                        Icon(Icons.favorite_border, size: size.width * 0.045, color: const Color(0xFF7496B3)),
+                        SizedBox(width: size.width * 0.01),
+                        Text(
+                          '${post['likes']}',
+                          style: GoogleFonts.lato(
+                            color: const Color(0xFF394957),
+                            fontSize: size.width * 0.035,
+                          ),
+                        ),
+                        SizedBox(width: size.width * 0.04),
+                        Icon(Icons.comment_outlined, size: size.width * 0.045, color: const Color(0xFF7496B3)),
+                        SizedBox(width: size.width * 0.01),
+                        Text(
+                          '${post['comments']}',
+                          style: GoogleFonts.lato(
+                            color: const Color(0xFF394957),
+                            fontSize: size.width * 0.035,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          post['timeAgo'] ?? '',
+                          style: GoogleFonts.lato(
+                            fontSize: size.width * 0.03,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_tabController == null) {
+      return AppLayout(
+        currentIndex: 4,
+        onTabSelected: (_) {},
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final size = MediaQuery.of(context).size;
     final textScale = MediaQuery.of(context).textScaleFactor;
 
@@ -57,33 +242,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final username = appUser?.username ?? 'username';
     final role = appUser?.role ?? 'User';
 
-    double avatarSize = size.width * 0.30;
-    double carouselHeight = size.height * 0.22;
-    double arrowSize = size.width * 0.08;
+    final postsProvider = context.watch<PostsProvider>();
+    final totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;
+    const totalFollowers = 86;
+    final totalFollowing = postsProvider.posts
+        .where((post) => postsProvider.isFollowing(post['author'] as String))
+        .map((post) => post['author'])
+        .toSet()
+        .length;
+
+    double avatarSize = size.width * 0.25;
 
     return AppLayout(
       currentIndex: 4,
       onTabSelected: (_) {},
       child: Stack(
         children: [
-          Padding(
-            padding: EdgeInsets.all(size.width * 0.04),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(size.width * 0.04),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Row(
                   children: [
-                    Container(
-                      width: avatarSize,
-                      height: avatarSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFBFD4E6),
-                        border: Border.all(
-                          color: const Color(0xFF7496B3),
-                          width: size.width * 0.01,
-                        ),
-                      ),
+                    CircleAvatar(
+                      radius: avatarSize / 2,
+                      backgroundColor: const Color(0xFF7496B3),
                       child: Icon(
                         Icons.person,
                         color: Colors.white,
@@ -92,7 +278,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Expanded(
                       child: Padding(
-                        padding: EdgeInsets.only(left: size.width * 0.03),
+                        padding: EdgeInsets.only(left: size.width * 0.04),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -103,6 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            const SizedBox(height: 8),
                             Text(
                               username,
                               style: GoogleFonts.inknutAntiqua(
@@ -110,7 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: Colors.black,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             Center(
                               child: Container(
                                 padding: EdgeInsets.symmetric(
@@ -129,8 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   role,
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: 12 * textScale,
-                                    color:
-                                        const Color.fromARGB(255, 67, 145, 213),
+                                    color: const Color.fromARGB(255, 67, 145, 213),
                                   ),
                                 ),
                               ),
@@ -141,151 +327,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: size.height * 0.04),
-
-                Padding(
-                  padding: EdgeInsets.only(bottom: size.height * 0.015),
-                  child: Text(
-                    'My Pets',
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3),
+                SizedBox(height: size.height * 0.02),
+                // User Stats
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _buildStatColumn('Posts', totalPosts.toString()),
+                    SizedBox(width: size.width * 0.08),
+                    _buildStatColumn('Followers', totalFollowers.toString()),
+                    SizedBox(width: size.width * 0.08),
+                    _buildStatColumn('Following', totalFollowing.toString()),
+                  ],
+                ),
+                  ],
+                ),
+              ),
+              SizedBox(height: size.height * 0.02),
+              // Tab Bar
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+                  ),
+                ),
+                child: TabBar(
+                  controller: _tabController!,
+                  labelColor: const Color(0xFF7496B3),
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: const Color(0xFF7496B3),
+                  indicatorWeight: 3,
+                  tabs: [
+                    Tab(
+                      child: Text(
+                        'About',
+                        style: GoogleFonts.lato(fontWeight: FontWeight.bold, fontSize: size.width * 0.038),
+                      ),
                     ),
-                  ),
+                    Tab(
+                      child: Text(
+                        'Pets',
+                        style: GoogleFonts.lato(fontWeight: FontWeight.bold, fontSize: size.width * 0.038),
+                      ),
+                    ),
+                    Tab(
+                      child: Text(
+                        'Posts',
+                        style: GoogleFonts.lato(fontWeight: FontWeight.bold, fontSize: size.width * 0.038),
+                      ),
+                    ),
+                  ],
                 ),
-
-                // Pet Carousel
-                SizedBox(
-                  height: carouselHeight,
-                  child: Builder(builder: (context) {
-                    final petProv =
-                        Provider.of<pet_provider.PetProvider>(context);
-                    final isLoading = petProv.isLoading;
-                    final pets = petProv.pets
-                        .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
-                        .toList();
-
-                    return isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : pets.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'No pets found.',
-                                  style:
-                                      GoogleFonts.inknutAntiqua(fontSize: 16),
-                                ),
-                              )
-                            : Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  PageView.builder(
-                                    controller: _pageController,
-                                    itemCount: null,
-                                    onPageChanged: (fakeIndex) {
-                                      setState(() {
-                                        final logical = fakeIndex % pets.length;
-                                        _currentPage = logical < 0
-                                            ? logical + pets.length
-                                            : logical;
-                                      });
-                                    },
-                                    itemBuilder: (context, fakeIndex) {
-                                      final logical = fakeIndex % pets.length;
-                                      final pet = pets[logical];
-
-                                      return AnimatedBuilder(
-                                        animation: _pageController,
-                                        builder: (context, child) {
-                                          double value = 1.0;
-                                          if (_pageController
-                                              .position.haveDimensions) {
-                                            final page = (_pageController
-                                                        .page ??
-                                                    _pageController.initialPage)
-                                                .toDouble();
-                                            value = (1 -
-                                                    ((page - fakeIndex).abs() *
-                                                        0.15))
-                                                .clamp(0.85, 1.0);
-                                          }
-                                          return Center(
-                                            child: Transform.scale(
-                                              scale: value,
-                                              child: child,
-                                            ),
-                                          );
-                                        },
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: size.width * 0.02,
-                                          ),
-                                          child: pet_list.PetList(pet: pet),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  if (pets.length > 1) ...[
-                                    Positioned(
-                                      left: size.width * 0.01,
-                                      child: IconButton(
-                                        iconSize: arrowSize,
-                                        onPressed: () =>
-                                            _goToPage(_currentPage - 1),
-                                        icon: const Icon(Icons.arrow_back_ios),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      right: size.width * 0.01,
-                                      child: IconButton(
-                                        iconSize: arrowSize,
-                                        onPressed: () =>
-                                            _goToPage(_currentPage + 1),
-                                        icon:
-                                            const Icon(Icons.arrow_forward_ios),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              );
-                  }),
+              ),
+              // Tab Views
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController!,
+                  children: [
+                    _buildAboutTab(),
+                    _buildPetsTab(),
+                    _buildPostsTab(),
+                  ],
                 ),
-                SizedBox(height: size.height * 0.03),
-
-                Center(
-                  child: buildAppButton(
-                    text: 'View All',
-                    width: size.width * 0.45,
-                    onPressed: () {
-                      final petProv = Provider.of<pet_provider.PetProvider>(
-                          context,
-                          listen: false);
-                      final pets = petProv.pets
-                          .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
-                          .toList();
-
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => all_pets.AllPetsScreen(pets: pets),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                SizedBox(height: size.height * 0.07),
-              ],
-            ),
+              ),
+            ],
           ),
-
           // Settings button
           Positioned(
-            top: size.height * 0.025,
-            right: size.width * 0.025,
+            top: size.height * 0.01,
+            right: size.width * 0.02,
             child: IconButton(
               icon: Icon(
                 Icons.settings,
-                size: size.width * 0.08,
+                size: size.width * 0.07,
                 color: const Color(0xFF7496B3),
               ),
               tooltip: 'User Settings',
@@ -293,13 +407,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const user_settings.UserSettingsPage(
-                      currentIndex: 0,
+                      currentIndex: 4,
                       onTabSelected: _noop,
                     ),
                   ),
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, String value) {
+    final size = MediaQuery.of(context).size;
+    return Container(
+      width: size.width * 0.25,
+      padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.lato(
+              fontSize: size.width * 0.04,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF394957),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            label,
+            style: GoogleFonts.lato(
+              fontSize: size.width * 0.035,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
