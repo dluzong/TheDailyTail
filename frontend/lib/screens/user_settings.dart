@@ -328,10 +328,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             child: ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              leading: CircleAvatar(
+              leading: const CircleAvatar(
                 radius: 28,
-                backgroundColor: const Color(0xFFBFD4E6),
-                child: const Icon(Icons.pets, color: Colors.white),
+                backgroundColor: Color(0xFFBFD4E6),
+                child: Icon(Icons.pets, color: Colors.white),
               ),
               title: Text(
                 pet.name,

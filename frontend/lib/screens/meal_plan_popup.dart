@@ -44,7 +44,9 @@ class _MealPlanPopupState extends State<MealPlanPopup> {
 
   void _addMeal() {
     if (_foodController.text.trim().isEmpty ||
-        _timeController.text.trim().isEmpty) return;
+        _timeController.text.trim().isEmpty) {
+      return;
+    }
 
     setState(() {
       _meals.add({

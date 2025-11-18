@@ -294,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => user_settings.UserSettingsPage(
+                    builder: (_) => const user_settings.UserSettingsPage(
                       currentIndex: 0,
                       onTabSelected: _noop,
                     ),

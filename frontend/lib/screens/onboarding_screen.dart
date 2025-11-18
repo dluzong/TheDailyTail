@@ -171,7 +171,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                         textAlign: TextAlign.center,
                                       ),
                                       const SizedBox(width: 8),
-                                      Icon(
+                                      const Icon(
                                         Icons.pets,
                                         size: 26,
                                         color: titleColor,
