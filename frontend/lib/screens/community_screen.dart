@@ -51,17 +51,20 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     {
       'orgName': 'Org 1',
       'members': 124,
-      'description': 'A friendly community of local pet volunteers and adopters.',
+      'description':
+          'A friendly community of local pet volunteers and adopters.',
     },
     {
       'orgName': 'Org 2',
       'members': 58,
-      'description': 'Focused on fostering and connecting experienced sitters with owners.',
+      'description':
+          'Focused on fostering and connecting experienced sitters with owners.',
     },
     {
       'orgName': 'Org 3',
       'members': 241,
-      'description': 'Brings together trainers, vets, and pet lovers for workshops.',
+      'description':
+          'Brings together trainers, vets, and pet lovers for workshops.',
     },
   ];
 
@@ -113,7 +116,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('community_filter_sort', _filterSort);
-      await prefs.setStringList('community_filter_categories', _filterCategories);
+      await prefs.setStringList(
+          'community_filter_categories', _filterCategories);
     } catch (e) {
       // ignore errors persisting filters
     }
@@ -125,7 +129,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
     // If friends mode, filter posts to only those authored by people the user follows
     if (mode == 'friends') {
-      posts = posts.where((p) => postsProvider.isFollowing(p['author'] as String)).toList();
+      posts = posts
+          .where((p) => postsProvider.isFollowing(p['author'] as String))
+          .toList();
     }
 
     // Apply category filters (if any selected)
@@ -212,13 +218,15 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Delete post'),
-                              content: const Text('Are you sure you want to delete your post'),
+                              content: const Text(
+                                  'Are you sure you want to delete your post'),
                               actions: [
                                 TextButton(
                                   style: TextButton.styleFrom(
                                     foregroundColor: Colors.black,
                                   ),
-                                  onPressed: () => Navigator.of(context).pop(false),
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
                                   child: const Text(
                                     'Nevermind',
                                     style: TextStyle(color: Colors.black),
@@ -229,7 +237,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                     backgroundColor: const Color(0xFFB94A48),
                                     foregroundColor: Colors.white,
                                   ),
-                                  onPressed: () => Navigator.of(context).pop(true),
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
                                   child: const Text(
                                     'Yes, delete',
                                     style: TextStyle(color: Colors.white),
@@ -242,7 +251,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           if (confirm == true) {
                             // remove by index in provider's master list - need to resolve actual index
                             // find the index in the provider's posts list
-                            final masterIndex = postsProvider.posts.indexOf(post);
+                            final masterIndex =
+                                postsProvider.posts.indexOf(post);
                             if (masterIndex != -1) {
                               postsProvider.removeAt(masterIndex);
                             }
@@ -263,9 +273,12 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                   postsProvider.toggleFollow(author);
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color.fromARGB(255, 202, 241, 203),
-                                  foregroundColor: const Color.fromARGB(255, 87, 147, 89),
-                                  side: const BorderSide(color: Color.fromARGB(255, 87, 147, 89)),
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 202, 241, 203),
+                                  foregroundColor:
+                                      const Color.fromARGB(255, 87, 147, 89),
+                                  side: const BorderSide(
+                                      color: Color.fromARGB(255, 87, 147, 89)),
                                   minimumSize: const Size(90, 36),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
@@ -279,7 +292,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 },
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: const Color(0xFF7496B3),
-                                  side: const BorderSide(color: Color(0xFF7496B3)),
+                                  side: const BorderSide(
+                                      color: Color(0xFF7496B3)),
                                   minimumSize: const Size(90, 36),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
@@ -315,10 +329,12 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 ),
                 const SizedBox(height: 12),
                 // Category label (below content, above actions)
-                if (post['category'] != null && (post['category'] as String).isNotEmpty) ...[
+                if (post['category'] != null &&
+                    (post['category'] as String).isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEEF7FB),
                       borderRadius: BorderRadius.circular(20),
@@ -340,17 +356,19 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     GestureDetector(
                       onTap: () {
                         Provider.of<PostsProvider>(context, listen: false)
-                        .toggleLike(realIndex);
-                        },
-                        child: Row(
-                          children: [
-                            Icon(
-                              post['liked'] ? Icons.favorite : Icons.favorite_border,
-                              color: post['liked'] ? Colors.red : Colors.grey,
-                            ),
+                            .toggleLike(realIndex);
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            post['liked']
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: post['liked'] ? Colors.red : Colors.grey,
+                          ),
                           const SizedBox(width: 4),
                           Text("${post['likes']}"),
-                          ],
+                        ],
                       ),
                     ),
                     const SizedBox(width: 24),
@@ -401,7 +419,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 onJoinChanged: (joined) {
                   if (!joined) {
                     setState(() {
-                      _mockOrgs.removeWhere((o) => o['orgName'] == org['orgName']);
+                      _mockOrgs
+                          .removeWhere((o) => o['orgName'] == org['orgName']);
                     });
                   }
                 },
@@ -410,51 +429,54 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           },
           child: Card(
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: const Color(0xFF7496B3),
-                      child: Text(
-                        org['orgName'].toString().substring(0, 1),
-                        style: const TextStyle(color: Colors.white),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: const Color(0xFF7496B3),
+                        child: Text(
+                          org['orgName'].toString().substring(0, 1),
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            org['orgName'],
-                            style: GoogleFonts.lato(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${org['members']} members',
-                            style: GoogleFonts.lato(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              org['orgName'],
+                              style: GoogleFonts.lato(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${org['members']} members',
+                              style: GoogleFonts.lato(
+                                  color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  org['description'],
-                  style: GoogleFonts.lato(),
-                ),
-                const SizedBox(height: 12),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    org['description'],
+                    style: GoogleFonts.lato(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
       },
     );
   }
@@ -500,17 +522,20 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     // create a new post using the modal fields and add it to the feed
                     final newPost = {
                       'author': 'You',
-                      'title': _titleController.text.isNotEmpty ? _titleController.text : 'Untitled',
+                      'title': _titleController.text.isNotEmpty
+                          ? _titleController.text
+                          : 'Untitled',
                       'content': _contentController.text,
                       'likes': 0,
-                      'comments': 0,
+                      'comments': [],
                       'timeAgo': 'Just now',
                       'category': _selectedCategory,
                       'postTo': _selectedPostTo,
                       'group': _selectedGroup,
                     };
 
-                    Provider.of<PostsProvider>(context, listen: false).addPost(newPost);
+                    Provider.of<PostsProvider>(context, listen: false)
+                        .addPost(newPost);
 
                     // clear modal inputs for next time
                     _titleController.clear();
@@ -565,35 +590,38 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: StatefulBuilder( // Add StatefulBuilder to update state inside modal
-                          builder: (context, setModalState) {
-                            return DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedCategory,
-                                isExpanded: true,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                dropdownColor: const Color(0xFFBCD9EC), // Light blue background
-                                borderRadius: BorderRadius.circular(10),
-                                items: _categories.map((String category) {
-                                  return DropdownMenuItem<String>(
-                                    value: category,
-                                    child: Text(
-                                      category,
-                                      style: GoogleFonts.lato(),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  if (newValue != null) {
-                                    setModalState(() { // Use setModalState instead of setState
-                                      _selectedCategory = newValue;
-                                    });
-                                  }
-                                },
-                              ),
-                            );
-                          }
-                        ),
+                        child: StatefulBuilder(
+                            // Add StatefulBuilder to update state inside modal
+                            builder: (context, setModalState) {
+                          return DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedCategory,
+                              isExpanded: true,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              dropdownColor: const Color(
+                                  0xFFBCD9EC), // Light blue background
+                              borderRadius: BorderRadius.circular(10),
+                              items: _categories.map((String category) {
+                                return DropdownMenuItem<String>(
+                                  value: category,
+                                  child: Text(
+                                    category,
+                                    style: GoogleFonts.lato(),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  setModalState(() {
+                                    // Use setModalState instead of setState
+                                    _selectedCategory = newValue;
+                                  });
+                                }
+                              },
+                            ),
+                          );
+                        }),
                       ),
                     ],
                   ),
@@ -616,20 +644,68 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: StatefulBuilder(
-                          builder: (context, setModalState) {
+                        child:
+                            StatefulBuilder(builder: (context, setModalState) {
+                          return DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedPostTo,
+                              isExpanded: true,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              dropdownColor: const Color(
+                                  0xFFBCD9EC), // Light blue background
+                              borderRadius: BorderRadius.circular(10),
+                              items: _postToOptions.keys.map((String option) {
+                                return DropdownMenuItem<String>(
+                                  value: option,
+                                  child: Text(
+                                    option,
+                                    style: GoogleFonts.lato(),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  setModalState(() {
+                                    _selectedPostTo = newValue;
+                                    if (newValue != 'Group') {
+                                      _selectedGroup = null;
+                                    }
+                                  });
+                                }
+                              },
+                            ),
+                          );
+                        }),
+                      ),
+                      if (_selectedPostTo == 'Group') ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(
+                                0xFFBCD9EC), // Light blue background
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: StatefulBuilder(
+                              builder: (context, setModalState) {
                             return DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
-                                value: _selectedPostTo,
+                                value: _selectedGroup,
                                 isExpanded: true,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                dropdownColor: const Color(0xFFBCD9EC), // Light blue background
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
                                 borderRadius: BorderRadius.circular(10),
-                                items: _postToOptions.keys.map((String option) {
+                                hint: Text(
+                                  'Select Group',
+                                  style: GoogleFonts.lato(color: Colors.grey),
+                                ),
+                                items: _postToOptions['Group']!
+                                    .map((String group) {
                                   return DropdownMenuItem<String>(
-                                    value: option,
+                                    value: group,
                                     child: Text(
-                                      option,
+                                      group,
                                       style: GoogleFonts.lato(),
                                     ),
                                   );
@@ -637,58 +713,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 onChanged: (String? newValue) {
                                   if (newValue != null) {
                                     setModalState(() {
-                                      _selectedPostTo = newValue;
-                                      if (newValue != 'Group') {
-                                        _selectedGroup = null;
-                                      }
+                                      _selectedGroup = newValue;
                                     });
                                   }
                                 },
                               ),
                             );
-                          }
-                        ),
-                      ),
-                      if (_selectedPostTo == 'Group') ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFBCD9EC), // Light blue background
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: StatefulBuilder(
-                            builder: (context, setModalState) {
-                              return DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedGroup,
-                                  isExpanded: true,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  borderRadius: BorderRadius.circular(10),
-                                  hint: Text(
-                                    'Select Group',
-                                    style: GoogleFonts.lato(color: Colors.grey),
-                                  ),
-                                  items: _postToOptions['Group']!.map((String group) {
-                                    return DropdownMenuItem<String>(
-                                      value: group,
-                                      child: Text(
-                                        group,
-                                        style: GoogleFonts.lato(),
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (String? newValue) {
-                                    if (newValue != null) {
-                                      setModalState(() {
-                                        _selectedGroup = newValue;
-                                      });
-                                    }
-                                  },
-                                ),
-                              );
-                            }
-                          ),
+                          }),
                         ),
                       ],
                     ],
@@ -730,11 +761,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         barrierDismissible: true,
         barrierColor: Colors.black.withValues(alpha: 0.35),
         builder: (context) => CommunityFilterPopup(
-            initialCategory: _selectedCategory,
-            categories: _categories,
-            initialSort: _filterSort,
-            initialSelectedCategories: _filterCategories,
-          ),
+          initialCategory: _selectedCategory,
+          categories: _categories,
+          initialSort: _filterSort,
+          initialSelectedCategories: _filterCategories,
+        ),
       );
 
       if (result is Map) {
@@ -802,16 +833,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           const SizedBox(width: 8),
                           Builder(builder: (context) {
                             // change the filter icon to blue when filters are applied
-                            final bool hasActiveFilters = _filterSort != 'recent' || _filterCategories.isNotEmpty;
+                            final bool hasActiveFilters =
+                                _filterSort != 'recent' ||
+                                    _filterCategories.isNotEmpty;
                             return Container(
                               decoration: BoxDecoration(
-                                color: hasActiveFilters ? const Color(0xFF7496B3) : const Color.fromARGB(255, 220, 220, 232),
+                                color: hasActiveFilters
+                                    ? const Color(0xFF7496B3)
+                                    : const Color.fromARGB(255, 220, 220, 232),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: IconButton(
-                                icon: Icon(Icons.filter_list, color: hasActiveFilters ? Colors.white : null),
+                                icon: Icon(Icons.filter_list,
+                                    color:
+                                        hasActiveFilters ? Colors.white : null),
                                 onPressed: _openCommunityFilterPopup,
-                                tooltip: hasActiveFilters ? 'Filters applied' : 'Filter',
+                                tooltip: hasActiveFilters
+                                    ? 'Filters applied'
+                                    : 'Filter',
                               ),
                             );
                           }),
@@ -839,7 +878,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                     Tab(
                       child: Text(
-                            'Organizations',
+                        'Organizations',
                         style: GoogleFonts.lato(fontWeight: FontWeight.bold),
                       ),
                     ),
