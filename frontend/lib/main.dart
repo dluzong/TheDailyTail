@@ -25,7 +25,7 @@ void main() async {
 
   debugPrint('Supabase initialized');
   debugPrint('supabaseUrl: $supabaseUrl');
-  // runApp(const MyApp());
+
   runApp(
     MultiProvider(
       providers: [
