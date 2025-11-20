@@ -45,6 +45,9 @@ class _AppLayoutState extends State<AppLayout> {
       case 2:
         destination = const CommunityBoardScreen();
         break;
+      case 4:
+        destination = const ProfileScreen();
+        break;
     }
 
     if (destination != null) {
@@ -59,25 +62,11 @@ class _AppLayoutState extends State<AppLayout> {
     }
   }
 
-  // ✅ Prevent duplicate ProfileScreen creation
   void _openProfile() {
-    bool isAlreadyOnProfile = false;
-
-    Navigator.popUntil(context, (route) {
-      if (route.settings.name == 'profile') {
-        isAlreadyOnProfile = true;
-      }
-      return true;
-    });
-
-    if (!isAlreadyOnProfile) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const ProfileScreen(),
-          settings: const RouteSettings(name: 'profile'),
-        ),
-      );
+    if (currentIndex != 4) {
+      widget.onTabSelected(4);
+      _navigateToIndex(4);
+      setState(() => currentIndex = 4);
     }
   }
 
@@ -122,7 +111,7 @@ class _AppLayoutState extends State<AppLayout> {
                     ),
                   ),
 
-                  // ✅ Updated Profile Avatar Action
+                  // Profile icon and button
                   Positioned(
                     right: 0,
                     child: GestureDetector(
@@ -165,14 +154,15 @@ class _AppLayoutState extends State<AppLayout> {
                         color: innerBlue,
                         child: BottomNavigationBar(
                           backgroundColor: innerBlue,
-                          currentIndex: currentIndex,
+                          currentIndex: currentIndex == 4 ? 0 : currentIndex,
                           selectedItemColor: Colors.white,
                           unselectedItemColor: Colors.white,
                           onTap: (index) {
-                            if (index == currentIndex) return;
-                            widget.onTabSelected(index);
-                            setState(() => currentIndex = index);
-                            _navigateToIndex(index);
+                            final actualIndex = index == 1 ? 1 : (index == 0 ? 0 : 2);
+                            if (actualIndex == currentIndex) return;
+                            widget.onTabSelected(actualIndex);
+                            setState(() => currentIndex = actualIndex);
+                            _navigateToIndex(actualIndex);
                           },
                           elevation: 0,
                           type: BottomNavigationBarType.fixed,
