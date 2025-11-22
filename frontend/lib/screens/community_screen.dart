@@ -28,16 +28,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     'Other'
   ];
 
-  final Map<String, List<String>> _postToOptions = {
-    'Public': [],
-    'Friends': [],
-    'Only me': [],
-    'Group': ['Group 1', 'Group 2', 'Group 3'],
-  };
-
   String _selectedCategory = 'General';
-  String _selectedPostTo = 'Public';
-  String? _selectedGroup;
   // Active filters applied from the filter popup
   String _filterSort = 'recent';
   List<String> _filterCategories = [];
@@ -529,9 +520,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       'likes': 0,
                       'comments': [],
                       'timeAgo': 'Just now',
-                      'category': _selectedCategory,
-                      'postTo': _selectedPostTo,
-                      'group': _selectedGroup,
+                       'category': _selectedCategory,
                     };
 
                     Provider.of<PostsProvider>(context, listen: false)
@@ -541,8 +530,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     _titleController.clear();
                     _contentController.clear();
                     _selectedCategory = 'General';
-                    _selectedPostTo = 'Public';
-                    _selectedGroup = null;
 
                     Navigator.pop(context);
                   },
@@ -627,104 +614,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Post to',
-                        style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child:
-                            StatefulBuilder(builder: (context, setModalState) {
-                          return DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedPostTo,
-                              isExpanded: true,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              dropdownColor: const Color(
-                                  0xFFBCD9EC), // Light blue background
-                              borderRadius: BorderRadius.circular(10),
-                              items: _postToOptions.keys.map((String option) {
-                                return DropdownMenuItem<String>(
-                                  value: option,
-                                  child: Text(
-                                    option,
-                                    style: GoogleFonts.lato(),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  setModalState(() {
-                                    _selectedPostTo = newValue;
-                                    if (newValue != 'Group') {
-                                      _selectedGroup = null;
-                                    }
-                                  });
-                                }
-                              },
-                            ),
-                          );
-                        }),
-                      ),
-                      if (_selectedPostTo == 'Group') ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(
-                                0xFFBCD9EC), // Light blue background
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: StatefulBuilder(
-                              builder: (context, setModalState) {
-                            return DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedGroup,
-                                isExpanded: true,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 12),
-                                borderRadius: BorderRadius.circular(10),
-                                hint: Text(
-                                  'Select Group',
-                                  style: GoogleFonts.lato(color: Colors.grey),
-                                ),
-                                items: _postToOptions['Group']!
-                                    .map((String group) {
-                                  return DropdownMenuItem<String>(
-                                    value: group,
-                                    child: Text(
-                                      group,
-                                      style: GoogleFonts.lato(),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  if (newValue != null) {
-                                    setModalState(() {
-                                      _selectedGroup = newValue;
-                                    });
-                                  }
-                                },
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+                    // Post-to dropdown removed per request
               ],
             ),
             const SizedBox(height: 16),
