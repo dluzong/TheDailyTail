@@ -77,7 +77,7 @@ class _AppLayoutState extends State<AppLayout> {
 
     // Use base height values to adjust for all devices
     const double baseTotalHeight = 55;
-    const double baseOuterHeight = 50;
+    // const double baseOuterHeight = 50;
     const double baseInnerHeight = 70;
     const double floatingButtonSize = 85;
 
