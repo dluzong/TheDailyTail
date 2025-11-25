@@ -135,8 +135,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                             final date = dateFromIndex(index);
                             final selected =
                                 date.day == selectedDate.day &&
-                                    date.month == selectedDate.month &&
-                                    date.year == selectedDate.year;
+                                date.month == selectedDate.month &&
+                                date.year == selectedDate.year;
 
                             return RotatedBox(
                               quarterTurns: 1,
@@ -206,8 +206,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                             provider.getMealsForDate(selectedDate);
 
                         return ListView.builder(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 16),
+                          padding: EdgeInsets.zero,
                           itemCount: meals.length + 1,
                           itemBuilder: (context, i) {
                             if (i == meals.length) {
@@ -251,49 +250,122 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                             final meal = meals[i];
 
-                            return Container(
-                              margin:
-                                  const EdgeInsets.symmetric(vertical: 8),
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEDF7FF),
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        Colors.black.withOpacity(0.12),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  )
-                                ],
+                            //swipe to delete
+                            return Dismissible(
+                              key: ValueKey("${meal.name}_${meal.time}"),
+                              direction: DismissDirection.endToStart,
+
+                              // Confirm deletion
+                              confirmDismiss: (direction) async {
+                                return await showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      backgroundColor: const Color(0xFFEDF7FF),
+                                      title: Text(
+                                        "Delete meal?",
+                                        style: GoogleFonts.inknutAntiqua(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      content: Text(
+                                        "Remove '${meal.name}' from this day?",
+                                        style: GoogleFonts.inknutAntiqua(),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text(
+                                            "Cancel",
+                                            style: TextStyle(
+                                                color: Colors.black87),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text(
+                                            "Delete",
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+
+                              onDismissed: (direction) {
+                                Provider.of<MealsProvider>(context,
+                                        listen: false)
+                                    .removeMealAt(selectedDate, i);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text(
+                                          "Deleted ${meal.name}")),
+                                );
+                              },
+
+                              // Swipe background
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(Icons.delete,
+                                    color: Colors.white, size: 28),
                               ),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    meal.name,
-                                    style: GoogleFonts.inknutAntiqua(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEDF7FF),
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            Colors.black.withOpacity(0.12),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      )
+                                    ],
                                   ),
-                                  if (meal.amount.isNotEmpty)
-                                    Text(
-                                      meal.amount,
-                                      style:
-                                          GoogleFonts.inknutAntiqua(
-                                              fontSize: 14),
-                                    ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "Logged at: ${DateFormat('h:mm a').format(meal.time)}",
-                                    style: GoogleFonts.inknutAntiqua(
-                                      fontSize: 12,
-                                      color: Colors.black54,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        meal.name,
+                                        style: GoogleFonts.inknutAntiqua(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (meal.amount.isNotEmpty)
+                                        Text(
+                                          meal.amount,
+                                          style:
+                                              GoogleFonts.inknutAntiqua(
+                                                  fontSize: 14),
+                                        ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "Logged at: ${DateFormat('h:mm a').format(meal.time)}",
+                                        style: GoogleFonts.inknutAntiqua(
+                                          fontSize: 12,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             );
                           },
@@ -308,7 +380,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             /// ADD BUTTON
             Positioned(
               right: 16,
-              bottom: 16,
+              bottom: 16 + MediaQuery.of(context).padding.bottom,
               child: FloatingActionButton(
                 onPressed: _openMealPopup,
                 backgroundColor: const Color(0xFF7AA9C8),
