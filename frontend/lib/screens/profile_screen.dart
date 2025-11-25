@@ -102,13 +102,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         final pets = petProv.pets
                             .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
                             .toList();
-                        final firstName = userProv.user?.firstName ?? 'Your';
+                        final name = userProv.user?.name ?? 'Your';
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => AllPetsScreen(
                               pets: pets,
-                              firstName: firstName,
+                              name: name,
                             ),
                           ),
                         );
@@ -271,11 +271,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final textScale = MediaQuery.of(context).textScaleFactor;
 
     final appUser = context.watch<UserProvider>().user;
-    final fullName = appUser != null
-        ? '${appUser.firstName} ${appUser.lastName}'.trim()
-        : 'Your Name';
+    final name = appUser?.name ?? 'Full Name';
     final username = appUser?.username ?? 'username';
-    final role = appUser?.role ?? 'User';
+    final roles = appUser?.roles ?? ['User'];
 
     final postsProvider = context.watch<PostsProvider>();
     final totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;
@@ -318,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              fullName,
+                              name,
                               style: GoogleFonts.inknutAntiqua(
                                 fontSize: 20 * textScale,
                                 fontWeight: FontWeight.bold,
@@ -348,7 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   ),
                                 ),
                                 child: Text(
-                                  role,
+                                  roles.join(', '),
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: 12 * textScale,
                                     color: const Color.fromARGB(255, 67, 145, 213),

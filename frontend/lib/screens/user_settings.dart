@@ -44,7 +44,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     super.initState();
     final up = Provider.of<UserProvider>(context, listen: false);
     final user = up.user;
-    _name = user != null ? '${user.firstName} ${user.lastName}'.trim() : _name;
+    _name = user?.name ?? _name;
     _username = user?.username ?? _username;
 
     _pets = List.from(
@@ -68,23 +68,16 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
   void _saveSettings() {
     if (_formKey.currentState!.validate()) {
-      _name = _nameController.text;
       _username = _usernameController.text;
-
-      // Split full name into first/last (best-effort)
-      final parts = _name.trim().split(RegExp(r"\s+"));
-      final firstName = parts.isNotEmpty ? parts.first : '';
-      final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+      _name = _nameController.text;
 
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final petProvider =
           Provider.of<pet_provider.PetProvider>(context, listen: false);
 
-      userProvider
-          .updateUserProfile(
+      userProvider.updateUserProfile(
         username: _username,
-        firstName: firstName,
-        lastName: lastName,
+        name: _name,
       )
           .then((_) async {
         // Persist pets locally (local-only for now)
