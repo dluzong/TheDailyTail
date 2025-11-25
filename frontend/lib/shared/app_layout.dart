@@ -76,7 +76,7 @@ class _AppLayoutState extends State<AppLayout> {
     final double bottomInset = MediaQuery.of(context).padding.bottom;
 
     // Use base height values to adjust for all devices
-    const double baseTotalHeight = 120;
+    const double baseTotalHeight = 55;
     const double baseOuterHeight = 50;
     const double baseInnerHeight = 70;
     const double floatingButtonSize = 85;
@@ -137,18 +137,16 @@ class _AppLayoutState extends State<AppLayout> {
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
                 children: [
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      height: baseOuterHeight,
-                      color: outerBlue,
-                    ),
-                  ),
+                  // Align(
+                  //   alignment: Alignment.bottomCenter,
+                  //   child: Container(
+                  //     height: baseOuterHeight,
+                  //     color: outerBlue,
+                  //   ),
+                  // ),
 
                   Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: baseOuterHeight),
+                    alignment: Alignment.bottomCenter,                 
                       child: Container(
                         height: adjustedInnerHeight,
                         color: innerBlue,
@@ -191,12 +189,11 @@ class _AppLayoutState extends State<AppLayout> {
                           ],
                         ),
                       ),
-                    ),
                   ),
 
                   // Floating Home Button
                   Positioned(
-                    bottom: baseInnerHeight - 10 + (bottomInset / 2),
+                    bottom: baseInnerHeight - 50 + (bottomInset / 2),
                     child: Column(
                       children: [
                         GestureDetector(
