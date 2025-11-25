@@ -23,8 +23,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   TabController? _tabController;
-  
-  // Mock data for other users - TODO: replace with backend data
   Map<String, dynamic>? _otherUserData;
   
   bool get _isOwnProfile => widget.otherUsername == null;
@@ -54,13 +52,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           'name': 'Max',
           'breed': 'Golden Retriever',
           'age': 3,
-          'weight': 65,
+          'weight': 65.0,
         },
         {
           'name': 'Luna',
           'breed': 'Siamese Cat',
           'age': 2,
-          'weight': 10,
+          'weight': 10.0,
         },
       ],
     };
@@ -74,9 +72,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   Widget _buildAboutTab() {
     final size = MediaQuery.of(context).size;
-    final bio = _isOwnProfile 
-        ? "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!"
-        : (_otherUserData?['bio'] ?? '');
+    String bio;
+    
+    if (_isOwnProfile) {
+      final appUser = context.watch<UserProvider>().user;
+      bio = appUser?.bio ?? "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!";
+    } else {
+      bio = _otherUserData?['bio'] ?? '';
+    }
     
     return SingleChildScrollView(
       padding: EdgeInsets.all(size.width * 0.08),
@@ -123,10 +126,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               final pet = pets[index];
               final mockPet = pet_provider.Pet(
                 petId: index.toString(),
-                name: pet['name'],
-                breed: pet['breed'],
-                age: pet['age'],
-                weight: pet['weight'],
+                name: pet['name'] as String,
+                breed: pet['breed'] as String,
+                age: pet['age'] as int,
+                weight: (pet['weight'] as num).toDouble(),
               );
               return Padding(
                 padding: EdgeInsets.only(bottom: size.height * 0.02),
@@ -157,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     MaterialPageRoute(
                       builder: (context) => AllPetsScreen(
                         pets: petsList,
-                        firstName: _otherUserData?['firstName'] ?? '',
+                        name: _otherUserData?['firstName'] ?? '',
                       ),
                     ),
                   );
@@ -234,13 +237,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         final pets = petProv.pets
                             .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
                             .toList();
-                        final firstName = userProv.user?.firstName ?? 'Your';
+                        final name = userProv.user?.name ?? 'Your';
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => AllPetsScreen(
                               pets: pets,
-                              firstName: firstName,
+                              name: name,
                             ),
                           ),
                         );
@@ -364,7 +367,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         Icon(Icons.comment_outlined, size: size.width * 0.045, color: const Color(0xFF7496B3)),
                         SizedBox(width: size.width * 0.01),
                         Text(
-                          '${post['comments']}',
+                          '${(post['comments'] as List?)?.length ?? 0}',
                           style: GoogleFonts.lato(
                             color: const Color(0xFF394957),
                             fontSize: size.width * 0.035,
@@ -393,7 +396,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     if (_tabController == null) {
-      final child = const Center(child: CircularProgressIndicator());
+      const child = Center(child: CircularProgressIndicator());
       return _isOwnProfile
           ? AppLayout(currentIndex: 4, onTabSelected: (_) {}, child: child)
           : Scaffold(appBar: AppBar(), body: child);
@@ -403,16 +406,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final textScale = MediaQuery.of(context).textScaleFactor;
 
     // Get user data based on profile type
-    String fullName, username, role;
+    String name;
+    String username;
+    List<String> roles;
     int totalPosts, totalFollowers, totalFollowing;
     
     if (_isOwnProfile) {
       final appUser = context.watch<UserProvider>().user;
-      fullName = appUser != null
-          ? '${appUser.firstName} ${appUser.lastName}'.trim()
-          : 'Your Name';
+      name = appUser?.name ?? 'Your Name';
       username = appUser?.username ?? 'username';
-      role = appUser?.role ?? 'User';
+      roles = appUser?.roles ?? ['User'];
       
       final postsProvider = context.watch<PostsProvider>();
       totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;
@@ -423,9 +426,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           .toSet()
           .length;
     } else {
-      fullName = '${_otherUserData?['firstName'] ?? ''} ${_otherUserData?['lastName'] ?? ''}'.trim();
+      name = '${_otherUserData?['firstName'] ?? ''} ${_otherUserData?['lastName'] ?? ''}'.trim();
       username = _otherUserData?['username'] ?? '';
-      role = _otherUserData?['role'] ?? 'User';
+      roles = [_otherUserData?['role'] ?? 'User'];
       totalPosts = (_otherUserData?['totalPosts'] as int?) ?? 0;
       totalFollowers = (_otherUserData?['totalFollowers'] as int?) ?? 0;
       totalFollowing = (_otherUserData?['totalFollowing'] as int?) ?? 0;
@@ -460,7 +463,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              fullName,
+                              name,
                               style: GoogleFonts.inknutAntiqua(
                                 fontSize: 20 * textScale,
                                 fontWeight: FontWeight.bold,
@@ -490,7 +493,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   ),
                                 ),
                                 child: Text(
-                                  role,
+                                  roles.join(', '),
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: 12 * textScale,
                                     color: const Color.fromARGB(255, 67, 145, 213),
@@ -596,26 +599,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ],
       );
 
-    // Wrap with appropriate layout
-    if (_isOwnProfile) {
-      return AppLayout(
-        currentIndex: 4,
-        onTabSelected: (_) {},
-        child: content,
-      );
-    } else {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: content,
-      );
-    }
+    // Wrap with appropriate layout - use AppLayout for both own and other profiles
+    return AppLayout(
+      currentIndex: 4,
+      onTabSelected: (_) {},
+      showBackButton: !_isOwnProfile,
+      child: content,
+    );
   }
 
   Widget _buildStatColumn(String label, String value, {VoidCallback? onTap}) {

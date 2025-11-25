@@ -46,7 +46,42 @@ class PostsProvider extends ChangeNotifier {
     final storedPosts = prefs.getString('posts');
     if (storedPosts != null) {
       final List<dynamic> decoded = json.decode(storedPosts);
-      _posts = decoded.cast<Map<String, dynamic>>();
+
+      // Ensure each entry is a Map<String, dynamic>
+      _posts = decoded
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+      // Normalize fields to avoid type errors (comments must be a List, likes an int, etc.)
+      for (final post in _posts) {
+        // likes -> int
+        final likes = post['likes'];
+        if (likes is String) {
+          post['likes'] = int.tryParse(likes) ?? 0;
+        } else if (likes is! int) {
+          post['likes'] = 0;
+        }
+
+        // comments -> List<Map<String, dynamic>>
+        final comments = post['comments'];
+        if (comments is int || comments == null) {
+          post['comments'] = <Map<String, dynamic>>[];
+        } else if (comments is List) {
+          post['comments'] = comments.map<Map<String, dynamic>>((c) {
+            if (c is Map) return Map<String, dynamic>.from(c);
+            return {'user': 'unknown', 'text': c?.toString() ?? ''};
+          }).toList();
+        } else {
+          post['comments'] = <Map<String, dynamic>>[];
+        }
+
+        post['liked'] = post['liked'] ?? false;
+        post['author'] = post['author'] ?? 'Unknown';
+        post['title'] = post['title'] ?? '';
+        post['content'] = post['content'] ?? '';
+        post['timeAgo'] = post['timeAgo'] ?? '';
+        post['category'] = post['category'] ?? 'General';
+      }
     } else {
       // If no saved posts, load default posts
       _posts = [
@@ -59,8 +94,6 @@ class PostsProvider extends ChangeNotifier {
           'comments': List.generate(5, (i) => {"user": "User ${i + 1}", "text": "Comment ${i + 1}"}),
           'timeAgo': '2h ago',
           'category': 'Pet Updates',
-          'postTo': 'Public',
-          'group': null,
         },
         {
           'author': 'Jane Smith',
@@ -71,8 +104,6 @@ class PostsProvider extends ChangeNotifier {
           'comments': List.generate(15, (i) => {"user": "User ${i + 1}", "text": "Comment ${i + 1}"}),
           'timeAgo': '4h ago',
           'category': 'Tips & Advice',
-          'postTo': 'Public',
-          'group': null,
         },
         {
           'author': 'Mike Johnson',
@@ -83,8 +114,6 @@ class PostsProvider extends ChangeNotifier {
           'comments': List.generate(8, (i) => {"user": "User ${i + 1}", "text": "Comment ${i + 1}"}),
           'timeAgo': '6h ago',
           'category': 'Tips & Advice',
-          'postTo': 'Public',
-          'group': null,
         },
         {
           'author': 'John Doe',
@@ -95,8 +124,6 @@ class PostsProvider extends ChangeNotifier {
           'comments': List.generate(12, (i) => {"user": "User ${i + 1}", "text": "Comment ${i + 1}"}),
           'timeAgo': '8h ago',
           'category': 'Pet Updates',
-          'postTo': 'Public',
-          'group': null,
         },
       ];
     }

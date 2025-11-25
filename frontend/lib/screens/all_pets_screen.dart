@@ -4,9 +4,9 @@ import 'pet_list.dart' as pet_list;
 
 class AllPetsScreen extends StatelessWidget {
   final List<pet_list.Pet> pets;
-  final String firstName;
+  final String name;
 
-  const AllPetsScreen({Key? key, required this.pets, required this.firstName}) : super(key: key);
+  const AllPetsScreen({Key? key, required this.pets, required this.name}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +25,7 @@ class AllPetsScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    "$firstName's Pets",
+                    "$name's Pets",
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
