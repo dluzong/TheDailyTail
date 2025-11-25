@@ -10,7 +10,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'all_pets_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? otherUsername; // null means viewing own profile
+
+  const ProfileScreen({
+    super.key,
+    this.otherUsername,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -18,13 +23,47 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   TabController? _tabController;
-  // TODO: replace with backend data
-  final String _bio = "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!";
+  
+  // Mock data for other users - TODO: replace with backend data
+  Map<String, dynamic>? _otherUserData;
+  
+  bool get _isOwnProfile => widget.otherUsername == null;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    if (!_isOwnProfile) {
+      _loadOtherUserData();
+    }
+  }
+
+  void _loadOtherUserData() {
+    // Generate mock data for other user
+    _otherUserData = {
+      'username': widget.otherUsername,
+      'firstName': widget.otherUsername!.split(' ')[0],
+      'lastName': widget.otherUsername!.split(' ').length > 1 ? widget.otherUsername!.split(' ')[1] : '',
+      'role': 'Pet Owner',
+      'bio': 'Pet lover and enthusiast. Love sharing moments with my furry friends!',
+      'totalPosts': 12,
+      'totalFollowers': 45,
+      'totalFollowing': 32,
+      'pets': [
+        {
+          'name': 'Max',
+          'breed': 'Golden Retriever',
+          'age': 3,
+          'weight': 65,
+        },
+        {
+          'name': 'Luna',
+          'breed': 'Siamese Cat',
+          'age': 2,
+          'weight': 10,
+        },
+      ],
+    };
   }
 
   @override
@@ -35,6 +74,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   Widget _buildAboutTab() {
     final size = MediaQuery.of(context).size;
+    final bio = _isOwnProfile 
+        ? "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!"
+        : (_otherUserData?['bio'] ?? '');
+    
     return SingleChildScrollView(
       padding: EdgeInsets.all(size.width * 0.08),
       child: Column(
@@ -42,7 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         children: [
           SizedBox(height: size.height * 0.015),
           Text(
-            _bio,
+            bio,
             style: GoogleFonts.lato(
               fontSize: size.width * 0.038,
               color: const Color(0xFF394957),
@@ -56,6 +99,95 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   Widget _buildPetsTab() {
     final size = MediaQuery.of(context).size;
 
+    // If viewing another user's profile, show mock data
+    if (!_isOwnProfile) {
+      final pets = _otherUserData?['pets'] as List<dynamic>? ?? [];
+      
+      if (pets.isEmpty) {
+        return Center(
+          child: Text(
+            'No pets found.',
+            style: GoogleFonts.lato(
+              fontSize: size.width * 0.04,
+              color: const Color(0xFF394957),
+            ),
+          ),
+        );
+      }
+
+      return SingleChildScrollView(
+        padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+        child: Column(
+          children: [
+            ...List.generate(pets.length, (index) {
+              final pet = pets[index];
+              final mockPet = pet_provider.Pet(
+                petId: index.toString(),
+                name: pet['name'],
+                breed: pet['breed'],
+                age: pet['age'],
+                weight: pet['weight'],
+              );
+              return Padding(
+                padding: EdgeInsets.only(bottom: size.height * 0.02),
+                child: pet_list.ExpandablePetCard(
+                  pet: mockPet,
+                ),
+              );
+            }),
+            Center(
+              child: Container(
+                width: size.width * 0.2,
+                height: 1.5,
+                color: Colors.grey,
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+              child: ElevatedButton(
+                onPressed: () {
+                  final petsList = pets
+                      .map((p) => pet_list.Pet(
+                            name: p['name'],
+                            imageUrl: '',
+                          ))
+                      .toList();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AllPetsScreen(
+                        pets: petsList,
+                        firstName: _otherUserData?['firstName'] ?? '',
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7496B3),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: size.width * 0.08,
+                    vertical: size.height * 0.015,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'View All',
+                  style: GoogleFonts.lato(
+                    fontSize: size.width * 0.04,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Own profile: use PetProvider
     return Consumer<pet_provider.PetProvider>(
       builder: (context, petProv, _) {
         if (petProv.isLoading) {
@@ -146,8 +278,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final size = MediaQuery.of(context).size;
     return Consumer<PostsProvider>(
       builder: (context, postsProvider, _) {
+        final targetAuthor = _isOwnProfile ? 'You' : widget.otherUsername!;
         final userPosts = postsProvider.posts
-            .where((post) => post['author'] == 'You')
+            .where((post) => post['author'] == targetAuthor)
             .toList();
 
         if (userPosts.isEmpty) {
@@ -260,38 +393,47 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     if (_tabController == null) {
-      return AppLayout(
-        currentIndex: 4,
-        onTabSelected: (_) {},
-        child: const Center(child: CircularProgressIndicator()),
-      );
+      final child = const Center(child: CircularProgressIndicator());
+      return _isOwnProfile
+          ? AppLayout(currentIndex: 4, onTabSelected: (_) {}, child: child)
+          : Scaffold(appBar: AppBar(), body: child);
     }
 
     final size = MediaQuery.of(context).size;
     final textScale = MediaQuery.of(context).textScaleFactor;
 
-    final appUser = context.watch<UserProvider>().user;
-    final fullName = appUser != null
-        ? '${appUser.firstName} ${appUser.lastName}'.trim()
-        : 'Your Name';
-    final username = appUser?.username ?? 'username';
-    final role = appUser?.role ?? 'User';
-
-    final postsProvider = context.watch<PostsProvider>();
-    final totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;
-    const totalFollowers = 86;
-    final totalFollowing = postsProvider.posts
-        .where((post) => postsProvider.isFollowing(post['author'] as String))
-        .map((post) => post['author'])
-        .toSet()
-        .length;
+    // Get user data based on profile type
+    String fullName, username, role;
+    int totalPosts, totalFollowers, totalFollowing;
+    
+    if (_isOwnProfile) {
+      final appUser = context.watch<UserProvider>().user;
+      fullName = appUser != null
+          ? '${appUser.firstName} ${appUser.lastName}'.trim()
+          : 'Your Name';
+      username = appUser?.username ?? 'username';
+      role = appUser?.role ?? 'User';
+      
+      final postsProvider = context.watch<PostsProvider>();
+      totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;
+      totalFollowers = 86;
+      totalFollowing = postsProvider.posts
+          .where((post) => postsProvider.isFollowing(post['author'] as String))
+          .map((post) => post['author'])
+          .toSet()
+          .length;
+    } else {
+      fullName = '${_otherUserData?['firstName'] ?? ''} ${_otherUserData?['lastName'] ?? ''}'.trim();
+      username = _otherUserData?['username'] ?? '';
+      role = _otherUserData?['role'] ?? 'User';
+      totalPosts = (_otherUserData?['totalPosts'] as int?) ?? 0;
+      totalFollowers = (_otherUserData?['totalFollowers'] as int?) ?? 0;
+      totalFollowing = (_otherUserData?['totalFollowing'] as int?) ?? 0;
+    }
 
     double avatarSize = size.width * 0.25;
 
-    return AppLayout(
-      currentIndex: 4,
-      onTabSelected: (_) {},
-      child: Stack(
+    final content = Stack(
         children: [
           Column(
             children: [
@@ -427,32 +569,53 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               ),
             ],
           ),
-          // Settings button
-          Positioned(
-            top: size.height * 0.01,
-            right: size.width * 0.02,
-            child: IconButton(
-              icon: Icon(
-                Icons.settings,
-                size: size.width * 0.07,
-                color: const Color(0xFF7496B3),
-              ),
-              tooltip: 'User Settings',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const user_settings.UserSettingsPage(
-                      currentIndex: 4,
-                      onTabSelected: _noop,
+          // Settings button (only for own profile)
+          if (_isOwnProfile)
+            Positioned(
+              top: size.height * 0.01,
+              right: size.width * 0.02,
+              child: IconButton(
+                icon: Icon(
+                  Icons.settings,
+                  size: size.width * 0.07,
+                  color: const Color(0xFF7496B3),
+                ),
+                tooltip: 'User Settings',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const user_settings.UserSettingsPage(
+                        currentIndex: 4,
+                        onTabSelected: _noop,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
         ],
-      ),
-    );
+      );
+
+    // Wrap with appropriate layout
+    if (_isOwnProfile) {
+      return AppLayout(
+        currentIndex: 4,
+        onTabSelected: (_) {},
+        child: content,
+      );
+    } else {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: content,
+      );
+    }
   }
 
   Widget _buildStatColumn(String label, String value, {VoidCallback? onTap}) {
@@ -495,9 +658,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   void _showFollowersDialog(BuildContext context) {
     // TODO: Replace with actual followers data from backend
-    final followers = List.generate(10, (index) => {
-      'fullName': 'Follower Name ${index + 1}',
-      'username': 'follower${index + 1}',
+    final count = _isOwnProfile ? 10 : ((_otherUserData?['totalFollowers'] as int?) ?? 5);
+    final followers = List.generate(count, (index) => {
+      'fullName': '${_isOwnProfile ? "Follower" : "User"} Name ${index + 1}',
+      'username': '${_isOwnProfile ? "follower" : "user"}${index + 1}',
     });
 
     showDialog(
@@ -577,15 +741,26 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
 
   void _showFollowingDialog(BuildContext context) {
-    final postsProvider = context.read<PostsProvider>();
-    final following = postsProvider.posts
-        .where((post) => postsProvider.isFollowing(post['author'] as String))
-        .map((post) => {
-          'fullName': post['author'] as String,
-          'username': (post['author'] as String).toLowerCase().replaceAll(' ', ''),
-        })
-        .toSet()
-        .toList();
+    List<Map<String, String>> following;
+    
+    if (_isOwnProfile) {
+      final postsProvider = context.read<PostsProvider>();
+      following = postsProvider.posts
+          .where((post) => postsProvider.isFollowing(post['author'] as String))
+          .map((post) => {
+            'fullName': post['author'] as String,
+            'username': (post['author'] as String).toLowerCase().replaceAll(' ', ''),
+          })
+          .toSet()
+          .toList();
+    } else {
+      // Mock data for other users
+      final count = (_otherUserData?['totalFollowing'] as int?) ?? 8;
+      following = List.generate(count, (index) => {
+        'fullName': 'Following User ${index + 1}',
+        'username': 'following${index + 1}',
+      });
+    }
 
     showDialog(
       context: context,

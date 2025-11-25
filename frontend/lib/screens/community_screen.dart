@@ -7,6 +7,7 @@ import '../posts_provider.dart';
 import 'community_filter_popup.dart';
 import 'community_post_screen.dart';
 import 'org_screen.dart';
+import 'profile_screen.dart';
 
 class CommunityBoardScreen extends StatefulWidget {
   const CommunityBoardScreen({super.key});
@@ -183,23 +184,38 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            post['author'],
-                            style: GoogleFonts.lato(
-                              fontWeight: FontWeight.bold,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (post['author'] != 'You') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProfileScreen(
+                                  otherUsername: post['author'],
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post['author'],
+                              style: GoogleFonts.lato(
+                                fontWeight: FontWeight.bold,
+                                color: post['author'] != 'You' ? const Color(0xFF7496B3) : Colors.black,
+                              ),
                             ),
-                          ),
-                          Text(
-                            post['timeAgo'],
-                            style: GoogleFonts.lato(
-                              color: Colors.grey,
-                              fontSize: 12,
+                            Text(
+                              post['timeAgo'],
+                              style: GoogleFonts.lato(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     // If this is the user's post, show delete icon; otherwise show follow toggle
