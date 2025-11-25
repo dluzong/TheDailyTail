@@ -6,36 +6,44 @@ import 'dart:convert';
 // User Data Model
 class AppUser {
   final String userId;
+  final String name;
   final String username;
-  final String firstName;
-  final String lastName;
-  final String role;
+  final List<String> roles;
+  final String bio;
+  final String photoUrl;
+  final List<String> following;
 
   AppUser({
     required this.userId,
+    required this.name,
     required this.username,
-    required this.firstName,
-    required this.lastName,
-    required this.role,
+    required this.roles,
+    required this.bio,
+    required this.photoUrl,
+    required this.following,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
     return AppUser(
       userId: map['user_id'],
+      name: map['name'],
       username: map['username'],
-      firstName: map['first_name'],
-      lastName: map['last_name'],
-      role: map['role'],
+      roles: map['roles'],
+      bio: map['bio'],
+      photoUrl: map['photo_url'],
+      following: map['following'],
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'user_id': userId,
+      'name': name,
       'username': username,
-      'first_name': firstName,
-      'last_name': lastName,
-      'role': role,
+      'roles': roles,
+      'bio': bio,
+      'photo_url': photoUrl,
+      'following': following
     };
   }
 }
@@ -144,8 +152,7 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> updateUserProfile({
     required String username,
-    required String firstName,
-    required String lastName,
+    required String name,
   }) async {
     final session = _supabase.auth.currentSession;
     if (session == null) return;
@@ -154,16 +161,17 @@ class UserProvider extends ChangeNotifier {
     try {
       await _supabase.from('users').update({
         'username': username,
-        'first_name': firstName,
-        'last_name': lastName,
+        'name': name,
       }).eq('user_id', userId);
 
       _user = AppUser(
         userId: userId,
         username: username,
-        firstName: firstName,
-        lastName: lastName,
-        role: _user?.role ?? 'User',
+        name: name,
+        roles: _user?.roles ?? ['User'],
+        bio: _user?.bio ?? '',
+        photoUrl: _user?.photoUrl ?? '',
+        following: _user?.following ?? [],
       );
       await _saveToCache();
       notifyListeners();
