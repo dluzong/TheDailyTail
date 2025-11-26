@@ -16,7 +16,12 @@ class AppUser {
   AppUser({
     required this.userId,
     required this.name,
+    required this.name,
     required this.username,
+    required this.roles,
+    required this.bio,
+    required this.photoUrl,
+    required this.following,
     required this.roles,
     required this.bio,
     required this.photoUrl,
@@ -39,7 +44,12 @@ class AppUser {
     return {
       'user_id': userId,
       'name': name,
+      'name': name,
       'username': username,
+      'roles': roles,
+      'bio': bio,
+      'photo_url': photoUrl,
+      'following': following
       'roles': roles,
       'bio': bio,
       'photo_url': photoUrl,

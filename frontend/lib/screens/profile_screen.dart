@@ -102,11 +102,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
                             .toList();
                         final name = userProv.user?.name ?? 'Your';
+                        final name = userProv.user?.name ?? 'Your';
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => AllPetsScreen(
                               pets: pets,
+                              name: name,
                               name: name,
                             ),
                           ),
@@ -270,6 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final textScale = MediaQuery.of(context).textScaleFactor;
 
     final appUser = context.watch<UserProvider>().user;
+    final name = appUser?.name ?? 'Full Name';
     final name = appUser?.name ?? 'Full Name';
     final username = appUser?.username ?? 'username';
     final rolesList = appUser?.roles;
