@@ -36,8 +36,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     }
   }
 
+// Mock data for other user's profile, remove when once backend data is implemented
   void _loadOtherUserData() {
-    // Generate mock data for other user
     _otherUserData = {
       'username': widget.otherUsername,
       'firstName': widget.otherUsername!.split(' ')[0],
@@ -130,6 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 breed: pet['breed'] as String,
                 age: pet['age'] as int,
                 weight: (pet['weight'] as num).toDouble(),
+                imageUrl: pet['imageUrl'] as String? ?? ''
               );
               return Padding(
                 padding: EdgeInsets.only(bottom: size.height * 0.02),
@@ -415,7 +416,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       final appUser = context.watch<UserProvider>().user;
       name = appUser?.name ?? 'Your Name';
       username = appUser?.username ?? 'username';
-      roles = appUser?.roles ?? ['User'];
+      final rolesList = appUser?.roles;
+      roles = (rolesList == null || rolesList.isEmpty)
+          ? ['Visitor']
+          : rolesList;
       
       final postsProvider = context.watch<PostsProvider>();
       totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;
