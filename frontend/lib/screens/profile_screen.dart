@@ -19,7 +19,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   TabController? _tabController;
   // TODO: replace with backend data
-  final String _bio = "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!";
 
   @override
   void initState() {
@@ -33,7 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     super.dispose();
   }
 
-  Widget _buildAboutTab() {
+  Widget _buildAboutTab(String bio) {
     final size = MediaQuery.of(context).size;
     return SingleChildScrollView(
       padding: EdgeInsets.all(size.width * 0.08),
@@ -42,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         children: [
           SizedBox(height: size.height * 0.015),
           Text(
-            _bio,
+            bio,
             style: GoogleFonts.lato(
               fontSize: size.width * 0.038,
               color: const Color(0xFF394957),
@@ -273,7 +272,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final appUser = context.watch<UserProvider>().user;
     final name = appUser?.name ?? 'Full Name';
     final username = appUser?.username ?? 'username';
-    final roles = appUser?.roles ?? ['User'];
+    final rolesList = appUser?.roles;
+    final roles = (rolesList == null || rolesList.isEmpty)
+        ? ['Visitor']
+        : rolesList;
+    final bio = appUser?.bio ?? "Hello! I don't have a bio yet!";
 
     final postsProvider = context.watch<PostsProvider>();
     final totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;
@@ -417,7 +420,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: TabBarView(
                   controller: _tabController!,
                   children: [
-                    _buildAboutTab(),
+                    _buildAboutTab(bio),
                     _buildPetsTab(),
                     _buildPostsTab(),
                   ],

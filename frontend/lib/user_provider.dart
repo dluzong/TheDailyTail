@@ -25,13 +25,13 @@ class AppUser {
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
     return AppUser(
-      userId: map['user_id'],
-      name: map['name'],
-      username: map['username'],
-      roles: map['roles'],
-      bio: map['bio'],
-      photoUrl: map['photo_url'],
-      following: map['following'],
+      userId: map['user_id'] ?? '',
+      name: map['name'] ?? '',
+      username: map['username'] ?? '',
+      roles: List<String>.from(map['role'] ?? []),
+      bio: map['bio'] ?? '',
+      photoUrl: map['photo_url'] ?? '',
+      following: List<String>.from(map['following'] ?? []),
     );
   }
 

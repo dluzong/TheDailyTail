@@ -113,14 +113,19 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
     setState(() {
       final newPet = pet_provider.Pet(
-        petId: result['id'] as String? ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        petId: result['id'] as String? ?? '',
+            //DateTime.now().millisecondsSinceEpoch.toString(),
+        ownerId: result['ownerId'] as String? ?? '',
         name: result['name'] as String? ?? '',
         breed: result['breed'] as String? ?? '',
         age: (result['age'] is int)
             ? result['age'] as int
             : int.tryParse(result['age']?.toString() ?? '') ?? 0,
-        weight: 0.0,
+        weight: result['weight'] ?? 0.0,
+        imageUrl: result['imageUrl'] as String? ?? '',
+        logsIds: result['logIds'] as List<String>,
+        savedMeals: result['savedMeals'] as List<String>,     
+        status: result['status'] as String? ?? 'Owned',
       );
 
       _pets.add(newPet);

@@ -14,8 +14,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String? _selectedPetId;
-  List<PetActivity> _currentActivities = [];
-  bool _isActivitiesLoading = false;
+  List<PetLog> _currentLogs = [];
+  bool _isLogsLoading = false;
 
   @override
   void initState() {
@@ -46,17 +46,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _selectPet(Pet pet) async {
     setState(() {
       _selectedPetId = pet.petId;
-      _isActivitiesLoading = true;
-      _currentActivities = [];
+      _isLogsLoading = true;
+      _currentLogs = [];
     });
 
     final provider = context.read<PetProvider>();
-    final activities = await provider.fetchPetActivities(pet.petId);
+    final logs = await provider.fetchPetLogs(pet.petId);
 
     if (mounted) {
       setState(() {
-        _currentActivities = activities;
-        _isActivitiesLoading = false;
+        _currentLogs = logs;
+        _isLogsLoading = false;
       });
     }
   }
@@ -256,41 +256,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         const SizedBox(height: 32),
 
-        // Recent activity
-        Text('Recent Activity',
+        // Recent log
+        Text('Recent Log',
             style: GoogleFonts.lato(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         const Divider(thickness: 2),
 
-        // loader for activities section
-        if (_isActivitiesLoading)
+        // loader for logs section
+        if (_isLogsLoading)
           const Center(
               child: Padding(
             padding: EdgeInsets.all(16.0),
             child: CircularProgressIndicator(),
           ))
-        else if (_currentActivities.isEmpty)
+        else if (_currentLogs.isEmpty)
           const Center(
               child: Padding(
             padding: EdgeInsets.all(16.0),
-            child: Text('No recent activity for this pet.'),
+            child: Text('No recent log for this pet.'),
           ))
         else
           ListView.separated(
             padding: EdgeInsets.zero,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _currentActivities.length,
+            itemCount: _currentLogs.length,
             separatorBuilder: (_, __) => const Divider(),
             itemBuilder: (context, index) {
-              final activity = _currentActivities[index];
+              final log = _currentLogs[index];
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.check_circle_outline),
-                title: Text(activity.description, style: GoogleFonts.lato()),
+                title: Text(log.logDetails, style: GoogleFonts.lato()),
                 subtitle: Text(
                   // MM/DD/YYYY format
-                  '${activity.logDate.month}/${activity.logDate.day}/${activity.logDate.year}',
+                  '${log.logDate.month}/${log.logDate.day}/${log.logDate.year}',
                   style: GoogleFonts.lato(fontSize: 12),
                 ),
               );
