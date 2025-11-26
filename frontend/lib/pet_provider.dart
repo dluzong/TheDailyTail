@@ -6,59 +6,85 @@ import 'dart:convert';
 // Pet Data Model
 class Pet {
   final String petId;
+  final String ownerId;
   final String name;
   final String breed;
   final int age;
   final double weight;
+  final String imageUrl;
+  final List<String> logsIds;
+  final List<String> savedMeals;
+  final String status;
 
   Pet({
     required this.petId,
+    required this.ownerId,
     required this.name,
     required this.breed,
     required this.age,
     required this.weight,
+    required this.imageUrl,
+    required this.logsIds,
+    required this.savedMeals,
+    required this.status,
   });
 
   factory Pet.fromMap(Map<String, dynamic> map) {
     return Pet(
       petId: map['pet_id'] as String? ?? '',
+      ownerId: map['owner_id'] as String? ?? '',
       name: map['name'] as String? ?? 'Unnamed Pet',
       breed: map['breed'] as String? ?? 'Unknown',
       age: map['age'] as int? ?? 0,
       weight: map['weight'] as double? ?? 0.0,
+      imageUrl: map['image_url'] as String? ?? '',
+      logsIds: List<String>.from(map['logs_ids'] ?? []),
+      savedMeals: List<String>.from(map['saved_meals'] ?? []),
+      status: map['status'] as String? ?? 'Owned' // Assume pets are owned by default?
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'pet_id': petId,
+      'owner_id': ownerId,
       'name': name,
       'breed': breed,
       'age': age,
       'weight': weight,
+      'image_url': imageUrl,
+      'logs_ids': logsIds,
+      'saved_meals': savedMeals,
+      'status': status,
     };
   }
 }
 
-// Pet Activity Model
-class PetActivity {
-  final String activityId;
-  final String description;
+// Pet Log Model
+class PetLog {
+  final String logId;
+  final String petId;
   final DateTime logDate;
+  final String logType;
+  final String logDetails;
 
-  PetActivity({
-    required this.activityId,
-    required this.description,
+  PetLog({
+    required this.logId,
+    required this.petId,
     required this.logDate,
+    required this.logType,
+    required this.logDetails
   });
 
   // unused ?
-  factory PetActivity.fromMap(Map<String, dynamic> map) {
-    return PetActivity(
-      activityId: map['activity_id'] as String? ?? '',
-      description: map['description'] as String? ?? 'No description',
+  factory PetLog.fromMap(Map<String, dynamic> map) {
+    return PetLog(
+      logId: map['log_id'] as String? ?? '',
+      petId: map['pet_id'] as String? ?? '',
       logDate:
           DateTime.tryParse(map['log_date'] as String? ?? '') ?? DateTime.now(),
+      logType: map['log_type'] as String? ?? '',
+      logDetails: map['log_details'] as String? ?? '',
     );
   }
 }
@@ -129,28 +155,28 @@ class PetProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch Pet Activities for a specific pet
-  Future<List<PetActivity>> fetchPetActivities(String petId) async {
-    debugPrint('Fetching pet activities for petId: $petId');
+  // Fetch Pet Logs for a specific pet
+  Future<List<PetLog>> fetchPetLogs(String petId) async {
+    debugPrint('Fetching pet logs for petId: $petId');
     final session = _supabase.auth.currentSession;
 
     if (session == null) {
-      debugPrint("No user logged in. Failed to fetch pet activities.");
+      debugPrint("No user logged in. Failed to fetch pet logs.");
       return [];
     }
 
     try {
-      // 1. Get all activity rows for this pet
+      // 1. Get all log rows for this pet
       final response = await _supabase
-          .from('pet_activities')
+          .from('logs')
           .select()
           .eq('pet_id', petId)
           .order('log_date', ascending: false);
 
-      final List<PetActivity> allActivities = response.expand((row) {
-        final List<PetActivity> activitiesFromThisRow = [];
+      final List<PetLog> allLogs = response.expand((row) {
+        final List<PetLog> logsFromThisRow = [];
 
-        final String rowActivityId = row['activity_id'] as String? ?? '';
+        final String rowLogId = row['log_id'] as String? ?? '';
         final DateTime rowLogDate =
             DateTime.tryParse(row['log_date'] as String? ?? '') ??
                 DateTime.now();
@@ -161,11 +187,13 @@ class PetProvider extends ChangeNotifier {
             final List<dynamic> foods = row['food_entries'];
             for (var food in foods) {
               if (food is Map<String, dynamic>) {
-                activitiesFromThisRow.add(
-                  PetActivity(
-                    activityId: rowActivityId,
+                logsFromThisRow.add(
+                  PetLog (
+                    petId: petId,
+                    logId: rowLogId,
+                    logType: 'meal',
                     logDate: rowLogDate,
-                    description: 'Ate ${food['item']} at ${food['time']}.',
+                    logDetails: 'Ate ${food['item']} at ${food['time']}.',
                   ),
                 );
               }
@@ -177,11 +205,13 @@ class PetProvider extends ChangeNotifier {
             final List<dynamic> walks = row['walk_entries'];
             for (var walk in walks) {
               if (walk is Map<String, dynamic>) {
-                activitiesFromThisRow.add(
-                  PetActivity(
-                    activityId: rowActivityId,
+                logsFromThisRow.add(
+                  PetLog(
+                    petId: petId,
+                    logId: rowLogId,
+                    logType: 'walk',
                     logDate: rowLogDate,
-                    description:
+                    logDetails:
                         'Walked for ${walk['duration']} at ${walk['time']}.',
                   ),
                 );
@@ -195,11 +225,13 @@ class PetProvider extends ChangeNotifier {
             final List<dynamic> meds = row['medication_entries'];
             for (var med in meds) {
               if (med is Map<String, dynamic>) {
-                activitiesFromThisRow.add(
-                  PetActivity(
-                    activityId: rowActivityId,
+                logsFromThisRow.add(
+                  PetLog(
+                    petId: petId,
+                    logId: rowLogId,
+                    logType: 'medication',
                     logDate: rowLogDate,
-                    description:
+                    logDetails:
                         'Took ${med['Medication']} (${med['Dosage']}).',
                   ),
                 );
@@ -207,25 +239,27 @@ class PetProvider extends ChangeNotifier {
             }
           }
         } catch (e) {
-          debugPrint("Error parsing activity JSON for row $rowActivityId: $e");
-          activitiesFromThisRow.add(
-            PetActivity(
-              activityId: rowActivityId,
+          debugPrint("Error parsing log JSON for row $rowLogId: $e");
+          logsFromThisRow.add(
+            PetLog(
+              petId: petId,
+              logId: rowLogId,
+              logType: 'corrupted',
               logDate: rowLogDate,
-              description: "Recorded an activity with corrupted data.",
+              logDetails: "Recorded log with corrupted data.",
             ),
           );
         }
 
-        return activitiesFromThisRow;
+        return logsFromThisRow;
       }).toList();
 
       debugPrint(
-          "Fetched ${allActivities.length} activities for petId: $petId");
+          "Fetched ${allLogs.length} logs for petId: $petId");
 
-      return allActivities;
+      return allLogs;
     } catch (e) {
-      debugPrint("Error fetching pet activities: $e");
+      debugPrint("Error fetching pet logs: $e");
       return []; // Return an empty list on failure
     }
   }

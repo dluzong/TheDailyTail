@@ -16,7 +16,12 @@ class AppUser {
   AppUser({
     required this.userId,
     required this.name,
+    required this.name,
     required this.username,
+    required this.roles,
+    required this.bio,
+    required this.photoUrl,
+    required this.following,
     required this.roles,
     required this.bio,
     required this.photoUrl,
@@ -25,13 +30,13 @@ class AppUser {
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
     return AppUser(
-      userId: map['user_id'],
-      name: map['name'],
-      username: map['username'],
-      roles: map['roles'],
-      bio: map['bio'],
-      photoUrl: map['photo_url'],
-      following: map['following'],
+      userId: map['user_id'] ?? '',
+      name: map['name'] ?? '',
+      username: map['username'] ?? '',
+      roles: List<String>.from(map['role'] ?? []),
+      bio: map['bio'] ?? '',
+      photoUrl: map['photo_url'] ?? '',
+      following: List<String>.from(map['following'] ?? []),
     );
   }
 
@@ -39,7 +44,12 @@ class AppUser {
     return {
       'user_id': userId,
       'name': name,
+      'name': name,
       'username': username,
+      'roles': roles,
+      'bio': bio,
+      'photo_url': photoUrl,
+      'following': following
       'roles': roles,
       'bio': bio,
       'photo_url': photoUrl,
