@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'dailylog_screen.dart';
 import '../shared/app_layout.dart';
+import '../medication_provider.dart';
 
 class MedicationScreen extends StatefulWidget {
   const MedicationScreen({super.key});
@@ -16,8 +19,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
   late int todayIndex;
   late FixedExtentScrollController _scrollController;
 
-  // Placeholder list for medications per selected date
-  final Map<String, List<Map<String, String>>> _medicationsByDate = {};
+  // Data is sourced from MedicationsProvider
 
   @override
   void initState() {
@@ -29,12 +31,10 @@ class _MedicationScreenState extends State<MedicationScreen> {
   DateTime dateFromIndex(int index) =>
       DateTime.now().add(Duration(days: index - todayIndex));
 
-  List<Map<String, String>> get medsForSelected {
-    final key = DateFormat('yyyy-MM-dd').format(selectedDate);
-    return _medicationsByDate[key] ?? [];
-  }
+  // Persistence and filtering handled by MedicationsProvider
 
-  void _addMedication() {
+  // Inline add medication sheet (invoked by the button under Today's Medication)
+  void _openAddMedicationSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -45,6 +45,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
       builder: (context) {
         final nameController = TextEditingController();
         final doseController = TextEditingController();
+        final freqController = TextEditingController();
         return Padding(
           padding: EdgeInsets.only(
             left: 20,
@@ -88,6 +89,14 @@ class _MedicationScreenState extends State<MedicationScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: freqController,
+                decoration: const InputDecoration(
+                  labelText: 'Frequency (e.g. 2x/day)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -95,17 +104,14 @@ class _MedicationScreenState extends State<MedicationScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7AA9C8),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     final name = nameController.text.trim();
                     if (name.isEmpty) return;
-                    final key = DateFormat('yyyy-MM-dd').format(selectedDate);
-                    setState(() {
-                      _medicationsByDate.putIfAbsent(key, () => []).add({
-                        'name': name,
-                        'dose': doseController.text.trim(),
-                        'time': DateTime.now().toIso8601String(),
-                      });
-                    });
+                    await context.read<MedicationsProvider>().addMedication(
+                          name: name,
+                          dose: doseController.text.trim(),
+                          frequency: freqController.text.trim(),
+                        );
                     Navigator.pop(context);
                   },
                   child: const Text(
@@ -121,191 +127,444 @@ class _MedicationScreenState extends State<MedicationScreen> {
     );
   }
 
+  void _promptLogForToday(String medId, String name) {
+    final friendlyDate = DateFormat('MMM d, yyyy').format(selectedDate);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Log Medication'),
+          content: Text(
+            "Mark '${name.isEmpty ? 'Medication' : name}' as taken for $friendlyDate?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7AA9C8)),
+              onPressed: () {
+                context.read<MedicationsProvider>().logForDate(medId, selectedDate);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Logged '$name' for $friendlyDate")),
+                );
+              },
+              child: const Text('Mark as taken', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _confirmDialog({
+    required String title,
+    required String message,
+    String cancelText = 'Cancel',
+    String confirmText = 'Delete',
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(cancelText)),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7AA9C8)),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Yes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  void _removeFromToday(String medId) {
+    context.read<MedicationsProvider>().removeLogForDate(medId, selectedDate);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
+    return ChangeNotifierProvider(
+      create: (_) => MedicationsProvider()..load(),
+      child: AppLayout(
       currentIndex: 0,
       onTabSelected: (index) {},
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Stack(
-          children: [
-            SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 6),
-                  // MONTH HEADER
-                  Text(
-                    DateFormat('MMMM yyyy').format(selectedDate),
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header with back arrow and month
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) => const DailyLogScreen(),
+                            transitionDuration: Duration.zero,
+                            reverseTransitionDuration: Duration.zero,
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.arrow_back, size: 24, color: Colors.black87),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  // DATE SCROLLER (same style as meal_plan_screen)
-                  SizedBox(
-                    height: 85,
-                    child: RotatedBox(
-                      quarterTurns: -1,
-                      child: ListWheelScrollView.useDelegate(
-                        controller: _scrollController,
-                        itemExtent: 60,
-                        diameterRatio: 2.2,
-                        magnification: 1.1,
-                        useMagnifier: true,
-                        physics: const FixedExtentScrollPhysics(),
-                        onSelectedItemChanged: (i) {
-                          setState(() => selectedDate = dateFromIndex(i));
-                        },
-                        childDelegate: ListWheelChildBuilderDelegate(
-                          builder: (context, index) {
-                            final date = dateFromIndex(index);
-                            final selected = date.day == selectedDate.day &&
-                                date.month == selectedDate.month &&
-                                date.year == selectedDate.year;
-                            return RotatedBox(
-                              quarterTurns: 1,
-                              child: GestureDetector(
-                                onTap: () {
-                                  _scrollController.animateToItem(
-                                    index,
-                                    curve: Curves.easeInOut,
-                                    duration: const Duration(milliseconds: 250),
-                                  );
-                                  setState(() => selectedDate = date);
-                                },
-                                child: Container(
-                                  width: 55,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    color: selected
-                                        ? const Color(0xFF7AA9C8)
-                                        : const Color(0xFFEDF7FF),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        DateFormat('d').format(date),
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: selected
-                                              ? Colors.white
-                                              : Colors.black87,
-                                        ),
-                                      ),
-                                      Text(
-                                        DateFormat('E').format(date),
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontSize: 12,
-                                          color: selected
-                                              ? Colors.white
-                                              : Colors.black87,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                    const SizedBox(width: 12),
+                    Text(
+                      DateFormat('MMMM yyyy').format(selectedDate),
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  // MEDICATION LIST
-                  Expanded(
-                    child: medsForSelected.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'No medications for this day.',
-                                  style: GoogleFonts.inknutAntiqua(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Tap + to add one.',
-                                  style: GoogleFonts.inknutAntiqua(
-                                    fontSize: 14,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: medsForSelected.length,
-                            itemBuilder: (context, i) {
-                              final med = medsForSelected[i];
-                              return Container(
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-                                padding: const EdgeInsets.all(14),
+                  ],
+                ),
+              ),
+
+              // Calendar scroller
+              SizedBox(
+                height: 94,
+                child: RotatedBox(
+                  quarterTurns: -1,
+                  child: ListWheelScrollView.useDelegate(
+                    controller: _scrollController,
+                    physics: const FixedExtentScrollPhysics(),
+                    itemExtent: 72,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        selectedDate = dateFromIndex(index);
+                      });
+                    },
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: totalDays,
+                      builder: (context, index) {
+                        final date = dateFromIndex(index);
+                        final selected = DateUtils.isSameDay(date, selectedDate);
+                        return RotatedBox(
+                          quarterTurns: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                _scrollController.animateToItem(
+                                  index,
+                                  duration: const Duration(milliseconds: 250),
+                                  curve: Curves.easeOut,
+                                );
+                                setState(() {
+                                  selectedDate = date;
+                                });
+                              },
+                              child: Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEDF7FF),
+                                  color: selected
+                                      ? const Color(0xFF7AA9C8)
+                                      : const Color(0xFFEDF7FF),
                                   borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.12),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ],
                                 ),
+                                padding: const EdgeInsets.all(8),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      med['name'] ?? '',
+                                      DateFormat('d').format(date),
                                       style: GoogleFonts.inknutAntiqua(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
+                                        color: selected ? Colors.white : Colors.black87,
                                       ),
                                     ),
-                                    if ((med['dose'] ?? '').isNotEmpty)
-                                      Text(
-                                        med['dose']!,
-                                        style: GoogleFonts.inknutAntiqua(fontSize: 14),
-                                      ),
-                                    const SizedBox(height: 4),
                                     Text(
-                                      'Logged at: ${DateFormat('h:mm a').format(DateTime.parse(med['time']!))}',
+                                      DateFormat('E').format(date),
                                       style: GoogleFonts.inknutAntiqua(
                                         fontSize: 12,
-                                        color: Colors.black54,
+                                        color: selected ? Colors.white : Colors.black87,
                                       ),
                                     ),
                                   ],
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           ),
+                        );
+                      },
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton(
-                onPressed: _addMedication,
-                backgroundColor: const Color(0xFF7AA9C8),
-                child: const Icon(Icons.add, color: Colors.white),
+
+              const SizedBox(height: 8),
+
+              // Sections
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    // Today's Medication
+                    Text(
+                      "Today's Medication",
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Divider(thickness: 1.2, color: Colors.black12),
+                    const SizedBox(height: 8),
+                    Consumer<MedicationsProvider>(builder: (context, medsProv, _) {
+                      final medsForToday = medsProv.forDate(selectedDate);
+                      if (medsForToday.isEmpty) {
+                        return Column(
+                        children: [
+                          Text(
+                            'No medications for this day.',
+                            style: GoogleFonts.inknutAntiqua(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Use the button below to add one.',
+                            style: GoogleFonts.inknutAntiqua(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                        );
+                      }
+                      return Column(
+                        children: medsForToday.asMap().entries.map((entry) {
+                          final todayIdx = entry.key;
+                          final med = entry.value;
+                          return Dismissible(
+                          key: Key('today_${med.id}_${todayIdx}'),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            alignment: Alignment.centerRight,
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          confirmDismiss: (_) async {
+                            return _confirmDialog(
+                              title: 'Remove from Today',
+                              message: "Remove this medication from today's list?",
+                              confirmText: 'Yes',
+                            );
+                          },
+                          onDismissed: (_) async {
+                            _removeFromToday(med.id);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDF7FF),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  med.name,
+                                  style: GoogleFonts.inknutAntiqua(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (med.dose.isNotEmpty)
+                                  Text(
+                                    'Dosage: ${med.dose}',
+                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
+                                  ),
+                                if (med.frequency.isNotEmpty)
+                                  Text(
+                                    'Frequency: ${med.frequency}',
+                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
+                                  ),
+                                if ((med.loggedAt ?? '').isNotEmpty)
+                                  Text(
+                                    "Last logged: ${DateFormat('MMM d, yyyy').format(DateTime.parse(med.loggedAt!))} • ${DateFormat('h:mm a').format(DateTime.parse(med.loggedAt!))}",
+                                    style: GoogleFonts.inknutAntiqua(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                        }).toList(),
+                      );
+                    }),
+                    const SizedBox(height: 20),
+
+                    // Your Medication
+                    Text(
+                      'Your Medication',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Divider(thickness: 1.2, color: Colors.black12),
+                    const SizedBox(height: 8),
+                    Consumer<MedicationsProvider>(builder: (context, medsProv, _) {
+                      final all = medsProv.all;
+                      if (all.isEmpty) {
+                        return Text(
+                        'No medications available yet.',
+                        style: GoogleFonts.inknutAntiqua(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      );
+                      }
+                      return Column(
+                        children: all.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final med = entry.value;
+                          return Dismissible(
+                          key: Key('all_${med.id}_$idx'),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            alignment: Alignment.centerRight,
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          confirmDismiss: (_) async {
+                            return _confirmDialog(
+                              title: 'Delete Medication',
+                              message: 'Delete this medication from your list?',
+                              confirmText: 'Yes',
+                            );
+                          },
+                          onDismissed: (_) async {
+                            await context.read<MedicationsProvider>().deleteMedication(med.id);
+                          },
+                          child: GestureDetector(
+                            onTap: () => _promptLogForToday(med.id, med.name),
+                            child: Container(
+                              width: double.infinity,
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDF7FF),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  med.name,
+                                  style: GoogleFonts.inknutAntiqua(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (med.dose.isNotEmpty)
+                                  Text(
+                                    'Dosage: ${med.dose}',
+                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
+                                  ),
+                                if (med.frequency.isNotEmpty)
+                                  Text(
+                                    'Frequency: ${med.frequency}',
+                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
+                                  ),
+                                   if ((med.loggedAt ?? '').isNotEmpty)
+                                     Text(
+                                       "Last logged: ${DateFormat('MMM d, yyyy').format(DateTime.parse(med.loggedAt!))} • ${DateFormat('h:mm a').format(DateTime.parse(med.loggedAt!))}",
+                                       style: GoogleFonts.inknutAntiqua(
+                                         fontSize: 12,
+                                         color: Colors.black54,
+                                       ),
+                                     ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          );
+                        }).toList(),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+
+                    // Add Medication button (moved under "Your Medication")
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7AA9C8),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _openAddMedicationSheet,
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        label: Text(
+                          'Add Medication',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    )
     );
   }
 }
