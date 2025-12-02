@@ -7,6 +7,7 @@ import '../posts_provider.dart';
 import 'community_filter_popup.dart';
 import 'community_post_screen.dart';
 import 'org_screen.dart';
+import 'profile_screen.dart';
 
 class CommunityBoardScreen extends StatefulWidget {
   const CommunityBoardScreen({super.key});
@@ -28,16 +29,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     'Other'
   ];
 
-  final Map<String, List<String>> _postToOptions = {
-    'Public': [],
-    'Friends': [],
-    'Only me': [],
-    'Group': ['Group 1', 'Group 2', 'Group 3'],
-  };
-
   String _selectedCategory = 'General';
-  String _selectedPostTo = 'Public';
-  String? _selectedGroup;
   // Active filters applied from the filter popup
   String _filterSort = 'recent';
   List<String> _filterCategories = [];
@@ -189,78 +181,99 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            post['author'],
-                            style: GoogleFonts.lato(
-                              fontWeight: FontWeight.bold,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (post['author'] != 'You') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProfileScreen(
+                                  otherUsername: post['author'],
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post['author'],
+                              style: GoogleFonts.lato(
+                                fontWeight: FontWeight.bold,
+                                color: post['author'] != 'You' ? const Color(0xFF7496B3) : Colors.black,
+                              ),
                             ),
-                          ),
-                          Text(
-                            post['timeAgo'],
-                            style: GoogleFonts.lato(
-                              color: Colors.grey,
-                              fontSize: 12,
+                            Text(
+                              post['timeAgo'],
+                              style: GoogleFonts.lato(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     // If this is the user's post, show delete icon; otherwise show follow toggle
                     if (post['author'] == 'You')
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        tooltip: 'Delete post',
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Delete post'),
-                              content: const Text(
-                                  'Are you sure you want to delete your post'),
-                              actions: [
-                                TextButton(
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.black,
+                      // Replace delete icon with a 3-dot menu for Edit/Delete
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) async {
+                          final masterIndex = postsProvider.posts.indexOf(post);
+                          if (value == 'delete') {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete post'),
+                                content: const Text(
+                                    'Are you sure you want to delete your post'),
+                                actions: [
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: const Text(
+                                      'Nevermind',
+                                      style: TextStyle(color: Colors.black),
+                                    ),
                                   ),
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(false),
-                                  child: const Text(
-                                    'Nevermind',
-                                    style: TextStyle(color: Colors.black),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color(0xFFB94A48),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(true),
+                                    child: const Text(
+                                      'Yes, delete',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                   ),
-                                ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFB94A48),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(true),
-                                  child: const Text(
-                                    'Yes, delete',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            // remove by index in provider's master list - need to resolve actual index
-                            // find the index in the provider's posts list
-                            final masterIndex =
-                                postsProvider.posts.indexOf(post);
-                            if (masterIndex != -1) {
-                              postsProvider.removeAt(masterIndex);
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Post deleted')),
+                                ],
+                              ),
                             );
+
+                            if (confirm == true && masterIndex != -1) {
+                              postsProvider.removeAt(masterIndex);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Post deleted')),
+                              );
+                            }
+                          } else if (value == 'edit') {
+                            if (masterIndex != -1) {
+                              _showNewPostModal(editIndex: masterIndex);
+                            }
                           }
                         },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit post')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete post')),
+                        ],
                       )
                     else
                       // Follow / Following button for other authors
@@ -481,13 +494,28 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     );
   }
 
-  void _showNewPostModal() {
+  void _showNewPostModal({int? editIndex}) {
+    final postsProvider = Provider.of<PostsProvider>(context, listen: false);
+
+    // If editing, prefill controllers with existing post data.
+    if (editIndex != null) {
+      final existing = postsProvider.posts[editIndex];
+      _titleController.text = (existing['title'] ?? '').toString();
+      _contentController.text = (existing['content'] ?? '').toString();
+      _selectedCategory = (existing['category'] ?? 'General') as String;
+    } else {
+      // ensure new post modal starts empty
+      _titleController.clear();
+      _contentController.clear();
+      _selectedCategory = 'General';
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
+        height: MediaQuery.of(context).size.height * 0.95,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
@@ -519,30 +547,40 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // create a new post using the modal fields and add it to the feed
-                    final newPost = {
-                      'author': 'You',
-                      'title': _titleController.text.isNotEmpty
-                          ? _titleController.text
-                          : 'Untitled',
-                      'content': _contentController.text,
-                      'likes': 0,
-                      'comments': [],
-                      'timeAgo': 'Just now',
-                      'category': _selectedCategory,
-                      'postTo': _selectedPostTo,
-                      'group': _selectedGroup,
-                    };
+                    final provider = Provider.of<PostsProvider>(context, listen: false);
+                    if (editIndex == null) {
+                      // create a new post using the modal fields and add it to the feed
+                      final newPost = {
+                        'author': 'You',
+                        'title': _titleController.text.isNotEmpty
+                            ? _titleController.text
+                            : 'Untitled',
+                        'content': _contentController.text,
+                        'likes': 0,
+                        'comments': [],
+                        'timeAgo': 'Just now',
+                        'category': _selectedCategory,
+                      };
 
-                    Provider.of<PostsProvider>(context, listen: false)
-                        .addPost(newPost);
+                      provider.addPost(newPost);
+                    } else {
+                      // update existing post
+                      final updated = {
+                        'title': _titleController.text.isNotEmpty
+                            ? _titleController.text
+                            : 'Untitled',
+                        'content': _contentController.text,
+                        'category': _selectedCategory,
+                        'timeAgo': 'Just now (edited)',
+                      };
+
+                      provider.updateAt(editIndex, updated);
+                    }
 
                     // clear modal inputs for next time
                     _titleController.clear();
                     _contentController.clear();
                     _selectedCategory = 'General';
-                    _selectedPostTo = 'Public';
-                    _selectedGroup = null;
 
                     Navigator.pop(context);
                   },
@@ -558,7 +596,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     minimumSize: const Size(100, 40),
                   ),
                   child: Text(
-                    'Create Post',
+                    editIndex == null ? 'Create Post' : 'Update Post',
                     style: GoogleFonts.lato(
                       color: Colors.white,
                       fontSize: 15,
@@ -627,104 +665,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Post to',
-                        style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child:
-                            StatefulBuilder(builder: (context, setModalState) {
-                          return DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedPostTo,
-                              isExpanded: true,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              dropdownColor: const Color(
-                                  0xFFBCD9EC), // Light blue background
-                              borderRadius: BorderRadius.circular(10),
-                              items: _postToOptions.keys.map((String option) {
-                                return DropdownMenuItem<String>(
-                                  value: option,
-                                  child: Text(
-                                    option,
-                                    style: GoogleFonts.lato(),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  setModalState(() {
-                                    _selectedPostTo = newValue;
-                                    if (newValue != 'Group') {
-                                      _selectedGroup = null;
-                                    }
-                                  });
-                                }
-                              },
-                            ),
-                          );
-                        }),
-                      ),
-                      if (_selectedPostTo == 'Group') ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(
-                                0xFFBCD9EC), // Light blue background
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: StatefulBuilder(
-                              builder: (context, setModalState) {
-                            return DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedGroup,
-                                isExpanded: true,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 12),
-                                borderRadius: BorderRadius.circular(10),
-                                hint: Text(
-                                  'Select Group',
-                                  style: GoogleFonts.lato(color: Colors.grey),
-                                ),
-                                items: _postToOptions['Group']!
-                                    .map((String group) {
-                                  return DropdownMenuItem<String>(
-                                    value: group,
-                                    child: Text(
-                                      group,
-                                      style: GoogleFonts.lato(),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  if (newValue != null) {
-                                    setModalState(() {
-                                      _selectedGroup = newValue;
-                                    });
-                                  }
-                                },
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+                    // Post-to dropdown removed per request
               ],
             ),
             const SizedBox(height: 16),

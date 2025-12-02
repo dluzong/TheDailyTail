@@ -9,12 +9,14 @@ class AppLayout extends StatefulWidget {
   final Widget child;
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
+  final bool showBackButton;
 
   const AppLayout({
     super.key,
     required this.child,
     required this.currentIndex,
     required this.onTabSelected,
+    this.showBackButton = false,
   });
 
   @override
@@ -76,8 +78,8 @@ class _AppLayoutState extends State<AppLayout> {
     final double bottomInset = MediaQuery.of(context).padding.bottom;
 
     // Use base height values to adjust for all devices
-    const double baseTotalHeight = 120;
-    const double baseOuterHeight = 50;
+    const double baseTotalHeight = 55;
+    // const double baseOuterHeight = 50;
     const double baseInnerHeight = 70;
     const double floatingButtonSize = 85;
 
@@ -100,6 +102,16 @@ class _AppLayoutState extends State<AppLayout> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
+                  // Back button (left side)
+                  if (widget.showBackButton)
+                    Positioned(
+                      left: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                  
                   Center(
                     child: Text(
                       "The Daily Tail",
@@ -137,18 +149,16 @@ class _AppLayoutState extends State<AppLayout> {
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
                 children: [
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      height: baseOuterHeight,
-                      color: outerBlue,
-                    ),
-                  ),
+                  // Align(
+                  //   alignment: Alignment.bottomCenter,
+                  //   child: Container(
+                  //     height: baseOuterHeight,
+                  //     color: outerBlue,
+                  //   ),
+                  // ),
 
                   Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: baseOuterHeight),
+                    alignment: Alignment.bottomCenter,                 
                       child: Container(
                         height: adjustedInnerHeight,
                         color: innerBlue,
@@ -191,12 +201,11 @@ class _AppLayoutState extends State<AppLayout> {
                           ],
                         ),
                       ),
-                    ),
                   ),
 
                   // Floating Home Button
                   Positioned(
-                    bottom: baseInnerHeight - 10 + (bottomInset / 2),
+                    bottom: baseInnerHeight - 50 + (bottomInset / 2),
                     child: Column(
                       children: [
                         GestureDetector(

@@ -13,7 +13,7 @@ class Pet {
   });
 }
 
-class ExpandablePetCard extends StatelessWidget {
+class ExpandablePetCard extends StatefulWidget {
   final pet_provider.Pet pet;
 
   const ExpandablePetCard({
@@ -22,67 +22,106 @@ class ExpandablePetCard extends StatelessWidget {
   });
 
   @override
+  State<ExpandablePetCard> createState() => _ExpandablePetCardState();
+}
+
+class _ExpandablePetCardState extends State<ExpandablePetCard> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     
     return Center(
-      child: Container(
-        padding: EdgeInsets.all(size.width * 0.04),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey,
-            width: 1.5,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _isExpanded = !_isExpanded;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          padding: EdgeInsets.all(size.width * 0.04),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.grey,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: size.width * 0.25,
-              height: size.width * 0.25,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 138, 193, 219),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.pets,
-                size: size.width * 0.12,
-                color: Colors.white,
-              ),
-            ),
-            Container(
-              width: size.width * 0.5,
-              padding: EdgeInsets.only(left: size.width * 0.04),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    pet.name,
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: size.width * 0.045,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF394957),
+                  Container(
+                    width: size.width * 0.25,
+                    height: size.width * 0.25,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 138, 193, 219),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.pets,
+                      size: size.width * 0.12,
+                      color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: size.height * 0.01),
-                  _buildPetInfoRow('Breed', pet.breed, size),
-                  _buildPetInfoRow('Age', '${pet.age} years', size),
-                  _buildPetInfoRow('Weight', '${pet.weight} lbs', size),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: _isExpanded
+                        ? Container(
+                            width: size.width * 0.5,
+                            padding: EdgeInsets.only(left: size.width * 0.04),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  widget.pet.name,
+                                  style: GoogleFonts.inknutAntiqua(
+                                    fontSize: size.width * 0.045,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF394957),
+                                  ),
+                                ),
+                                SizedBox(height: size.height * 0.01),
+                                _buildPetInfoRow('Breed', widget.pet.breed, size),
+                                _buildPetInfoRow('Age', '${widget.pet.age} years', size),
+                                _buildPetInfoRow('Weight', '${widget.pet.weight} lbs', size),
+                              ],
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ),
-            ),
-          ],
+              if (!_isExpanded) ...[
+                SizedBox(height: size.height * 0.01),
+                Text(
+                  widget.pet.name,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inknutAntiqua(
+                    fontSize: size.width * 0.04,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF394957),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

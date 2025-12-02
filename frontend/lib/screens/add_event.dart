@@ -44,9 +44,9 @@ class _AddEventPageState extends State<AddEventPage> {
               primary: Color(0xFF7496B3),
               onPrimary: Colors.white,
               onSurface: Colors.black87,
-              background: Colors.white,
+              surface: Colors.white,
             ),
-            dialogBackgroundColor: Colors.white,
+            dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF7496B3),
