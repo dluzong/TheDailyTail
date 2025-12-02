@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:async';
 
 // User Data Model
 class AppUser {
@@ -40,81 +41,127 @@ class AppUser {
       'user_id': userId,
       'name': name,
       'username': username,
-      'roles': roles,
+      'role': roles,
       'bio': bio,
       'photo_url': photoUrl,
-      'following': following
+      'following': following,
     };
   }
+
+  // User Equivalence Opperator (check if user == user)
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is AppUser &&
+        other.userId == userId &&
+        other.username == username &&
+        other.name == name &&
+        other.bio == bio &&
+        other.photoUrl == photoUrl;
+  }
+
+  @override
+  int get hashCode => userId.hashCode ^ username.hashCode;
 }
 
 class UserProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
-  AppUser? _user;
 
+  AppUser? _user;
   AppUser? get user => _user;
   bool get isAuthenticated => _user != null;
 
-  // Cache keys
+  bool _isFetching = false;
+  DateTime? _lastFetchTime;
+  StreamSubscription<AuthState>? _authSubscription;
+
   static const _cacheKey = 'cached_app_user';
 
   UserProvider() {
-    // Load cached user eagerly
+    _init();
+  }
+
+  void _init() {
     _loadFromCache();
 
-    // React to auth changes
-    _supabase.auth.onAuthStateChange.listen((data) async {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
       final event = data.event;
+
+      // only fetch or clear on sign in/out or initial session
       if (event == AuthChangeEvent.signedIn ||
-          event == AuthChangeEvent.tokenRefreshed) {
-        // Optionally fetch fresh user on sign-in
-        await fetchUser();
+          event == AuthChangeEvent.initialSession) {
+        fetchUser();
       } else if (event == AuthChangeEvent.signedOut) {
         clearUser();
       }
     });
   }
 
-  // fetch user data (public.users) from Supabase and update _user
-  Future<void> fetchUser() async {
-    debugPrint('Fetching user data from Supabase');
-    final session = _supabase.auth.currentSession;
-
-    // check if no user is logged in
-    if (session == null) {
-      _user = null;
-      notifyListeners();
-      return;
-    }
-
-    debugPrint("User logged in");
-    // if logged in, get user id
-    final userId = session.user.id;
-
-    debugPrint("User id retrieved");
-
-    // get user data from 'users' table in supabase
-    final response = await _supabase
-        .from('users')
-        .select()
-        .eq('user_id', userId)
-        .maybeSingle();
-
-    if (response == null) {
-      debugPrint("No user row found for user_id: $userId");
-      _user = null;
-      notifyListeners();
-      return;
-    }
-
-    _user = AppUser.fromMap(response);
-    debugPrint("saved user data");
-    await _saveToCache();
-    notifyListeners();
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
-  // Clears the user data on sign out.
+  // Fetch user data
+  Future<void> fetchUser({bool force = false}) async {
+    if (_isFetching) {
+      debugPrint('WARNING: Fetch skipped: Already fetching.');
+      return;
+    }
+
+    if (!force && _lastFetchTime != null) {
+      final difference = DateTime.now().difference(_lastFetchTime!);
+      if (difference.inSeconds < 2) {
+        debugPrint('WARNING: Fetch skipped: Debounced (too soon).');
+        return;
+      }
+    }
+
+    final session = _supabase.auth.currentSession;
+    if (session == null) {
+      if (_user != null) clearUser();
+      return;
+    }
+
+    _isFetching = true;
+
+    try {
+      debugPrint('INFO: Fetching user profile for: ${session.user.id}');
+
+      final response = await _supabase
+          .from('users')
+          .select(
+              'user_id, username, name, bio, photo_url, role, organizations, following') // Explicit columns
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+      if (response == null) {
+        debugPrint("ERROR: No public profile found.");
+        _user = null;
+      } else {
+        final newUser = AppUser.fromMap(response);
+
+        // only notify if data was changed
+        if (_user != newUser) {
+          _user = newUser;
+          _lastFetchTime = DateTime.now();
+          await _saveToCache();
+          notifyListeners();
+          debugPrint("SUCCESS: User data updated and listeners notified.");
+        } else {
+          debugPrint("INFO: User data unchanged. Notification skipped.");
+        }
+      }
+    } catch (e) {
+      debugPrint('ERROR: Error fetching user: $e');
+    } finally {
+      _isFetching = false;
+    }
+  }
+
   void clearUser() {
+    debugPrint("INFO: User signed out. Clearing state.");
     _user = null;
     _clearCache();
     notifyListeners();
@@ -124,18 +171,21 @@ class UserProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString(_cacheKey);
-      if (jsonStr == null) return;
-      final Map<String, dynamic> map = json.decode(jsonStr);
-      _user = AppUser.fromMap(map);
-      notifyListeners();
+      if (jsonStr != null) {
+        final Map<String, dynamic> map = json.decode(jsonStr);
+        _user = AppUser.fromMap(map);
+        notifyListeners();
+        debugPrint("SUCCESS: Loaded user from cache.");
+      }
     } catch (e) {
-      debugPrint('Failed to load cached user: $e');
+      debugPrint('ERROR: Failed to load cached user: $e');
+      _clearCache();
     }
   }
 
   Future<void> _saveToCache() async {
+    if (_user == null) return;
     try {
-      if (_user == null) return;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cacheKey, json.encode(_user!.toMap()));
     } catch (e) {
@@ -144,10 +194,8 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> _clearCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_cacheKey);
-    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cacheKey);
   }
 
   Future<void> updateUserProfile({
@@ -157,26 +205,16 @@ class UserProvider extends ChangeNotifier {
     final session = _supabase.auth.currentSession;
     if (session == null) return;
 
-    final userId = session.user.id;
     try {
       await _supabase.from('users').update({
         'username': username,
         'name': name,
-      }).eq('user_id', userId);
+      }).eq('user_id', session.user.id);
 
-      _user = AppUser(
-        userId: userId,
-        username: username,
-        name: name,
-        roles: _user?.roles ?? ['User'],
-        bio: _user?.bio ?? '',
-        photoUrl: _user?.photoUrl ?? '',
-        following: _user?.following ?? [],
-      );
-      await _saveToCache();
-      notifyListeners();
+      // Force a refresh to get the official data from DB
+      await fetchUser(force: true);
     } catch (e) {
-      debugPrint('Failed to update user profile: $e');
+      debugPrint('ERROR: Failed to update user profile: $e');
       rethrow;
     }
   }
