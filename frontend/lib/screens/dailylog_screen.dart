@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../pet_provider.dart';
+import '../user_provider.dart';
 import '../events_provider.dart';
 import '../shared/app_layout.dart';
 import 'add_event.dart';
@@ -21,11 +23,40 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   final Set<String> _selectedTabs = {};
 
   // --- Pet selection ---
-  final List<String> _pets = ['Daisy', 'Teddy', 'Aries'];
-  String _selectedPet = 'Daisy';
+  //final List<String> _pets = ['Daisy', 'Teddy', 'Aries'];
+  Pet? _selectedPet;
+  String? _selectedPetId;
+  String _selectedPetName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch pets when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final petProvider = Provider.of<PetProvider>(context, listen: false);
+      // Only fetch if list is empty to avoid re-fetching constantly
+      if (petProvider.pets.isEmpty) {
+        petProvider.fetchPets().then((_) {
+          _setDefaultPet(petProvider);
+        });
+      } else {
+        _setDefaultPet(petProvider);
+      }
+    });
+  }
+
+  void _setDefaultPet(PetProvider provider) {
+    if (provider.pets.isNotEmpty && mounted) {
+      setState(() {
+        _selectedPet = provider.pets.first;
+        _selectedPetId = _selectedPet!.petId;
+        _selectedPetName = _selectedPet!.name;
+      });
+    }
+  }
 
   Map<String, List<Map<String, String>>> get _events =>
-      context.watch<EventsProvider>().getEventsForPet(_selectedPet);
+      context.watch<EventsProvider>().getEventsForPet(_selectedPetName);
 
   final Map<String, Color> tabColors = {
   'Appointments': const Color(0xFF34D399),
@@ -198,6 +229,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final petProvider = context.watch<PetProvider>();
+    final pets = petProvider.pets;
+
     return AppLayout(
       currentIndex: 0,
       onTabSelected: (index) {},
@@ -212,31 +246,41 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 children: [
                   const SizedBox(height: 8),
 
-                  // ---- Pet Dropdown ----
-                  Row(
-                    children: [
-                      const Text('Pet: ', style: TextStyle(fontSize: 18)),
-                      const SizedBox(width: 10),
-                      DropdownButton<String>(
-                        value: _selectedPet,
-                        items: _pets
-                            .map((p) => DropdownMenuItem(
-                                  value: p,
-                                  child: Text(
-                                    p,
-                                    style: GoogleFonts.lato(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                ))
-                            .toList(),
-                        onChanged: (v) {
-                          if (v == null) return;
-                          setState(() => _selectedPet = v);
-                        },
-                      ),
-                    ],
-                  ),
+                  // ---- Pet Dropdown (Updated) ----
+                  if (petProvider.isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (pets.isEmpty)
+                    const Text("No pets found. Add a pet in profile!")
+                  else
+                    Row(
+                      children: [
+                        const Text('Pet: ', style: TextStyle(fontSize: 18)),
+                        const SizedBox(width: 10),
+                        DropdownButton<String>(
+                          value: _selectedPetId,
+                          // Ensure the value actually exists in items to avoid crashes
+                          items: pets.map((p) => DropdownMenuItem(
+                            value: p.petId,
+                            child: Text(
+                              p.name,
+                              style: GoogleFonts.lato(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ))
+                              .toList(),
+                          onChanged: (newId) {
+                            if (newId == null) return;
+                            setState(() {
+                              _selectedPetId = newId;
+                              _selectedPet = pets.firstWhere((p) => p.petId == newId);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(height: 16),
 
                   const SizedBox(height: 16),
 
@@ -248,9 +292,15 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           icon: Icons.restaurant_menu,
                           label: 'Meal Plan',
                           onTap: () {
+                            // Prevent navigation if no pet is selected
+                            if (_selectedPetId == null) return;
+
                             Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const MealPlanScreen()),
+                                context,
+                                MaterialPageRoute(
+                                  // PASS THE SELECTED PET ID HERE
+                                  builder: (context) => MealPlanScreen(petId: _selectedPetId!),
+                                ),
                             );
                           },
                         ),

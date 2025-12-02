@@ -8,7 +8,8 @@ import 'add_meal.dart';
 import 'dailylog_screen.dart';
 
 class MealPlanScreen extends StatefulWidget {
-  const MealPlanScreen({super.key});
+  final String petId;
+  const MealPlanScreen({super.key, required this.petId});
 
   @override
   State<MealPlanScreen> createState() => _MealPlanScreenState();
@@ -33,11 +34,21 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     todayIndex = totalDays ~/ 2;
     _scrollController = FixedExtentScrollController(initialItem: todayIndex);
 
+    // Fetch data immediately when the screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<MealsProvider>(context, listen: false)
-          .loadDate(selectedDate);
+      _loadMealsForSelectedDate();
     });
   }
+
+  // Helper function to handle loading and debugging
+  void _loadMealsForSelectedDate() {
+    debugPrint("Fetching meals for Pet ID: ${widget.petId}");
+    debugPrint("Selected Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}");
+
+    Provider.of<MealsProvider>(context, listen: false)
+        .loadDate(selectedDate, widget.petId);
+  }
+
 
   DateTime dateFromIndex(int index) {
     return DateTime.now().add(Duration(days: index - todayIndex));
@@ -56,7 +67,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           recentMeals: recentMeals,
           onSave: (name, amount) {
             Provider.of<MealsProvider>(context, listen: false)
-                .addMeal(selectedDate, name, amount);
+                .addMeal(selectedDate, name, amount, widget.petId);
           },
         );
       },
@@ -65,6 +76,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return AppLayout(
       currentIndex: 0,
       onTabSelected: (_) {},
@@ -128,7 +140,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                           final date = dateFromIndex(i);
                           setState(() => selectedDate = date);
                           Provider.of<MealsProvider>(context, listen: false)
-                              .loadDate(date);
+                              .loadDate(date, widget.petId);
                         },
                         childDelegate: ListWheelChildBuilderDelegate(
                           builder: (context, index) {
@@ -151,7 +163,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   setState(() => selectedDate = date);
                                   Provider.of<MealsProvider>(context,
                                           listen: false)
-                                      .loadDate(date);
+                                      .loadDate(date, widget.petId);
                                 },
                                 child: Container(
                                   width: 55,
@@ -198,176 +210,170 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   const SizedBox(height: 8),
 
-                  /// MEAL LIST
+                  /// MEAL LIST (Wrapped in RefreshIndicator)
                   Expanded(
                     child: Consumer<MealsProvider>(
                       builder: (context, provider, child) {
                         final meals =
-                            provider.getMealsForDate(selectedDate);
+                        provider.getMealsForDate(selectedDate);
 
-                        return ListView.builder(
-                          padding: EdgeInsets.zero,
-                          itemCount: meals.length + 1,
-                          itemBuilder: (context, i) {
-                            if (i == meals.length) {
-                              return Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 8, bottom: 30),
-                                child: Center(
-                                  child: meals.isEmpty
-                                      ? Column(
-                                          children: [
-                                            Text(
-                                              "No meals logged yet!",
-                                              style:
-                                                  GoogleFonts.inknutAntiqua(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              "Tap the + button to add one.",
-                                              style:
-                                                  GoogleFonts.inknutAntiqua(
-                                                fontSize: 14,
-                                                color: Colors.black54,
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : Text(
-                                          "Total meals: ${meals.length}",
+                        return RefreshIndicator(
+                          onRefresh: () async {
+                            await provider.loadDate(selectedDate, widget.petId);
+                          },
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            // Always allow scroll so Pull-to-Refresh works even when empty
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount: meals.length + 1,
+                            itemBuilder: (context, i) {
+                              if (i == meals.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 8, bottom: 30),
+                                  child: Center(
+                                    child: meals.isEmpty
+                                        ? Column(
+                                      children: [
+                                        Text(
+                                          "No meals found for this date.",
                                           style:
-                                              GoogleFonts.inknutAntiqua(
-                                            fontSize: 14,
-                                            color: Colors.black87,
+                                          GoogleFonts.inknutAntiqua(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                ),
-                              );
-                            }
-
-                            final meal = meals[i];
-
-                            //swipe to delete
-                            return Dismissible(
-                              key: ValueKey("${meal.name}_${meal.time}"),
-                              direction: DismissDirection.endToStart,
-
-                              // Confirm deletion
-                              confirmDismiss: (direction) async {
-                                return await showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      backgroundColor: const Color(0xFFEDF7FF),
-                                      title: Text(
-                                        "Delete meal?",
-                                        style: GoogleFonts.inknutAntiqua(
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      content: Text(
-                                        "Remove '${meal.name}' from this day?",
-                                        style: GoogleFonts.inknutAntiqua(),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: const Text(
-                                            "Cancel",
-                                            style: TextStyle(
-                                                color: Colors.black87),
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: const Text(
-                                            "Delete",
-                                            style: TextStyle(color: Colors.red),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          "Pull down to refresh",
+                                          style:
+                                          GoogleFonts.inknutAntiqua(
+                                            fontSize: 12,
+                                            color: Colors.grey,
                                           ),
                                         ),
                                       ],
-                                    );
-                                  },
+                                    )
+                                        : Text(
+                                      "Total meals: ${meals.length}",
+                                      style:
+                                      GoogleFonts.inknutAntiqua(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
                                 );
-                              },
+                              }
 
-                              onDismissed: (direction) {
-                                Provider.of<MealsProvider>(context,
-                                        listen: false)
-                                    .removeMealAt(selectedDate, i);
+                              final meal = meals[i];
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text(
-                                          "Deleted ${meal.name}")),
-                                );
-                              },
+                              //swipe to delete
+                              return Dismissible(
+                                key: ValueKey("${meal.name}_${meal.time}"),
+                                direction: DismissDirection.endToStart,
+                                confirmDismiss: (direction) async {
+                                  return await showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        backgroundColor: const Color(0xFFEDF7FF),
+                                        title: Text(
+                                          "Delete meal?",
+                                          style: GoogleFonts.inknutAntiqua(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        content: Text(
+                                          "Remove '${meal.name}' from this day?",
+                                          style: GoogleFonts.inknutAntiqua(),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: const Text("Cancel", style: TextStyle(color: Colors.black87)),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                onDismissed: (direction) {
+                                  Provider.of<MealsProvider>(context,
+                                      listen: false)
+                                      .removeMealAt(selectedDate, i);
 
-                              // Swipe background
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                decoration: BoxDecoration(
-                                  color: Colors.redAccent,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Icon(Icons.delete,
-                                    color: Colors.white, size: 28),
-                              ),
-
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  padding: const EdgeInsets.all(14),
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            "Deleted ${meal.name}")),
+                                  );
+                                },
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEDF7FF),
+                                    color: Colors.redAccent,
                                     borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      )
-                                    ],
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        meal.name,
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      if (meal.amount.isNotEmpty)
+                                  child: const Icon(Icons.delete,
+                                      color: Colors.white, size: 28),
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEDF7FF),
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.12),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        )
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
                                         Text(
-                                          meal.amount,
-                                          style:
-                                              GoogleFonts.inknutAntiqua(
-                                                  fontSize: 14),
+                                          meal.name,
+                                          style: GoogleFonts.inknutAntiqua(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Logged at: ${DateFormat('h:mm a').format(meal.time)}",
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontSize: 12,
-                                          color: Colors.black54,
+                                        if (meal.amount.isNotEmpty)
+                                          Text(
+                                            meal.amount,
+                                            style: GoogleFonts.inknutAntiqua(
+                                              fontSize: 14,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                        Text(
+                                          DateFormat('h:mm a').format(meal.time),
+                                          style: GoogleFonts.inknutAntiqua(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
