@@ -35,6 +35,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
 
   // Inline add medication sheet (invoked by the button under Today's Medication)
   void _openAddMedicationSheet() {
+    final medsProv = Provider.of<MedicationsProvider>(context, listen: false);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -42,7 +43,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         final nameController = TextEditingController();
         final doseController = TextEditingController();
         final freqController = TextEditingController();
@@ -51,7 +52,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
             left: 20,
             right: 20,
             top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -107,12 +108,12 @@ class _MedicationScreenState extends State<MedicationScreen> {
                   onPressed: () async {
                     final name = nameController.text.trim();
                     if (name.isEmpty) return;
-                    await context.read<MedicationsProvider>().addMedication(
+                    await medsProv.addMedication(
                           name: name,
                           dose: doseController.text.trim(),
                           frequency: freqController.text.trim(),
                         );
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                   },
                   child: const Text(
                     'Save',
@@ -193,9 +194,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => MedicationsProvider()..load(),
-      child: AppLayout(
+    return AppLayout(
       currentIndex: 0,
       onTabSelected: (index) {},
       child: Scaffold(
@@ -564,7 +563,6 @@ class _MedicationScreenState extends State<MedicationScreen> {
           ),
         ),
       ),
-    )
     );
   }
 }
