@@ -7,9 +7,7 @@ import 'package:provider/provider.dart';
 import 'user_provider.dart';
 import 'pet_provider.dart';
 import 'posts_provider.dart';
-import 'events_provider.dart';
-import 'meals_provider.dart';
-import 'medication_provider.dart';
+import 'organization_provider.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -35,10 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => UserProvider()),
         ChangeNotifierProvider(create: (context) => PetProvider()),
         ChangeNotifierProvider(create: (context) => PostsProvider()),
-        ChangeNotifierProvider(create: (context) => EventsProvider()),
-        ChangeNotifierProvider(create: (context) => MealsProvider()),
-        ChangeNotifierProvider(create: (context) => MedicationsProvider()),
-
+        ChangeNotifierProvider(create: (context) => OrganizationProvider()),
       ],
       child: const MyApp(),
     ),
