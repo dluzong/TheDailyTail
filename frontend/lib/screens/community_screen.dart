@@ -217,57 +217,63 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                     // If this is the user's post, show delete icon; otherwise show follow toggle
                     if (post['author'] == 'You')
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        tooltip: 'Delete post',
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Delete post'),
-                              content: const Text(
-                                  'Are you sure you want to delete your post'),
-                              actions: [
-                                TextButton(
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.black,
+                      // Replace delete icon with a 3-dot menu for Edit/Delete
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) async {
+                          final masterIndex = postsProvider.posts.indexOf(post);
+                          if (value == 'delete') {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete post'),
+                                content: const Text(
+                                    'Are you sure you want to delete your post'),
+                                actions: [
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: const Text(
+                                      'Nevermind',
+                                      style: TextStyle(color: Colors.black),
+                                    ),
                                   ),
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(false),
-                                  child: const Text(
-                                    'Nevermind',
-                                    style: TextStyle(color: Colors.black),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color(0xFFB94A48),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(true),
+                                    child: const Text(
+                                      'Yes, delete',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                   ),
-                                ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFB94A48),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(true),
-                                  child: const Text(
-                                    'Yes, delete',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            // remove by index in provider's master list - need to resolve actual index
-                            // find the index in the provider's posts list
-                            final masterIndex =
-                                postsProvider.posts.indexOf(post);
-                            if (masterIndex != -1) {
-                              postsProvider.removeAt(masterIndex);
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Post deleted')),
+                                ],
+                              ),
                             );
+
+                            if (confirm == true && masterIndex != -1) {
+                              postsProvider.removeAt(masterIndex);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Post deleted')),
+                              );
+                            }
+                          } else if (value == 'edit') {
+                            if (masterIndex != -1) {
+                              _showNewPostModal(editIndex: masterIndex);
+                            }
                           }
                         },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit post')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete post')),
+                        ],
                       )
                     else
                       // Follow / Following button for other authors
@@ -488,7 +494,22 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     );
   }
 
-  void _showNewPostModal() {
+  void _showNewPostModal({int? editIndex}) {
+    final postsProvider = Provider.of<PostsProvider>(context, listen: false);
+
+    // If editing, prefill controllers with existing post data.
+    if (editIndex != null) {
+      final existing = postsProvider.posts[editIndex];
+      _titleController.text = (existing['title'] ?? '').toString();
+      _contentController.text = (existing['content'] ?? '').toString();
+      _selectedCategory = (existing['category'] ?? 'General') as String;
+    } else {
+      // ensure new post modal starts empty
+      _titleController.clear();
+      _contentController.clear();
+      _selectedCategory = 'General';
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -526,21 +547,35 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // create a new post using the modal fields and add it to the feed
-                    final newPost = {
-                      'author': 'You',
-                      'title': _titleController.text.isNotEmpty
-                          ? _titleController.text
-                          : 'Untitled',
-                      'content': _contentController.text,
-                      'likes': 0,
-                      'comments': [],
-                      'timeAgo': 'Just now',
-                       'category': _selectedCategory,
-                    };
+                    final provider = Provider.of<PostsProvider>(context, listen: false);
+                    if (editIndex == null) {
+                      // create a new post using the modal fields and add it to the feed
+                      final newPost = {
+                        'author': 'You',
+                        'title': _titleController.text.isNotEmpty
+                            ? _titleController.text
+                            : 'Untitled',
+                        'content': _contentController.text,
+                        'likes': 0,
+                        'comments': [],
+                        'timeAgo': 'Just now',
+                        'category': _selectedCategory,
+                      };
 
-                    Provider.of<PostsProvider>(context, listen: false)
-                        .addPost(newPost);
+                      provider.addPost(newPost);
+                    } else {
+                      // update existing post
+                      final updated = {
+                        'title': _titleController.text.isNotEmpty
+                            ? _titleController.text
+                            : 'Untitled',
+                        'content': _contentController.text,
+                        'category': _selectedCategory,
+                        'timeAgo': 'Just now (edited)',
+                      };
+
+                      provider.updateAt(editIndex, updated);
+                    }
 
                     // clear modal inputs for next time
                     _titleController.clear();
@@ -561,7 +596,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     minimumSize: const Size(100, 40),
                   ),
                   child: Text(
-                    'Create Post',
+                    editIndex == null ? 'Create Post' : 'Update Post',
                     style: GoogleFonts.lato(
                       color: Colors.white,
                       fontSize: 15,

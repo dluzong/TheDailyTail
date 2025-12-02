@@ -153,6 +153,28 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
+  /// Update an existing post at [index] with new values from [updated].
+  /// Preserves existing likes, liked state, and comments unless provided in [updated].
+  void updateAt(int index, Map<String, dynamic> updated) {
+    if (index < 0 || index >= _posts.length) return;
+    final post = _posts[index];
+
+    // Preserve likes/liked/comments if not provided in updated map
+    final likes = updated['likes'] ?? post['likes'] ?? 0;
+    final liked = updated.containsKey('liked') ? updated['liked'] : post['liked'] ?? false;
+    final comments = updated.containsKey('comments') ? updated['comments'] : post['comments'] ?? [];
+
+    final merged = Map<String, dynamic>.from(post)
+      ..addAll(updated)
+      ..['likes'] = likes
+      ..['liked'] = liked
+      ..['comments'] = comments;
+
+    _posts[index] = merged;
+    notifyListeners();
+    _savePosts();
+  }
+
   void addComment(int postIndex, String user, String text) {
     if (postIndex < 0 || postIndex >= _posts.length) return;
     final post = _posts[postIndex];
