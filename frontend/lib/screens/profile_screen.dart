@@ -50,15 +50,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       'pets': [
         {
           'name': 'Max',
+          'ownerId': '123',
           'breed': 'Golden Retriever',
           'age': 3,
           'weight': 65.0,
+          'status': 'Owned'
         },
         {
           'name': 'Luna',
+          'ownerId': '123',
           'breed': 'Siamese Cat',
           'age': 2,
           'weight': 10.0,
+          'status': 'Owned'
         },
       ],
     };
@@ -76,9 +80,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     
     if (_isOwnProfile) {
       final appUser = context.watch<UserProvider>().user;
-      bio = appUser?.bio ?? "Hello I'm Anon! I have the cutest dog named Aries. He loves going to the park!!";
+      bio = appUser?.bio ?? "Hello! I don't have a bio yet :[";
     } else {
-      bio = _otherUserData?['bio'] ?? '';
+      bio = _otherUserData?['bio'] ?? "Thanks for visiting! I don't have a bio yet :[";
     }
     
     return SingleChildScrollView(
@@ -126,11 +130,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               final pet = pets[index];
               final mockPet = pet_provider.Pet(
                 petId: index.toString(),
+                ownerId: pet['ownerId'] as String,
                 name: pet['name'] as String,
                 breed: pet['breed'] as String,
                 age: pet['age'] as int,
                 weight: (pet['weight'] as num).toDouble(),
-                imageUrl: pet['imageUrl'] as String? ?? ''
+                imageUrl: pet['imageUrl'] as String? ?? '',
+                logsIds: [],
+                savedMeals: [],
+                status: pet['status'] as String? ?? 'Owned',
               );
               return Padding(
                 padding: EdgeInsets.only(bottom: size.height * 0.02),
@@ -198,6 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           return const Center(child: CircularProgressIndicator());
         }
 
+
         if (petProv.pets.isEmpty) {
           return Center(
             child: Text(
@@ -208,7 +217,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               ),
             ),
           );
-        }
+        } 
+
+        print('Number of pets: ${petProv.pets.length}');
 
         return SingleChildScrollView(
           padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
@@ -238,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         final pets = petProv.pets
                             .map((p) => pet_list.Pet(name: p.name, imageUrl: ''))
                             .toList();
-                        final name = userProv.user?.name ?? 'Your';
+                        final name = userProv.user?.name ?? 'Your name here';
                         Navigator.push(
                           context,
                           MaterialPageRoute(
