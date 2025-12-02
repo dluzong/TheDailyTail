@@ -29,20 +29,34 @@ class Pet {
     required this.status,
   });
 
-  factory Pet.fromMap(Map<String, dynamic> map) {
-    return Pet(
-      petId: map['pet_id'] as String? ?? '',
-      ownerId: map['owner_id'] as String? ?? '',
-      name: map['name'] as String? ?? 'Unnamed Pet',
-      breed: map['breed'] as String? ?? 'Unknown',
-      age: map['age'] as int? ?? 0,
-      weight: map['weight'] as double? ?? 0.0,
-      imageUrl: map['image_url'] as String? ?? '',
-      logsIds: List<String>.from(map['logs_ids'] ?? []),
-      savedMeals: List<String>.from(map['saved_meals'] ?? []),
-      status: map['status'] as String? ?? 'Owned' // Assume pets are owned by default?
-    );
+factory Pet.fromMap(Map<String, dynamic> map) {
+  return Pet(
+    petId: map['pet_id'] as String? ?? '',
+    ownerId: map['user_id'] as String? ?? '',
+    name: map['name'] as String? ?? 'Unnamed Pet',
+    breed: map['breed'] as String? ?? 'Unknown',
+    age: map['age'] as int? ?? 0,
+    weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
+    imageUrl: map['image_url'] as String? ?? '',
+    logsIds: List<String>.from(map['log_ids'] ?? []),
+    savedMeals: _parseSavedMeals(map['saved_meals']),
+    status: map['status'] as String? ?? 'owned'
+  );
+}
+
+// Helper function to parse saved_meals array
+static List<String> _parseSavedMeals(dynamic saved_meals) {
+  if (saved_meals == null) return [];
+  if (saved_meals is List) {
+    return saved_meals.map((meal) {
+      if (meal is Map<String, dynamic> && meal.containsKey('meal')) {
+        return meal['meal'] as String? ?? '';
+      }
+      return meal.toString();
+    }).toList();
   }
+  return [];
+}
 
   Map<String, dynamic> toMap() {
     return {
@@ -143,7 +157,11 @@ class PetProvider extends ChangeNotifier {
       final response =
           await _supabase.from('pets').select().eq('user_id', userId);
 
-      _pets = response.map<Pet>((petData) => Pet.fromMap(petData)).toList();
+      _pets = response.map<Pet>((petData) {
+        debugPrint('Pet data: $petData');
+        return Pet.fromMap(petData);
+      }).toList();
+    
       debugPrint("Saved pets data. Count: ${_pets.length}");
       await _saveToCache();
     } catch (e) {
