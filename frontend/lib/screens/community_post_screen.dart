@@ -120,9 +120,26 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                       child: Icon(Icons.person, color: Colors.white),
                     ),
                     const SizedBox(width: 10),
-                    Text(
-                      post['author'],
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    GestureDetector(
+                      onTap: () {
+                        if (post['author'] != 'You') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfileScreen(
+                                otherUsername: post['author'],
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        post['author'],
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: post['author'] != 'You' ? const Color(0xFF7496B3) : Colors.black,
+                        ),
+                      ),
                     ),
                     const Spacer(),
                     Text(
@@ -175,7 +192,28 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(c['user'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                              GestureDetector(
+                                onTap: () {
+                                  final username = c['user'] as String;
+                                  if (username != 'You') {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ProfileScreen(
+                                          otherUsername: username,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Text(
+                                  c['user'],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: c['user'] != 'You' ? const Color(0xFF7496B3) : Colors.black,
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: 2),
                               Text(c['text']),
                             ],
