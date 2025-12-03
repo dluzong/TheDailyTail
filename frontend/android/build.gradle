@@ -8,7 +8,6 @@ buildscript {
     }
 
     dependencies {
-        // These are the lines you added, now correctly placed
         classpath 'com.android.tools.build:gradle:8.11.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }

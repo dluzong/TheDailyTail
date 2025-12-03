@@ -618,6 +618,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     return AppLayout(
       currentIndex: 4,
       onTabSelected: (_) {},
+      showBackButton: !_isOwnProfile,
       child: content,
     );
   }

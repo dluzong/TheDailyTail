@@ -48,7 +48,7 @@
 
 	<!-- Photo Library Permission -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to allow you to select pet profile pictures.</string>
+	<string>We need access to your photo library to allow you to select pictures.</string>
 
 	<!-- <key>CFBundleURLTypes</key>
 	<array>
