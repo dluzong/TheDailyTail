@@ -5,6 +5,7 @@ import '../shared/app_layout.dart';
 import '../shared/starting_widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'add_pet_screen.dart';
+import 'edit_pet_popup.dart';
 import 'package:provider/provider.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
@@ -36,6 +37,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   bool _notifyEmail = true;
   bool _notifyPush = true;
 
+  // User tags/roles selection (local state; persisted in future)
+  final List<String> _availableTags = const ['owner', 'organizer', 'foster', 'visitor'];
+  List<String> _selectedTags = ['owner'];
+
   late TextEditingController _nameController;
   late TextEditingController _usernameController;
 
@@ -46,6 +51,16 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     final user = up.user;
     _name = user?.name ?? _name;
     _username = user?.username ?? _username;
+    
+    // Initialize selected tags from user's current roles (normalize to lowercase)
+    final userRoles = user?.roles ?? [];
+    _selectedTags = userRoles
+        .map((role) => role.toLowerCase())
+        .where((role) => _availableTags.contains(role))
+        .toList();
+    if (_selectedTags.isEmpty) {
+      _selectedTags = ['owner']; // Default to owner if no valid tags
+    }
 
     _pets = List.from(
       Provider.of<pet_provider.PetProvider>(context, listen: false).pets,
@@ -77,6 +92,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     userProvider.updateUserProfile(
       username: _username,
       name: _name,
+      tags: _selectedTags,
     )
         .then((_) async {
       // Persist pets locally (local-only for now)
@@ -213,36 +229,28 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
               const SizedBox(height: 24),
 
-              // General section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'General',
-                  style: GoogleFonts.lato(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF394957),
-                  ),
-                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
               ),
               const SizedBox(height: 12),
 
               _buildSettingsTile(
                 icon: Icons.person_outline,
-                title: 'Account information',
+                title: 'Account Information',
                 onTap: () => _showAccountInfoDialog(),
+              ),
+
+              // New: User Tags tile
+              _buildSettingsTile(
+                icon: Icons.label_outlined,
+                title: 'User Tags',
+                onTap: () => _showTagsDialog(),
               ),
 
               _buildSettingsTile(
                 icon: Icons.pets,
                 title: 'My Pets',
                 onTap: () => _showPetsDialog(),
-              ),
-
-              _buildSettingsTile(
-                icon: Icons.notifications_outlined,
-                title: 'Notifications',
-                onTap: () => _showNotificationsDialog(),
               ),
 
               const SizedBox(height: 32),
@@ -274,8 +282,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 80),
             ],
           ),
         ),
@@ -419,6 +426,151 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     );
   }
 
+
+
+  void _showTagsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (context) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.92,
+            constraints: const BoxConstraints(maxWidth: 460),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 12,
+                  offset: Offset(0, 6),
+                )
+              ],
+            ),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      Expanded(
+                        child: Text(
+                          'User Tags',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF394957),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Divider(height: 2, color: Color(0xFF5F7C94)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Select all tags that describe you:',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.lato(
+                      fontSize: 16,
+                      color: const Color(0xFF394957),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: _availableTags.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final tag = entry.value;
+                      final selected = _selectedTags.contains(tag);
+                      
+                      // Dramatic different shades of blue for each tag
+                      final tagColors = [
+                        const Color(0xFF2C5F7F), // owner - deep navy blue
+                        const Color(0xFF5A8DB3), // organizer - medium blue
+                        const Color.fromARGB(255, 118, 178, 230), // foster - light sky blue
+                        const Color.fromARGB(255, 156, 201, 234), // visitor - pale blue
+                      ];
+                      
+                      return FilterChip(
+                        label: Text(
+                          tag[0].toUpperCase() + tag.substring(1),
+                          style: TextStyle(
+                            color: selected ? tagColors[index] : Colors.white,
+                            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                          ),
+                        ),
+                        selected: selected,
+                        onSelected: (value) {
+                          setDialogState(() {
+                            setState(() {
+                              if (value) {
+                                _selectedTags = {..._selectedTags, tag}.toList();
+                              } else {
+                                _selectedTags = _selectedTags.where((t) => t != tag).toList();
+                              }
+                              _markDirty();
+                            });
+                          });
+                        },
+                        selectedColor: tagColors[index].withOpacity(0.2),
+                        checkmarkColor: tagColors[index],
+                        backgroundColor: tagColors[index],
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: SizedBox(
+                      width: 160,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7F9CB3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Remember to save your changes!')),
+                          );
+                        },
+                        child: Text(
+                          'Done',
+                          style: GoogleFonts.inknutAntiqua(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showPetsDialog() {
     showDialog(
       context: context,
@@ -512,7 +664,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
+                              icon: const Icon(Icons.edit, color: Color(0xFF7496B3)),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _showEditPetDialog(index);
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Color.fromARGB(255, 241, 78, 66)),
                               onPressed: () {
                                 _removePet(index);
                                 Navigator.pop(context);
@@ -534,97 +693,22 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     );
   }
 
-  void _showNotificationsDialog() {
+  void _showEditPetDialog(int index) {
+    final pet = _pets[index];
+
     showDialog(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.92,
-              constraints: const BoxConstraints(maxWidth: 460),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade300),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 12,
-                    offset: Offset(0, 6),
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Notifications',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inknutAntiqua(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF394957),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Divider(height: 2, color: Color(0xFF5F7C94)),
-                  const SizedBox(height: 20),
-                  SwitchListTile(
-                    title: Text(
-                      'Email notifications',
-                      style: GoogleFonts.lato(
-                        fontSize: 16,
-                        color: const Color(0xFF394957),
-                      ),
-                    ),
-                    value: _notifyEmail,
-                    activeColor: const Color(0xFF7496B3),
-                    onChanged: (v) {
-                      setDialogState(() => _notifyEmail = v);
-                      setState(() => _notifyEmail = v);
-                      _markDirty();
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    title: Text(
-                      'Push notifications',
-                      style: GoogleFonts.lato(
-                        fontSize: 16,
-                        color: const Color(0xFF394957),
-                      ),
-                    ),
-                    value: _notifyPush,
-                    activeColor: const Color(0xFF7496B3),
-                    onChanged: (v) {
-                      setDialogState(() => _notifyPush = v);
-                      setState(() => _notifyPush = v);
-                      _markDirty();
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-        ),
+      builder: (context) => EditPetPopup(
+        pet: pet,
+        onSave: (updatedPet) {
+          setState(() {
+            _pets[index] = updatedPet;
+            _markDirty();
+          });
+          _showPetsDialog();
+        },
       ),
     );
   }

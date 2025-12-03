@@ -274,6 +274,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 64),
           ],
         ),
       ),

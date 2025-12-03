@@ -430,7 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       final rolesList = appUser?.roles;
       roles = (rolesList == null || rolesList.isEmpty)
           ? ['Visitor']
-          : rolesList;
+          : rolesList.map((r) => r[0].toUpperCase() + r.substring(1)).toList();
       
       final postsProvider = context.watch<PostsProvider>();
       totalPosts = postsProvider.posts.where((post) => post['author'] == 'You').length;

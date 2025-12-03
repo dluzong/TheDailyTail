@@ -151,24 +151,30 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> updateUserProfile({
-    required String username,
-    required String name,
+    String? username,
+    String? name,
+    List<String>? tags,
   }) async {
     final session = _supabase.auth.currentSession;
     if (session == null) return;
 
     final userId = session.user.id;
     try {
-      await _supabase.from('users').update({
-        'username': username,
-        'name': name,
-      }).eq('user_id', userId);
+      // Build update map with only provided fields
+      final Map<String, dynamic> updates = {};
+      if (username != null) updates['username'] = username;
+      if (name != null) updates['name'] = name;
+      if (tags != null) updates['role'] = tags;
+
+      if (updates.isNotEmpty) {
+        await _supabase.from('users').update(updates).eq('user_id', userId);
+      }
 
       _user = AppUser(
         userId: userId,
-        username: username,
-        name: name,
-        roles: _user?.roles ?? ['User'],
+        username: username ?? _user?.username ?? '',
+        name: name ?? _user?.name ?? '',
+        roles: tags ?? _user?.roles ?? ['Visitor'],
         bio: _user?.bio ?? '',
         photoUrl: _user?.photoUrl ?? '',
         following: _user?.following ?? [],
