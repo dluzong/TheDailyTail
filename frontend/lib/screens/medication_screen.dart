@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'dailylog_screen.dart';
 import '../shared/app_layout.dart';
-import '../medication_provider.dart';
+import '../pet_provider.dart';
+import '../log_provider.dart';
 
 class MedicationScreen extends StatefulWidget {
   const MedicationScreen({super.key});
@@ -15,11 +16,9 @@ class MedicationScreen extends StatefulWidget {
 
 class _MedicationScreenState extends State<MedicationScreen> {
   DateTime selectedDate = DateTime.now();
-  final int totalDays = 4000; // range for scrolling
+  final int totalDays = 4000;
   late int todayIndex;
   late FixedExtentScrollController _scrollController;
-
-  // Data is sourced from MedicationsProvider
 
   @override
   void initState() {
@@ -31,11 +30,18 @@ class _MedicationScreenState extends State<MedicationScreen> {
   DateTime dateFromIndex(int index) =>
       DateTime.now().add(Duration(days: index - todayIndex));
 
-  // Persistence and filtering handled by MedicationsProvider
-
-  // Inline add medication sheet (invoked by the button under Today's Medication)
+  // 1. Add New Medication Definition (Prescription) to Pet Profile
   void _openAddMedicationSheet() {
-    final medsProv = Provider.of<MedicationsProvider>(context, listen: false);
+    final petId = context.read<PetProvider>().selectedPetId;
+
+    if (petId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please select a pet in the Dashboard first.')),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -47,6 +53,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
         final nameController = TextEditingController();
         final doseController = TextEditingController();
         final freqController = TextEditingController();
+
         return Padding(
           padding: EdgeInsets.only(
             left: 20,
@@ -108,12 +115,17 @@ class _MedicationScreenState extends State<MedicationScreen> {
                   onPressed: () async {
                     final name = nameController.text.trim();
                     if (name.isEmpty) return;
-                    await medsProv.addMedication(
-                          name: name,
-                          dose: doseController.text.trim(),
-                          frequency: freqController.text.trim(),
-                        );
-                    Navigator.pop(sheetContext);
+
+                    // Save to Pet Profile (Definition)
+                    await context
+                        .read<PetProvider>()
+                        .addSavedMedication(petId, {
+                      'name': name,
+                      'dose': doseController.text.trim(),
+                      'frequency': freqController.text.trim(),
+                    });
+
+                    if (mounted) Navigator.pop(sheetContext);
                   },
                   child: const Text(
                     'Save',
@@ -128,16 +140,23 @@ class _MedicationScreenState extends State<MedicationScreen> {
     );
   }
 
-  void _promptLogForToday(String medId, String name) {
+  // 2. Log a Medication as "Taken" for Today
+  void _promptLogForToday(Map<String, dynamic> medData) {
+    final petId = context.read<PetProvider>().selectedPetId;
+    if (petId == null) return;
+
+    final name = medData['name'] ?? 'Medication';
     final friendlyDate = DateFormat('MMM d, yyyy').format(selectedDate);
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Log Medication'),
           content: Text(
-            "Mark '${name.isEmpty ? 'Medication' : name}' as taken for $friendlyDate?",
+            "Mark '$name' as taken for $friendlyDate?",
           ),
           actions: [
             TextButton(
@@ -145,15 +164,28 @@ class _MedicationScreenState extends State<MedicationScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7AA9C8)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7AA9C8)),
               onPressed: () {
-                context.read<MedicationsProvider>().logForDate(medId, selectedDate);
+                // Create Log Entry
+                context.read<LogProvider>().addLog(
+                  petId: petId,
+                  type: 'medication',
+                  date: selectedDate,
+                  details: {
+                    'name': name,
+                    'dose': medData['dose'] ?? '',
+                    'frequency': medData['frequency'] ?? ''
+                  },
+                );
+
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Logged '$name' for $friendlyDate")),
                 );
               },
-              child: const Text('Mark as taken', style: TextStyle(color: Colors.white)),
+              child: const Text('Mark as taken',
+                  style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -171,13 +203,17 @@ class _MedicationScreenState extends State<MedicationScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(title),
           content: Text(message),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(cancelText)),
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(cancelText)),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7AA9C8)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7AA9C8)),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Yes', style: TextStyle(color: Colors.white)),
             ),
@@ -188,12 +224,40 @@ class _MedicationScreenState extends State<MedicationScreen> {
     return result ?? false;
   }
 
-  void _removeFromToday(String medId) {
-    context.read<MedicationsProvider>().removeLogForDate(medId, selectedDate);
+  // 3. Remove a Log Entry
+  void _removeLog(String logId) {
+    final petId = context.read<PetProvider>().selectedPetId;
+    if (petId != null) {
+      context.read<LogProvider>().deleteLog(logId, petId);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch Data
+    final petProvider = context.watch<PetProvider>();
+    final logProvider = context.watch<LogProvider>();
+
+    final selectedPetId = petProvider.selectedPetId;
+
+    // 1. Get Saved Definitions (From Pet)
+    List<Map<String, dynamic>> savedMeds = [];
+    if (selectedPetId != null && petProvider.pets.isNotEmpty) {
+      try {
+        final pet =
+            petProvider.pets.firstWhere((p) => p.petId == selectedPetId);
+        savedMeds = pet.savedMedications;
+      } catch (_) {}
+    }
+
+    // 2. Get Logs (History)
+    final allLogs = selectedPetId != null
+        ? logProvider.getMedications(selectedPetId)
+        : <PetLog>[];
+    final todayLogs = allLogs
+        .where((l) => DateUtils.isSameDay(l.date, selectedDate))
+        .toList();
+
     return AppLayout(
       currentIndex: 0,
       onTabSelected: (index) {},
@@ -203,9 +267,10 @@ class _MedicationScreenState extends State<MedicationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header with back arrow and month
+              // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -219,7 +284,8 @@ class _MedicationScreenState extends State<MedicationScreen> {
                           ),
                         );
                       },
-                      child: const Icon(Icons.arrow_back, size: 24, color: Colors.black87),
+                      child: const Icon(Icons.arrow_back,
+                          size: 24, color: Colors.black87),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -251,7 +317,8 @@ class _MedicationScreenState extends State<MedicationScreen> {
                       childCount: totalDays,
                       builder: (context, index) {
                         final date = dateFromIndex(index);
-                        final selected = DateUtils.isSameDay(date, selectedDate);
+                        final selected =
+                            DateUtils.isSameDay(date, selectedDate);
                         return RotatedBox(
                           quarterTurns: 1,
                           child: Padding(
@@ -284,14 +351,18 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                       style: GoogleFonts.inknutAntiqua(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: selected ? Colors.white : Colors.black87,
+                                        color: selected
+                                            ? Colors.white
+                                            : Colors.black87,
                                       ),
                                     ),
                                     Text(
                                       DateFormat('E').format(date),
                                       style: GoogleFonts.inknutAntiqua(
                                         fontSize: 12,
-                                        color: selected ? Colors.white : Colors.black87,
+                                        color: selected
+                                            ? Colors.white
+                                            : Colors.black87,
                                       ),
                                     ),
                                   ],
@@ -308,14 +379,14 @@ class _MedicationScreenState extends State<MedicationScreen> {
 
               const SizedBox(height: 8),
 
-              // Sections
+              // Main Content
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    // Today's Medication
+                    // SECTION 1: LOGS FOR SELECTED DAY
                     Text(
-                      "Today's Medication",
+                      "History for ${DateFormat('MMM d').format(selectedDate)}",
                       style: GoogleFonts.inknutAntiqua(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -324,112 +395,83 @@ class _MedicationScreenState extends State<MedicationScreen> {
                     const SizedBox(height: 8),
                     const Divider(thickness: 1.2, color: Colors.black12),
                     const SizedBox(height: 8),
-                    Consumer<MedicationsProvider>(builder: (context, medsProv, _) {
-                      final medsForToday = medsProv.forDate(selectedDate);
-                      if (medsForToday.isEmpty) {
-                        return Column(
-                        children: [
-                          Text(
-                            'No medications for this day.',
-                            style: GoogleFonts.inknutAntiqua(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+
+                    if (todayLogs.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          'No medications taken on this day.',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 14,
+                            color: Colors.black54,
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Use the button below to add one.',
-                            style: GoogleFonts.inknutAntiqua(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                        );
-                      }
-                      return Column(
-                        children: medsForToday.asMap().entries.map((entry) {
-                          final todayIdx = entry.key;
-                          final med = entry.value;
+                        ),
+                      )
+                    else
+                      Column(
+                        children: todayLogs.map((log) {
                           return Dismissible(
-                          key: Key('today_${med.id}_${todayIdx}'),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            alignment: Alignment.centerRight,
-                            decoration: BoxDecoration(
+                            key: Key(log.logId),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
                               color: Colors.redAccent,
-                              borderRadius: BorderRadius.circular(14),
+                              padding: const EdgeInsets.only(right: 16),
+                              child:
+                                  const Icon(Icons.delete, color: Colors.white),
                             ),
-                            child: const Icon(Icons.delete, color: Colors.white),
-                          ),
-                          confirmDismiss: (_) async {
-                            return _confirmDialog(
-                              title: 'Remove from Today',
-                              message: "Remove this medication from today's list?",
-                              confirmText: 'Yes',
-                            );
-                          },
-                          onDismissed: (_) async {
-                            _removeFromToday(med.id);
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEDF7FF),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                )
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  med.name,
-                                  style: GoogleFonts.inknutAntiqua(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                if (med.dose.isNotEmpty)
-                                  Text(
-                                    'Dosage: ${med.dose}',
-                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
-                                  ),
-                                if (med.frequency.isNotEmpty)
-                                  Text(
-                                    'Frequency: ${med.frequency}',
-                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
-                                  ),
-                                if ((med.loggedAt ?? '').isNotEmpty)
-                                  Text(
-                                    "Last logged: ${DateFormat('MMM d, yyyy').format(DateTime.parse(med.loggedAt!))} • ${DateFormat('h:mm a').format(DateTime.parse(med.loggedAt!))}",
-                                    style: GoogleFonts.inknutAntiqua(
-                                      fontSize: 12,
-                                      color: Colors.black54,
+                            confirmDismiss: (_) async {
+                              return _confirmDialog(
+                                title: 'Remove Log',
+                                message: "Remove this entry from history?",
+                                confirmText: 'Yes',
+                              );
+                            },
+                            onDismissed: (_) => _removeLog(log.logId),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEDF7FF),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.check_circle,
+                                      color: Color(0xFF7AA9C8)),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          log.details['name'] ?? 'Unknown',
+                                          style: GoogleFonts.inknutAntiqua(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          "Taken at ${DateFormat('h:mm a').format(log.date)}",
+                                          style: GoogleFonts.inknutAntiqua(
+                                              fontSize: 12),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
+                          );
                         }).toList(),
-                      );
-                    }),
-                    const SizedBox(height: 20),
+                      ),
 
-                    // Your Medication
+                    const SizedBox(height: 24),
+
+                    // SECTION 2: YOUR PRESCRIBED MEDICATIONS
                     Text(
-                      'Your Medication',
+                      'Your Medications',
                       style: GoogleFonts.inknutAntiqua(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -438,101 +480,77 @@ class _MedicationScreenState extends State<MedicationScreen> {
                     const SizedBox(height: 8),
                     const Divider(thickness: 1.2, color: Colors.black12),
                     const SizedBox(height: 8),
-                    Consumer<MedicationsProvider>(builder: (context, medsProv, _) {
-                      final all = medsProv.all;
-                      if (all.isEmpty) {
-                        return Text(
-                        'No medications available yet.',
-                        style: GoogleFonts.inknutAntiqua(
-                          fontSize: 14,
-                          color: Colors.black54,
-                        ),
-                      );
-                      }
-                      return Column(
-                        children: all.asMap().entries.map((entry) {
-                          final idx = entry.key;
+
+                    if (savedMeds.isEmpty)
+                      const Text("No saved medications. Add one below!")
+                    else
+                      Column(
+                        children: savedMeds.asMap().entries.map((entry) {
                           final med = entry.value;
-                          return Dismissible(
-                          key: Key('all_${med.id}_$idx'),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            alignment: Alignment.centerRight,
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(Icons.delete, color: Colors.white),
-                          ),
-                          confirmDismiss: (_) async {
-                            return _confirmDialog(
-                              title: 'Delete Medication',
-                              message: 'Delete this medication from your list?',
-                              confirmText: 'Yes',
-                            );
-                          },
-                          onDismissed: (_) async {
-                            await context.read<MedicationsProvider>().deleteMedication(med.id);
-                          },
-                          child: GestureDetector(
-                            onTap: () => _promptLogForToday(med.id, med.name),
+                          // In the future, you can implement 'delete saved med' here
+                          return GestureDetector(
+                            onTap: () => _promptLogForToday(med),
                             child: Container(
                               width: double.infinity,
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEDF7FF),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                )
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  med.name,
-                                  style: GoogleFonts.inknutAntiqua(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                if (med.dose.isNotEmpty)
-                                  Text(
-                                    'Dosage: ${med.dose}',
-                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
-                                  ),
-                                if (med.frequency.isNotEmpty)
-                                  Text(
-                                    'Frequency: ${med.frequency}',
-                                    style: GoogleFonts.inknutAntiqua(fontSize: 14),
-                                  ),
-                                   if ((med.loggedAt ?? '').isNotEmpty)
-                                     Text(
-                                       "Last logged: ${DateFormat('MMM d, yyyy').format(DateTime.parse(med.loggedAt!))} • ${DateFormat('h:mm a').format(DateTime.parse(med.loggedAt!))}",
-                                       style: GoogleFonts.inknutAntiqua(
-                                         fontSize: 12,
-                                         color: Colors.black54,
-                                       ),
-                                     ),
-                                  ],
-                                ),
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border:
+                                    Border.all(color: const Color(0xFFBCD9EC)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
                               ),
-                            )
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          med['name'] ?? 'Medication',
+                                          style: GoogleFonts.inknutAntiqua(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        if (med['dose'] != null)
+                                          Text(
+                                            'Dose: ${med['dose']}',
+                                            style: GoogleFonts.inknutAntiqua(
+                                                fontSize: 12),
+                                          ),
+                                        if (med['frequency'] != null)
+                                          Text(
+                                            'Freq: ${med['frequency']}',
+                                            style: GoogleFonts.inknutAntiqua(
+                                                fontSize: 12,
+                                                color: Colors.grey),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.add_circle_outline,
+                                      color: Color(0xFF7AA9C8)),
+                                ],
+                              ),
+                            ),
                           );
                         }).toList(),
-                      );
-                    }),
+                      ),
+
                     const SizedBox(height: 12),
 
-                    // Add Medication button (moved under "Your Medication")
+                    // Add Button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
@@ -546,7 +564,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                         onPressed: _openAddMedicationSheet,
                         icon: const Icon(Icons.add, color: Colors.white),
                         label: Text(
-                          'Add Medication',
+                          'Add New Medication',
                           style: GoogleFonts.inknutAntiqua(
                             fontSize: 16,
                             color: Colors.white,
@@ -555,7 +573,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),

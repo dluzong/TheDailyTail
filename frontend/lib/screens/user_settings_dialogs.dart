@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../shared/starting_widgets.dart';
 import '../pet_provider.dart' as pet_provider;
-import 'edit_pet_popup.dart';
 
 class UserSettingsDialogs {
   static void showAccountInfoDialog({

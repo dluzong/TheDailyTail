@@ -83,14 +83,14 @@ class _EditPetPopupState extends State<EditPetPopup> {
 
     final updatedPet = pet_provider.Pet(
       petId: widget.pet.petId,
-      ownerId: widget.pet.ownerId,
+      userId: widget.pet.userId,
       name: name,
       breed: breed,
       age: age,
       weight: weight,
       imageUrl: tempImagePath ?? '',
-      logsIds: widget.pet.logsIds,
       savedMeals: widget.pet.savedMeals,
+      savedMedications: widget.pet.savedMedications,
       status: widget.pet.status,
     );
 
