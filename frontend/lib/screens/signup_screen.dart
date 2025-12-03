@@ -29,37 +29,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await _supabase.auth.signInWithOAuth(
-         OAuthProvider.google,
+        OAuthProvider.google,
         redirectTo: 'io.supabase.flutter://login-callback',
       );
 
       // Handle SDK differences: some versions return bool, others return an object
-      if (response is bool) {
-        if (response == false) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Google sign-in failed or was cancelled')),
-            );
-          }
-          return;
+      if (response == false) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Google sign-in failed or was cancelled')),
+          );
         }
-        // response == true -> continue
-      } else {
-        // Try to safely detect an error on dynamic response objects
-        try {
-          final dynamic maybeError = (response as dynamic).error ?? (response as dynamic).message ?? (response as dynamic)['error'];
-          if (maybeError != null) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Google sign-in failed: $maybeError')),
-              );
-            }
-            return;
-          }
-        } catch (_) {
-          // ignore parsing errors and continue
-        }
+        return;
       }
+      // response == true -> continue
 
       // Attempt to load user/profile after OAuth flow
       try {
@@ -69,7 +53,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Signed in with Google')));
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const OnboardingScreen()),
@@ -77,14 +62,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
       debugPrint('Google sign-in error: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-  
+
   Future<void> _signUp() async {
     // Basic validation
     if (_password.text != _confirmPassword.text) {
@@ -124,12 +110,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (user == null) {
         // Extract an error/message safely for user feedback
-        String message = 'Sign up did not complete. The email may already be registered.';
+        String message =
+            'Sign up did not complete. The email may already be registered.';
         try {
-          final dynamic maybeErr = (res as dynamic).error ?? (res as dynamic).message ?? (res as dynamic).errorMessage;
+          final dynamic maybeErr = (res as dynamic).error ??
+              (res as dynamic).message ??
+              (res as dynamic).errorMessage;
           if (maybeErr != null) message = maybeErr.toString();
         } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
         return; // Exit early
       }
 
@@ -139,12 +129,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
         debugPrint('fetchUser after signup failed: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Signup succeeded but failed to load profile: $e')),
+            SnackBar(
+                content:
+                    Text('Signup succeeded but failed to load profile: $e')),
           );
         }
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed up')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Signed up')));
       // Navigate to OnboardingScreen after successful signup
       Navigator.push(
         context,
@@ -152,26 +145,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
           builder: (context) => const OnboardingScreen(),
         ),
       );
-      
     } catch (err) {
       final message = err is AuthException ? err.message : err.toString();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
       debugPrint('Sign up error: $err');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-    @override
-    void dispose() {
-      _firstName.dispose();
-      _lastName.dispose();
-      _username.dispose();
-      _email.dispose();
-      _password.dispose();
-      _confirmPassword.dispose();
-      super.dispose();
-    }
+  @override
+  void dispose() {
+    _firstName.dispose();
+    _lastName.dispose();
+    _username.dispose();
+    _email.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,13 +190,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 25),
                     buildDogIcon(),
                     const SizedBox(height: 35),
-                    buildAppTextField(hint: "First Name", controller: _firstName),
+                    buildAppTextField(
+                        hint: "First Name", controller: _firstName),
                     const SizedBox(height: 15),
                     buildAppTextField(hint: "Last Name", controller: _lastName),
                     const SizedBox(height: 15),
                     buildAppTextField(hint: "Username", controller: _username),
                     const SizedBox(height: 15),
-                    buildAppTextField(hint: "Email", controller:_email),
+                    buildAppTextField(hint: "Email", controller: _email),
                     const SizedBox(height: 15),
                     buildAppTextField(
                       hint: "Password",
@@ -246,21 +240,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 25),
                     ElevatedButton(
                       onPressed: _isLoading
-                       ? null 
-                       : () {
-                          _signUp(); 
-                        },
+                          ? null
+                          : () {
+                              _signUp();
+                            },
                       child: Text(_isLoading ? 'Signing Up...' : 'Sign Up'),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: _isLoading ? null : signInWithGoogle,
                       icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-                      label: Text(_isLoading ? 'Please wait...' : 'Sign up with Google',
-                        style: const TextStyle(color: Color(0xFF7496B3))),
+                      label: Text(
+                          _isLoading ? 'Please wait...' : 'Sign up with Google',
+                          style: const TextStyle(color: Color(0xFF7496B3))),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFF7496B3)),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
                       ),
                     ),
                   ],
@@ -274,5 +270,3 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
-
-
