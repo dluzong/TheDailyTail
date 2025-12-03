@@ -6,7 +6,8 @@ class PetLog {
   final String logId;
   final String petId;
   final DateTime date;
-  final String type; // 'meal', 'medication', 'event', 'appointment', 'vaccination'
+  final String
+      type; // 'meal', 'medication', 'event', 'appointment', 'vaccination'
   final Map<String, dynamic> details;
 
   PetLog({
@@ -30,7 +31,7 @@ class PetLog {
 
 class LogProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
-  
+
   // Cache: Map<PetId, List<Log>>
   // We store logs by Pet ID so we don't mix up data if the user has multiple pets.
   final Map<String, List<PetLog>> _logs = {};
@@ -78,7 +79,7 @@ class LogProvider extends ChangeNotifier {
         'log_details': details,
       });
       // Refresh local state immediately
-      await fetchLogs(petId); 
+      await fetchLogs(petId);
     } catch (e) {
       debugPrint('Error adding log: $e');
       rethrow;
@@ -109,7 +110,9 @@ class LogProvider extends ChangeNotifier {
   List<PetLog> getMealsForDate(String petId, DateTime date) {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
     return (_logs[petId] ?? [])
-        .where((l) => l.type == 'meal' && DateFormat('yyyy-MM-dd').format(l.date) == dateStr)
+        .where((l) =>
+            l.type == 'meal' &&
+            DateFormat('yyyy-MM-dd').format(l.date) == dateStr)
         .toList();
   }
 
@@ -117,7 +120,7 @@ class LogProvider extends ChangeNotifier {
   List<PetLog> getMedications(String petId) {
     return (_logs[petId] ?? []).where((l) => l.type == 'medication').toList();
   }
-  
+
   // 4. For DailyLogScreen (Calendar): Get events mapped by category
   // This mimics the specific structure your calendar widget expects
   Map<String, List<Map<String, String>>> getEventsForCalendar(String petId) {
@@ -129,23 +132,29 @@ class LogProvider extends ChangeNotifier {
     };
 
     final logs = _logs[petId] ?? [];
-    
+
     for (var log in logs) {
       // Map DB types to UI Categories
-      // Example: 'appointment' -> 'Appointments', 'event' -> 'Events'
       String category = 'Other';
-      
-      // Capitalize and pluralize simple types
+      String title = log.details['title'] ?? 'No Title';
+      String desc = log.details['desc'] ?? '';
+
       if (['appointment', 'vaccination', 'event'].contains(log.type)) {
-        category = "${log.type[0].toUpperCase()}${log.type.substring(1)}s"; 
+        category = "${log.type[0].toUpperCase()}${log.type.substring(1)}s";
+      } else if (log.type == 'meal') {
+        title = "Meal: ${log.details['food_name'] ?? 'Unknown'}";
+        desc = "Amount: ${log.details['amount'] ?? ''}";
+      } else if (log.type == 'medication') {
+        title = "Meds: ${log.details['name'] ?? 'Unknown'}";
+        desc = "${log.details['dose'] ?? ''} ${log.details['frequency'] ?? ''}";
       }
-      
+
       if (result.containsKey(category)) {
         result[category]!.add({
           'id': log.logId, // useful for delete actions
           'date': DateFormat('yyyy-MM-dd').format(log.date),
-          'title': log.details['title'] ?? 'No Title',
-          'desc': log.details['desc'] ?? '',
+          'title': title,
+          'desc': desc,
         });
       }
     }

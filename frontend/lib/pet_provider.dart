@@ -106,6 +106,37 @@ class PetProvider extends ChangeNotifier {
     }
   }
 
+  // --- ADD PET LOGIC ---
+
+  Future<void> addPet(Pet newPet) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // Insert the new pet into the database
+      // We exclude 'pet_id' so Postgres can generate a fresh UUID
+      await _supabase.from('pets').insert({
+        'user_id': user.id,
+        'name': newPet.name,
+        'breed': newPet.breed,
+        'age': newPet.age,
+        'weight': newPet.weight,
+        'image_url': newPet.imageUrl,
+        'status': newPet.status,
+        // Initialize empty arrays if not provided
+        'saved_meals': newPet.savedMeals.isEmpty ? [] : newPet.savedMeals,
+        'saved_medications':
+            newPet.savedMedications.isEmpty ? [] : newPet.savedMedications,
+      });
+
+      // Refresh the list so the new pet appears in the app immediately
+      await fetchPets();
+    } catch (e) {
+      debugPrint('Error adding pet: $e');
+      rethrow;
+    }
+  }
+
   // --- SAVED MEALS LOGIC ---
 
   Future<void> addSavedMeal(String petId, Map<String, dynamic> mealData) async {
