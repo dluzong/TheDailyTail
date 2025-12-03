@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../meals_provider.dart';
+import '../log_provider.dart';
+import '../pet_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../shared/app_layout.dart';
 import 'add_meal.dart';
@@ -34,8 +35,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     _scrollController = FixedExtentScrollController(initialItem: todayIndex);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<MealsProvider>(context, listen: false)
-          .loadDate(selectedDate);
+      final petId =
+          Provider.of<PetProvider>(context, listen: false).selectedPetId;
+      if (petId != null) {
+        Provider.of<LogProvider>(context, listen: false).fetchLogs(petId);
+      }
     });
   }
 
@@ -44,6 +48,19 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   }
 
   void _openMealPopup() {
+    final petId = context.read<PetProvider>().selectedPetId;
+    // Get the actual Pet object to access savedMeals
+    final currentPet =
+        context.read<PetProvider>().pets.firstWhere((p) => p.petId == petId);
+
+    // Convert savedMeals (List<Map>) to List<Map<String, String>> for the UI
+    final recentMeals = currentPet.savedMeals
+        .map((m) => {
+              "name": m['name'].toString(),
+              "amount": (m['amount'] ?? '').toString()
+            })
+        .toList();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -53,10 +70,18 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       ),
       builder: (context) {
         return AddMeal(
-          recentMeals: recentMeals,
+          recentMeals: recentMeals, // Pass real data
           onSave: (name, amount) {
-            Provider.of<MealsProvider>(context, listen: false)
-                .addMeal(selectedDate, name, amount);
+            // 1. Log it
+            Provider.of<LogProvider>(context, listen: false).addLog(
+              petId: petId!,
+              type: 'meal',
+              date: selectedDate,
+              details: {'food_name': name, 'amount': amount},
+            );
+            // 2. Save definition if it's new (Optional, but good UX)
+            Provider.of<PetProvider>(context, listen: false)
+                .addSavedMeal(petId, {'name': name, 'amount': amount});
           },
         );
       },
@@ -127,14 +152,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                         onSelectedItemChanged: (i) {
                           final date = dateFromIndex(i);
                           setState(() => selectedDate = date);
-                          Provider.of<MealsProvider>(context, listen: false)
-                              .loadDate(date);
                         },
                         childDelegate: ListWheelChildBuilderDelegate(
                           builder: (context, index) {
                             final date = dateFromIndex(index);
-                            final selected =
-                                date.day == selectedDate.day &&
+                            final selected = date.day == selectedDate.day &&
                                 date.month == selectedDate.month &&
                                 date.year == selectedDate.year;
 
@@ -145,13 +167,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   _scrollController.animateToItem(
                                     index,
                                     curve: Curves.easeInOut,
-                                    duration:
-                                        const Duration(milliseconds: 250),
+                                    duration: const Duration(milliseconds: 250),
                                   );
                                   setState(() => selectedDate = date);
-                                  Provider.of<MealsProvider>(context,
-                                          listen: false)
-                                      .loadDate(date);
                                 },
                                 child: Container(
                                   width: 55,
@@ -200,10 +218,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   /// MEAL LIST
                   Expanded(
-                    child: Consumer<MealsProvider>(
-                      builder: (context, provider, child) {
+                    child: Consumer<LogProvider>(
+                      builder: (context, logProvider, child) {
+                        final petId =
+                            context.watch<PetProvider>().selectedPetId;
+                        if (petId == null)
+                          return const Center(
+                              child: Text('Select a pet first'));
+
                         final meals =
-                            provider.getMealsForDate(selectedDate);
+                            logProvider.getMealsForDate(petId, selectedDate);
 
                         return ListView.builder(
                           padding: EdgeInsets.zero,
@@ -211,25 +235,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                           itemBuilder: (context, i) {
                             if (i == meals.length) {
                               return Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 8, bottom: 30),
+                                padding:
+                                    const EdgeInsets.only(top: 8, bottom: 30),
                                 child: Center(
                                   child: meals.isEmpty
                                       ? Column(
                                           children: [
                                             Text(
-                                              "No meals logged yet!",
-                                              style:
-                                                  GoogleFonts.inknutAntiqua(
+                                              'No meals logged yet!',
+                                              style: GoogleFonts.inknutAntiqua(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                             const SizedBox(height: 6),
                                             Text(
-                                              "Tap the + button to add one.",
-                                              style:
-                                                  GoogleFonts.inknutAntiqua(
+                                              'Tap the + button to add one.',
+                                              style: GoogleFonts.inknutAntiqua(
                                                 fontSize: 14,
                                                 color: Colors.black54,
                                               ),
@@ -237,9 +259,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           ],
                                         )
                                       : Text(
-                                          "Total meals: ${meals.length}",
-                                          style:
-                                              GoogleFonts.inknutAntiqua(
+                                          'Total meals: ${meals.length}',
+                                          style: GoogleFonts.inknutAntiqua(
                                             fontSize: 14,
                                             color: Colors.black87,
                                           ),
@@ -248,11 +269,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                               );
                             }
 
-                            final meal = meals[i];
+                            final log = meals[i];
 
                             //swipe to delete
                             return Dismissible(
-                              key: ValueKey("${meal.name}_${meal.time}"),
+                              key: ValueKey(log.logId),
                               direction: DismissDirection.endToStart,
 
                               // Confirm deletion
@@ -263,12 +284,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                     return AlertDialog(
                                       backgroundColor: const Color(0xFFEDF7FF),
                                       title: Text(
-                                        "Delete meal?",
+                                        'Delete meal?',
                                         style: GoogleFonts.inknutAntiqua(
                                             fontWeight: FontWeight.bold),
                                       ),
                                       content: Text(
-                                        "Remove '${meal.name}' from this day?",
+                                        "Remove '${log.details['food_name'] ?? 'meal'}' from this day?",
                                         style: GoogleFonts.inknutAntiqua(),
                                       ),
                                       actions: [
@@ -276,7 +297,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           onPressed: () =>
                                               Navigator.pop(context, false),
                                           child: const Text(
-                                            "Cancel",
+                                            'Cancel',
                                             style: TextStyle(
                                                 color: Colors.black87),
                                           ),
@@ -285,7 +306,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           onPressed: () =>
                                               Navigator.pop(context, true),
                                           child: const Text(
-                                            "Delete",
+                                            'Delete',
                                             style: TextStyle(color: Colors.red),
                                           ),
                                         ),
@@ -295,15 +316,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                 );
                               },
 
-                              onDismissed: (direction) {
-                                Provider.of<MealsProvider>(context,
-                                        listen: false)
-                                    .removeMealAt(selectedDate, i);
+                              onDismissed: (direction) async {
+                                await logProvider.deleteLog(log.logId, petId);
 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                       content: Text(
-                                          "Deleted ${meal.name}")),
+                                          'Deleted ${log.details['food_name'] ?? 'meal'}')),
                                 );
                               },
 
@@ -330,7 +349,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                     borderRadius: BorderRadius.circular(14),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
+                                        color: Colors.black
+                                            .withValues(alpha: 0.12),
                                         blurRadius: 10,
                                         offset: const Offset(0, 4),
                                       )
@@ -341,22 +361,25 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        meal.name,
+                                        log.details['food_name']?.toString() ??
+                                            'Meal',
                                         style: GoogleFonts.inknutAntiqua(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      if (meal.amount.isNotEmpty)
+                                      if ((log.details['amount'] ?? '')
+                                          .toString()
+                                          .isNotEmpty)
                                         Text(
-                                          meal.amount,
-                                          style:
-                                              GoogleFonts.inknutAntiqua(
-                                                  fontSize: 14),
+                                          log.details['amount']?.toString() ??
+                                              '',
+                                          style: GoogleFonts.inknutAntiqua(
+                                              fontSize: 14),
                                         ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        "Logged at: ${DateFormat('h:mm a').format(meal.time)}",
+                                        'Logged at: ${DateFormat('h:mm a').format(log.date)}',
                                         style: GoogleFonts.inknutAntiqua(
                                           fontSize: 12,
                                           color: Colors.black54,
