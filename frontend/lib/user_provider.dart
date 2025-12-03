@@ -21,10 +21,20 @@ class AppUser {
     required this.roles,
     required this.bio,
     required this.photoUrl,
-    required this.following
+    required this.following,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
+    List<String> parsedFollowing = [];
+
+    if (map['follows'] != null) {
+      final List<dynamic> followsData = map['follows'];
+      parsedFollowing =
+          followsData.map((item) => item['followee_id'] as String).toList();
+    } else if (map['following'] != null) {
+      parsedFollowing = List<String>.from(map['following']);
+    }
+
     return AppUser(
       userId: map['user_id'] ?? '',
       name: map['name'] ?? '',
@@ -32,7 +42,7 @@ class AppUser {
       roles: List<String>.from(map['role'] ?? []),
       bio: map['bio'] ?? '',
       photoUrl: map['photo_url'] ?? '',
-      following: List<String>.from(map['following'] ?? []),
+      following: parsedFollowing,
     );
   }
 
@@ -48,7 +58,7 @@ class AppUser {
     };
   }
 
-  // User Equivalence Opperator (check if user == user)
+  // User Equivalence Operator
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -129,12 +139,19 @@ class UserProvider extends ChangeNotifier {
     try {
       debugPrint('INFO: Fetching user profile for: ${session.user.id}');
 
-      final response = await _supabase
-          .from('users')
-          .select(
-              'user_id, username, name, bio, photo_url, role, organizations, following') // Explicit columns
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+      // 1. Fetches standard user columns.
+      // 2. Joins 'follows' table using the foreign key 'follower_id'.
+      // 3. Selects 'followee_id' from that table.
+      final response = await _supabase.from('users').select('''
+            user_id, 
+            username, 
+            name, 
+            bio, 
+            photo_url, 
+            role, 
+            organizations,
+            follows!follower_id(followee_id) 
+          ''').eq('user_id', session.user.id).maybeSingle();
 
       if (response == null) {
         debugPrint("ERROR: No public profile found.");

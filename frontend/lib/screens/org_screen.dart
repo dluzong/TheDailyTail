@@ -8,7 +8,11 @@ class OrgScreen extends StatefulWidget {
   final bool initiallyJoined;
   final void Function(bool joined)? onJoinChanged;
 
-  const OrgScreen({super.key, required this.org, this.initiallyJoined = true, this.onJoinChanged});
+  const OrgScreen(
+      {super.key,
+      required this.org,
+      this.initiallyJoined = true,
+      this.onJoinChanged});
 
   @override
   State<OrgScreen> createState() => _OrgScreenState();
@@ -56,7 +60,6 @@ class _OrgScreenState extends State<OrgScreen> {
     if (confirm == true) {
       setState(() => _joined = false);
       if (widget.onJoinChanged != null) widget.onJoinChanged!(_joined);
-      // Pop back to allow parent to remove the org from the list
       Navigator.of(context).pop();
     }
   }
@@ -73,9 +76,19 @@ class _OrgScreenState extends State<OrgScreen> {
   @override
   Widget build(BuildContext context) {
     final postsProvider = Provider.of<PostsProvider>(context);
-    // Use admins list if provided to filter recent activity
-    final admins = (widget.org['admins'] as List<String>?) ?? [];
-    final recentPosts = postsProvider.posts.where((p) => admins.contains(p['author'] as String)).toList();
+
+    // Filter Recent Activity: Posts where author is an Admin of this Org
+    // widget.org['admin_id'] is a List<dynamic> of UUIDs from Supabase
+    final List<dynamic> adminIds = widget.org['admin_id'] ?? [];
+
+    // Filter posts from PostsProvider where userId is in adminIds
+    final recentPosts =
+        postsProvider.posts.where((p) => adminIds.contains(p.userId)).toList();
+
+    // Map keys to DB columns
+    final orgName = widget.org['name'] ?? 'Unnamed Org';
+    final memberCount = (widget.org['member_id'] as List?)?.length ?? 0;
+    final description = widget.org['description'] ?? 'No description provided.';
 
     return Scaffold(
       appBar: AppBar(
@@ -84,7 +97,16 @@ class _OrgScreenState extends State<OrgScreen> {
         centerTitle: false,
         title: Row(
           children: [
-            Text(widget.org['orgName'], style: GoogleFonts.lato(color: const Color(0xFF5F7C94), fontSize: 20, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text(
+                orgName,
+                style: GoogleFonts.lato(
+                    color: const Color(0xFF5F7C94),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -93,7 +115,9 @@ class _OrgScreenState extends State<OrgScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFBCD9EC)),
               ),
-              child: Text('${widget.org['members']} members', style: GoogleFonts.lato(color: const Color(0xFF7496B3), fontSize: 12)),
+              child: Text('$memberCount members',
+                  style: GoogleFonts.lato(
+                      color: const Color(0xFF7496B3), fontSize: 12)),
             ),
           ],
         ),
@@ -103,11 +127,14 @@ class _OrgScreenState extends State<OrgScreen> {
             child: ElevatedButton(
               onPressed: _onJoinPressed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _joined ? Colors.green : const Color(0xFF7496B3),
+                backgroundColor:
+                    _joined ? Colors.green : const Color(0xFF7496B3),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
               ),
-              child: Text(_joined ? 'Joined' : 'Join', style: GoogleFonts.lato()),
+              child:
+                  Text(_joined ? 'Joined' : 'Join', style: GoogleFonts.lato()),
             ),
           )
         ],
@@ -131,7 +158,8 @@ class _OrgScreenState extends State<OrgScreen> {
                           hintText: 'Search posts...',
                           prefixIcon: Icon(Icons.search),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                         ),
                       ),
                     ),
@@ -144,8 +172,12 @@ class _OrgScreenState extends State<OrgScreen> {
               unselectedLabelColor: Colors.grey,
               indicatorColor: const Color(0xFF7496B3),
               tabs: [
-                Tab(child: Text('Recent Activity', style: GoogleFonts.lato(fontWeight: FontWeight.bold))),
-                Tab(child: Text('Description', style: GoogleFonts.lato(fontWeight: FontWeight.bold))),
+                Tab(
+                    child: Text('Recent Activity',
+                        style: GoogleFonts.lato(fontWeight: FontWeight.bold))),
+                Tab(
+                    child: Text('Description',
+                        style: GoogleFonts.lato(fontWeight: FontWeight.bold))),
               ],
             ),
             const Divider(height: 1),
@@ -154,16 +186,20 @@ class _OrgScreenState extends State<OrgScreen> {
                 children: [
                   // Recent Activity
                   recentPosts.isEmpty
-                      ? Center(child: Text('No recent activity.', style: GoogleFonts.lato()))
+                      ? Center(
+                          child: Text('No recent activity.',
+                              style: GoogleFonts.lato()))
                       : ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: recentPosts.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             final post = recentPosts[index];
                             return Card(
                               elevation: 2,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
@@ -171,26 +207,58 @@ class _OrgScreenState extends State<OrgScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        const CircleAvatar(backgroundColor: Color(0xFF7496B3), child: Icon(Icons.person, color: Colors.white)),
+                                        CircleAvatar(
+                                          backgroundColor:
+                                              const Color(0xFF7496B3),
+                                          backgroundImage: post
+                                                  .authorPhoto.isNotEmpty
+                                              ? NetworkImage(post.authorPhoto)
+                                              : null,
+                                          child: post.authorPhoto.isEmpty
+                                              ? const Icon(Icons.person,
+                                                  color: Colors.white)
+                                              : null,
+                                        ),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Row(children: [
-                                            Text(post['author'], style: GoogleFonts.lato(fontWeight: FontWeight.bold)),
+                                            Text(post.authorName,
+                                                style: GoogleFonts.lato(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                             const SizedBox(width: 8),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(color: const Color(0xFFEEF7FB), borderRadius: BorderRadius.circular(8)),
-                                              child: Text('admin', style: GoogleFonts.lato(color: const Color(0xFF7496B3), fontSize: 12)),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFEEF7FB),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                              child: Text('admin',
+                                                  style: GoogleFonts.lato(
+                                                      color: const Color(
+                                                          0xFF7496B3),
+                                                      fontSize: 12)),
                                             ),
                                           ]),
                                         ),
-                                        Text(post['timeAgo'], style: GoogleFonts.lato(color: Colors.grey, fontSize: 12)),
+                                        Text(post.createdTs,
+                                            style: GoogleFonts.lato(
+                                                color: Colors.grey,
+                                                fontSize: 12)),
                                       ],
                                     ),
                                     const SizedBox(height: 12),
-                                    Text(post['title'], style: GoogleFonts.lato(fontSize: 18, fontWeight: FontWeight.bold)),
+                                    Text(post.title,
+                                        style: GoogleFonts.lato(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 8),
-                                    Text(post['content'], style: GoogleFonts.lato()),
+                                    Text(post.content,
+                                        style: GoogleFonts.lato()),
                                   ],
                                 ),
                               ),
@@ -201,7 +269,8 @@ class _OrgScreenState extends State<OrgScreen> {
                   // Description
                   Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text(widget.org['description'] ?? '', style: GoogleFonts.lato(fontSize: 16)),
+                    child: Text(description,
+                        style: GoogleFonts.lato(fontSize: 16)),
                   ),
                 ],
               ),

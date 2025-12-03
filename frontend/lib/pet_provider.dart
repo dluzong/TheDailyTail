@@ -1,333 +1,183 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
-// Pet Data Model
+// --- PET MODEL ---
 class Pet {
   final String petId;
-  final String ownerId;
+  final String userId;
   final String name;
   final String breed;
   final int age;
   final double weight;
   final String imageUrl;
-  final List<String> logsIds;
-  final List<String> savedMeals;
   final String status;
+  final List<Map<String, dynamic>> savedMeals;
+  final List<Map<String, dynamic>> savedMedications;
 
   Pet({
     required this.petId,
-    required this.ownerId,
+    required this.userId,
     required this.name,
     required this.breed,
     required this.age,
     required this.weight,
     required this.imageUrl,
-    required this.logsIds,
-    required this.savedMeals,
     required this.status,
+    required this.savedMeals,
+    required this.savedMedications,
   });
 
-factory Pet.fromMap(Map<String, dynamic> map) {
-  return Pet(
-    petId: map['pet_id'] as String? ?? '',
-    ownerId: map['user_id'] as String? ?? '',
-    name: map['name'] as String? ?? 'Unnamed Pet',
-    breed: map['breed'] as String? ?? 'Unknown',
-    age: map['age'] as int? ?? 0,
-    weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
-    imageUrl: map['image_url'] as String? ?? '',
-    logsIds: List<String>.from(map['log_ids'] ?? []),
-    savedMeals: _parseSavedMeals(map['saved_meals']),
-    status: map['status'] as String? ?? 'owned'
-  );
-}
-
-// Helper function to parse saved_meals array
-static List<String> _parseSavedMeals(dynamic saved_meals) {
-  if (saved_meals == null) return [];
-  if (saved_meals is List) {
-    return saved_meals.map((meal) {
-      if (meal is Map<String, dynamic> && meal.containsKey('meal')) {
-        return meal['meal'] as String? ?? '';
-      }
-      return meal.toString();
-    }).toList();
-  }
-  return [];
-}
-
-  Map<String, dynamic> toMap() {
-    return {
-      'pet_id': petId,
-      'owner_id': ownerId,
-      'name': name,
-      'breed': breed,
-      'age': age,
-      'weight': weight,
-      'image_url': imageUrl,
-      'logs_ids': logsIds,
-      'saved_meals': savedMeals,
-      'status': status,
-    };
-  }
-}
-
-// Pet Log Model
-class PetLog {
-  final String logId;
-  final String petId;
-  final DateTime logDate;
-  final String logType;
-  final String logDetails;
-
-  PetLog({
-    required this.logId,
-    required this.petId,
-    required this.logDate,
-    required this.logType,
-    required this.logDetails
-  });
-
-  // unused ?
-  factory PetLog.fromMap(Map<String, dynamic> map) {
-    return PetLog(
-      logId: map['log_id'] as String? ?? '',
-      petId: map['pet_id'] as String? ?? '',
-      logDate:
-          DateTime.tryParse(map['log_date'] as String? ?? '') ?? DateTime.now(),
-      logType: map['log_type'] as String? ?? '',
-      logDetails: map['log_details'] as String? ?? '',
+  factory Pet.fromMap(Map<String, dynamic> map) {
+    return Pet(
+      petId: map['pet_id'] ?? '',
+      userId: map['user_id'] ?? '',
+      name: map['name'] ?? 'Unnamed',
+      breed: map['breed'] ?? 'Unknown',
+      age: map['age'] ?? 0,
+      weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
+      imageUrl: map['image_url'] ?? '',
+      status: map['status'] ?? 'owned',
+      // Safe Parsing for Arrays (Handles both List<String> and List<JSON>)
+      savedMeals: _parseList(map['saved_meals']),
+      savedMedications: _parseList(map['saved_medications']),
     );
   }
+
+  // Helper to handle Postgres Arrays safely
+  static List<Map<String, dynamic>> _parseList(dynamic input) {
+    if (input == null) return [];
+    if (input is List) {
+      return input.map((item) {
+        // If it's already a map (JSONB), use it
+        if (item is Map) return Map<String, dynamic>.from(item);
+        // If it's a string (Text Array), wrap it in a map
+        if (item is String) return {'name': item};
+        return {'name': item.toString()};
+      }).toList();
+    }
+    return [];
+  }
 }
 
-// PetProvider
+// --- PROVIDER ---
 class PetProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
+
   List<Pet> _pets = [];
+  List<Pet> get pets => _pets;
+
+  String? _selectedPetId;
+  String? get selectedPetId => _selectedPetId;
 
   bool _isLoading = false;
-  String? _errorMessage;
-
-  List<Pet> get pets => _pets;
   bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
 
-  static const _cacheKey = 'cached_pets';
+  // --- STATE MANAGEMENT ---
 
-  PetProvider() {
-    _loadFromCache();
-
-    // Clear pets on sign-out
-    _supabase.auth.onAuthStateChange.listen((data) async {
-      final event = data.event;
-      if (event == AuthChangeEvent.signedOut) {
-        clearPets();
-      }
-    });
-  }
-
-  void _setLoading(bool loading) {
-    _isLoading = loading;
+  void selectPet(String petId) {
+    _selectedPetId = petId;
     notifyListeners();
   }
 
-  void _setError(String? message) {
-    _errorMessage = message;
-    notifyListeners();
-  }
-
-// Fetch Pets for the authenticated user
   Future<void> fetchPets() async {
-    debugPrint('Fetching pets data from Supabase');
-    _setLoading(true);
-    _setError(null);
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    _isLoading = true;
+    notifyListeners();
 
     try {
-      final session = _supabase.auth.currentSession;
-      if (session == null) {
-        _pets = [];
-        _setLoading(false);
-        return;
-      }
-
-      final userId = session.user.id;
       final response =
-          await _supabase.from('pets').select().eq('user_id', userId);
+          await _supabase.from('pets').select().eq('user_id', user.id);
 
-      _pets = response.map<Pet>((petData) {
-        debugPrint('Pet data: $petData');
-        return Pet.fromMap(petData);
-      }).toList();
-    
-      debugPrint("Saved pets data. Count: ${_pets.length}");
-      await _saveToCache();
-    } catch (e) {
-      debugPrint("Error fetching pets: $e");
-      _setError("Failed to fetch pets. Please try again.");
-      _pets = [];
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Fetch Pet Logs for a specific pet
-  Future<List<PetLog>> fetchPetLogs(String petId) async {
-    debugPrint('Fetching pet logs for petId: $petId');
-    final session = _supabase.auth.currentSession;
-
-    if (session == null) {
-      debugPrint("No user logged in. Failed to fetch pet logs.");
-      return [];
-    }
-
-    try {
-      // 1. Get all log rows for this pet
-      final response = await _supabase
-          .from('logs')
-          .select()
-          .eq('pet_id', petId)
-          .order('log_date', ascending: false);
-
-      final List<PetLog> allLogs = response.expand((row) {
-        final List<PetLog> logsFromThisRow = [];
-
-        final String rowLogId = row['log_id'] as String? ?? '';
-        final DateTime rowLogDate =
-            DateTime.tryParse(row['log_date'] as String? ?? '') ??
-                DateTime.now();
-
-        try {
-          // food entries
-          if (row['food_entries'] != null && row['food_entries'] is List) {
-            final List<dynamic> foods = row['food_entries'];
-            for (var food in foods) {
-              if (food is Map<String, dynamic>) {
-                logsFromThisRow.add(
-                  PetLog (
-                    petId: petId,
-                    logId: rowLogId,
-                    logType: 'meal',
-                    logDate: rowLogDate,
-                    logDetails: 'Ate ${food['item']} at ${food['time']}.',
-                  ),
-                );
-              }
-            }
-          }
-
-          // walk entries
-          if (row['walk_entries'] != null && row['walk_entries'] is List) {
-            final List<dynamic> walks = row['walk_entries'];
-            for (var walk in walks) {
-              if (walk is Map<String, dynamic>) {
-                logsFromThisRow.add(
-                  PetLog(
-                    petId: petId,
-                    logId: rowLogId,
-                    logType: 'walk',
-                    logDate: rowLogDate,
-                    logDetails:
-                        'Walked for ${walk['duration']} at ${walk['time']}.',
-                  ),
-                );
-              }
-            }
-          }
-
-          // medication entries
-          if (row['medication_entries'] != null &&
-              row['medication_entries'] is List) {
-            final List<dynamic> meds = row['medication_entries'];
-            for (var med in meds) {
-              if (med is Map<String, dynamic>) {
-                logsFromThisRow.add(
-                  PetLog(
-                    petId: petId,
-                    logId: rowLogId,
-                    logType: 'medication',
-                    logDate: rowLogDate,
-                    logDetails:
-                        'Took ${med['Medication']} (${med['Dosage']}).',
-                  ),
-                );
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint("Error parsing log JSON for row $rowLogId: $e");
-          logsFromThisRow.add(
-            PetLog(
-              petId: petId,
-              logId: rowLogId,
-              logType: 'corrupted',
-              logDate: rowLogDate,
-              logDetails: "Recorded log with corrupted data.",
-            ),
-          );
-        }
-
-        return logsFromThisRow;
-      }).toList();
-
-      debugPrint(
-          "Fetched ${allLogs.length} logs for petId: $petId");
-
-      return allLogs;
-    } catch (e) {
-      debugPrint("Error fetching pet logs: $e");
-      return []; // Return an empty list on failure
-    }
-  }
-
-  void clearPets() {
-    _pets = [];
-    _errorMessage = null;
-    _isLoading = false;
-    _clearCache();
-    notifyListeners();
-  }
-
-  Future<void> _loadFromCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString(_cacheKey);
-      if (jsonStr == null) return;
-      final List<dynamic> list = json.decode(jsonStr);
-      _pets = list
-          .whereType<Map<String, dynamic>>()
-          .map((m) => Pet.fromMap(m))
+      _pets = List<Map<String, dynamic>>.from(response)
+          .map((data) => Pet.fromMap(data))
           .toList();
+
+      // Auto-select first pet if none selected
+      if (_pets.isNotEmpty && _selectedPetId == null) {
+        _selectedPetId = _pets.first.petId;
+      }
+    } catch (e) {
+      debugPrint('Error fetching pets: $e');
+    } finally {
+      _isLoading = false;
       notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to load cached pets: $e');
     }
   }
 
-  Future<void> _saveToCache() async {
+  // --- ADD PET LOGIC ---
+
+  Future<void> addPet(Pet newPet) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _cacheKey,
-        json.encode(_pets.map((p) => p.toMap()).toList()),
-      );
+      // Insert the new pet into the database
+      // We exclude 'pet_id' so Postgres can generate a fresh UUID
+      await _supabase.from('pets').insert({
+        'user_id': user.id,
+        'name': newPet.name,
+        'breed': newPet.breed,
+        'age': newPet.age,
+        'weight': newPet.weight,
+        'image_url': newPet.imageUrl,
+        'status': newPet.status,
+        // Initialize empty arrays if not provided
+        'saved_meals': newPet.savedMeals.isEmpty ? [] : newPet.savedMeals,
+        'saved_medications':
+            newPet.savedMedications.isEmpty ? [] : newPet.savedMedications,
+      });
+
+      // Refresh the list so the new pet appears in the app immediately
+      await fetchPets();
     } catch (e) {
-      debugPrint('Failed to cache pets: $e');
+      debugPrint('Error adding pet: $e');
+      rethrow;
     }
   }
 
-  Future<void> _clearCache() async {
+  // --- SAVED MEALS LOGIC ---
+
+  Future<void> addSavedMeal(String petId, Map<String, dynamic> mealData) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_cacheKey);
-    } catch (_) {}
+      // 1. Get current list
+      final pet = _pets.firstWhere((p) => p.petId == petId);
+      final updatedList = List<Map<String, dynamic>>.from(pet.savedMeals);
+
+      // 2. Add new item
+      updatedList.add(mealData);
+
+      // 3. Update Database
+      await _supabase
+          .from('pets')
+          .update({'saved_meals': updatedList}).eq('pet_id', petId);
+
+      // 4. Refresh local state
+      await fetchPets();
+    } catch (e) {
+      debugPrint("Error saving meal: $e");
+      rethrow;
+    }
   }
 
-  Future<void> setPetsLocal(List<Pet> pets) async {
-    _pets = List.from(pets);
-    await _saveToCache();
-    notifyListeners();
+  // --- SAVED MEDICATIONS LOGIC ---
+
+  Future<void> addSavedMedication(
+      String petId, Map<String, dynamic> medData) async {
+    try {
+      final pet = _pets.firstWhere((p) => p.petId == petId);
+      final updatedList = List<Map<String, dynamic>>.from(pet.savedMedications);
+      updatedList.add(medData);
+
+      await _supabase
+          .from('pets')
+          .update({'saved_medications': updatedList}).eq('pet_id', petId);
+
+      await fetchPets();
+    } catch (e) {
+      debugPrint("Error saving medication: $e");
+      rethrow;
+    }
   }
 }
