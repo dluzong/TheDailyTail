@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../shared/app_layout.dart';
 import '../shared/starting_widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class AddPetScreen extends StatefulWidget {
   const AddPetScreen({super.key});
@@ -17,6 +19,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
   String? _sex;
   final TextEditingController _weightController = TextEditingController();
   String? _imagePath;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
@@ -28,10 +31,25 @@ class _AddPetScreenState extends State<AddPetScreen> {
   }
 
   void _pickImage() async {
-    // TODO: implement add image to connect with user photos/album
-    setState(() {
-      _imagePath = _imagePath == null ? 'assets/dog.png' : null;
-    });
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _imagePath = image.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
+    }
   }
 
   void _save() {
@@ -88,8 +106,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
                       'Pet Profile',
                       style: GoogleFonts.inknutAntiqua(
                           fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF7496B3)),
+                          fontWeight: FontWeight.bold
+                      ),
                     ),
                   ),
                 ],
@@ -116,9 +134,12 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 onTap: _pickImage,
                 child: CircleAvatar(
                   radius: 48,
-                  backgroundColor: const Color(0xFFBFD4E6),
-                  backgroundImage:
-                      _imagePath != null ? AssetImage(_imagePath!) : null,
+                  backgroundColor: const Color(0xFF7496B3),
+                  backgroundImage: _imagePath != null
+                      ? (_imagePath!.startsWith('assets/')
+                          ? AssetImage(_imagePath!) as ImageProvider
+                          : FileImage(File(_imagePath!)))
+                      : null,
                   child: _imagePath == null
                       ? const Icon(Icons.camera_alt,
                           size: 36, color: Colors.white)
@@ -274,6 +295,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 64),
           ],
         ),
       ),

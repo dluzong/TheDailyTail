@@ -1,6 +1,6 @@
 buildscript {
     // Define the Kotlin version
-    ext.kotlin_version = '1.8.22'
+    ext.kotlin_version = '2.1.0'
 
     repositories {
         google()
@@ -8,8 +8,7 @@ buildscript {
     }
 
     dependencies {
-        // These are the lines you added, now correctly placed
-        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'com.android.tools.build:gradle:8.11.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }

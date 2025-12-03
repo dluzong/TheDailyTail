@@ -216,20 +216,39 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> updateUserProfile({
-    required String username,
-    required String name,
+    String? username,
+    String? name,
+    List<String>? tags,
+    String? photoUrl,
+    String? bio,
   }) async {
     final session = _supabase.auth.currentSession;
     if (session == null) return;
 
     try {
-      await _supabase.from('users').update({
-        'username': username,
-        'name': name,
-      }).eq('user_id', session.user.id);
+      // Build update map with only provided fields
+      final Map<String, dynamic> updates = {};
+      if (username != null) updates['username'] = username;
+      if (name != null) updates['name'] = name;
+      if (tags != null) updates['role'] = tags;
+      if (photoUrl != null) updates['photo_url'] = photoUrl;
+      if (bio != null) updates['bio'] = bio;
 
-      // Force a refresh to get the official data from DB
-      await fetchUser(force: true);
+      if (updates.isNotEmpty) {
+        await _supabase.from('users').update(updates).eq('user_id', session.user.id);
+      }
+
+      _user = AppUser(
+        userId: session.user.id,
+        username: username ?? _user?.username ?? '',
+        name: name ?? _user?.name ?? '',
+        roles: tags ?? _user?.roles ?? ['Visitor'],
+        bio: bio ?? _user?.bio ?? '',
+        photoUrl: photoUrl ?? _user?.photoUrl ?? '',
+        following: _user?.following ?? [],
+      );
+      await _saveToCache();
+      notifyListeners();
     } catch (e) {
       debugPrint('ERROR: Failed to update user profile: $e');
       rethrow;
