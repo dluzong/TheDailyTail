@@ -12,7 +12,7 @@ class Post {
   final String title;
   final String content;
   final String category;
-  final String timeAgo;
+  final String createdTs;
   final bool isLiked;
   final int likesCount;
   final int commentCount;
@@ -27,7 +27,7 @@ class Post {
     required this.title,
     required this.content,
     required this.category,
-    required this.timeAgo,
+    required this.createdTs,
     required this.isLiked,
     required this.likesCount,
     required this.commentCount,
@@ -54,7 +54,7 @@ class Post {
       title: map['title'] ?? '',
       content: map['content'] ?? '',
       category: map['category'] ?? 'General',
-      timeAgo: timeago.format(DateTime.parse(map['created_ts'])),
+      createdTs: timeago.format(DateTime.parse(map['created_ts'])),
       isLiked: liked,
       likesCount: likesList.length,
       commentCount: commentsArray.length,
@@ -76,7 +76,7 @@ class Post {
       title: title,
       content: content,
       category: category,
-      timeAgo: timeAgo,
+      createdTs: createdTs,
       isLiked: isLiked ?? this.isLiked,
       likesCount: likesCount ?? this.likesCount,
       commentCount: commentCount,

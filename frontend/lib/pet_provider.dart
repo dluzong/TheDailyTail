@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// --- PET MODEL ---
 class Pet {
   final String petId;
   final String userId;
@@ -10,6 +11,8 @@ class Pet {
   final double weight;
   final String imageUrl;
   final String status;
+  final List<Map<String, dynamic>> savedMeals;
+  final List<Map<String, dynamic>> savedMedications;
 
   Pet({
     required this.petId,
@@ -20,6 +23,8 @@ class Pet {
     required this.weight,
     required this.imageUrl,
     required this.status,
+    required this.savedMeals,
+    required this.savedMedications,
   });
 
   factory Pet.fromMap(Map<String, dynamic> map) {
@@ -32,33 +37,42 @@ class Pet {
       weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
       imageUrl: map['image_url'] ?? '',
       status: map['status'] ?? 'owned',
+      // Safe Parsing for Arrays (Handles both List<String> and List<JSON>)
+      savedMeals: _parseList(map['saved_meals']),
+      savedMedications: _parseList(map['saved_medications']),
     );
   }
 
-  Map<String, dynamic> toMap() => {
-        'pet_id': petId,
-        'user_id': userId,
-        'name': name,
-        'breed': breed,
-        'age': age,
-        'weight': weight,
-        'image_url': imageUrl,
-        'status': status,
-      };
+  // Helper to handle Postgres Arrays safely
+  static List<Map<String, dynamic>> _parseList(dynamic input) {
+    if (input == null) return [];
+    if (input is List) {
+      return input.map((item) {
+        // If it's already a map (JSONB), use it
+        if (item is Map) return Map<String, dynamic>.from(item);
+        // If it's a string (Text Array), wrap it in a map
+        if (item is String) return {'name': item};
+        return {'name': item.toString()};
+      }).toList();
+    }
+    return [];
+  }
 }
 
+// --- PROVIDER ---
 class PetProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
   List<Pet> _pets = [];
   List<Pet> get pets => _pets;
 
-  // Track which pet is currently being viewed in the Dashboard/Logs
   String? _selectedPetId;
   String? get selectedPetId => _selectedPetId;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  // --- STATE MANAGEMENT ---
 
   void selectPet(String petId) {
     _selectedPetId = petId;
@@ -75,6 +89,7 @@ class PetProvider extends ChangeNotifier {
     try {
       final response =
           await _supabase.from('pets').select().eq('user_id', user.id);
+
       _pets = List<Map<String, dynamic>>.from(response)
           .map((data) => Pet.fromMap(data))
           .toList();
@@ -91,9 +106,47 @@ class PetProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> addPet(Pet pet) async {
-    // Implement insert logic here matching your add_pet_screen
-    // ...
-    await fetchPets();
+  // --- SAVED MEALS LOGIC ---
+
+  Future<void> addSavedMeal(String petId, Map<String, dynamic> mealData) async {
+    try {
+      // 1. Get current list
+      final pet = _pets.firstWhere((p) => p.petId == petId);
+      final updatedList = List<Map<String, dynamic>>.from(pet.savedMeals);
+
+      // 2. Add new item
+      updatedList.add(mealData);
+
+      // 3. Update Database
+      await _supabase
+          .from('pets')
+          .update({'saved_meals': updatedList}).eq('pet_id', petId);
+
+      // 4. Refresh local state
+      await fetchPets();
+    } catch (e) {
+      debugPrint("Error saving meal: $e");
+      rethrow;
+    }
+  }
+
+  // --- SAVED MEDICATIONS LOGIC ---
+
+  Future<void> addSavedMedication(
+      String petId, Map<String, dynamic> medData) async {
+    try {
+      final pet = _pets.firstWhere((p) => p.petId == petId);
+      final updatedList = List<Map<String, dynamic>>.from(pet.savedMedications);
+      updatedList.add(medData);
+
+      await _supabase
+          .from('pets')
+          .update({'saved_medications': updatedList}).eq('pet_id', petId);
+
+      await fetchPets();
+    } catch (e) {
+      debugPrint("Error saving medication: $e");
+      rethrow;
+    }
   }
 }

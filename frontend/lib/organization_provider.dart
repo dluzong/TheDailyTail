@@ -3,10 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OrganizationProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
-
+  
   List<Map<String, dynamic>> _allOrgs = [];
   List<Map<String, dynamic>> get allOrgs => _allOrgs;
-
+  
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -49,8 +49,7 @@ class OrganizationProvider extends ChangeNotifier {
     try {
       // calls supabase/postgress function to join org
       await _supabase.rpc('join_organization', params: {'org_id': orgId});
-      // perform refresh
-      await fetchOrganizations();
+      await fetchOrganizations(); // Refresh list to update UI button
     } catch (e) {
       debugPrint('Error joining org: $e');
       rethrow;
@@ -60,7 +59,6 @@ class OrganizationProvider extends ChangeNotifier {
   Future<void> leaveOrg(String orgId) async {
     try {
       await _supabase.rpc('leave_organization', params: {'org_id': orgId});
-      // perform refresh
       await fetchOrganizations();
     } catch (e) {
       debugPrint('Error leaving org: $e');

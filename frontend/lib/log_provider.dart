@@ -6,8 +6,7 @@ class PetLog {
   final String logId;
   final String petId;
   final DateTime date;
-  final String
-      type; // 'meal', 'medication', 'event', 'appointment', 'vaccination'
+  final String type; // 'meal', 'medication', 'event', 'appointment', 'vaccination'
   final Map<String, dynamic> details;
 
   PetLog({
@@ -31,8 +30,9 @@ class PetLog {
 
 class LogProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
-
+  
   // Cache: Map<PetId, List<Log>>
+  // We store logs by Pet ID so we don't mix up data if the user has multiple pets.
   final Map<String, List<PetLog>> _logs = {};
 
   bool _isLoading = false;
@@ -77,7 +77,8 @@ class LogProvider extends ChangeNotifier {
         'log_date': date.toIso8601String(),
         'log_details': details,
       });
-      await fetchLogs(petId); // Refresh local state
+      // Refresh local state immediately
+      await fetchLogs(petId); 
     } catch (e) {
       debugPrint('Error adding log: $e');
       rethrow;
@@ -87,32 +88,38 @@ class LogProvider extends ChangeNotifier {
   Future<void> deleteLog(String logId, String petId) async {
     try {
       await _supabase.from('logs').delete().eq('log_id', logId);
+      // Optimistically remove from local list
       _logs[petId]?.removeWhere((l) => l.logId == logId);
       notifyListeners();
     } catch (e) {
       debugPrint("Error deleting log: $e");
+      // Optionally re-fetch to ensure sync
+      await fetchLogs(petId);
     }
   }
 
   // --- UI HELPERS (Bridging the gap for your existing screens) ---
 
-  // For MealPlanScreen: Get meals for a specific date
+  // 1. Generic Getter (For Dashboard)
+  List<PetLog> getLogsForPet(String petId) {
+    return _logs[petId] ?? [];
+  }
+
+  // 2. For MealPlanScreen: Get meals for a specific date
   List<PetLog> getMealsForDate(String petId, DateTime date) {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
     return (_logs[petId] ?? [])
-        .where((l) =>
-            l.type == 'meal' &&
-            DateFormat('yyyy-MM-dd').format(l.date) == dateStr)
+        .where((l) => l.type == 'meal' && DateFormat('yyyy-MM-dd').format(l.date) == dateStr)
         .toList();
   }
 
-  // For MedicationScreen: Get all medication logs
+  // 3. For MedicationScreen: Get all medication logs
   List<PetLog> getMedications(String petId) {
     return (_logs[petId] ?? []).where((l) => l.type == 'medication').toList();
   }
-
-  // For DailyLogScreen (Calendar): Get events mapped by category
-  // This mimics the structure your DailyLogScreen expects
+  
+  // 4. For DailyLogScreen (Calendar): Get events mapped by category
+  // This mimics the specific structure your calendar widget expects
   Map<String, List<Map<String, String>>> getEventsForCalendar(String petId) {
     final Map<String, List<Map<String, String>>> result = {
       'Appointments': [],
@@ -122,18 +129,20 @@ class LogProvider extends ChangeNotifier {
     };
 
     final logs = _logs[petId] ?? [];
-
+    
     for (var log in logs) {
       // Map DB types to UI Categories
+      // Example: 'appointment' -> 'Appointments', 'event' -> 'Events'
       String category = 'Other';
+      
+      // Capitalize and pluralize simple types
       if (['appointment', 'vaccination', 'event'].contains(log.type)) {
-        // Capitalize for UI
-        category = "${log.type[0].toUpperCase()}${log.type.substring(1)}s";
+        category = "${log.type[0].toUpperCase()}${log.type.substring(1)}s"; 
       }
-
+      
       if (result.containsKey(category)) {
         result[category]!.add({
-          'id': log.logId, // useful for delete
+          'id': log.logId, // useful for delete actions
           'date': DateFormat('yyyy-MM-dd').format(log.date),
           'title': log.details['title'] ?? 'No Title',
           'desc': log.details['desc'] ?? '',

@@ -44,7 +44,7 @@ class AppUser {
     };
   }
 
-  // User Equivalence Opperator (check if user == user)
+  // User Equivalence Operator (check if user == user)
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
