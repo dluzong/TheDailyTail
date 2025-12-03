@@ -94,8 +94,17 @@ class _EditPetPopupState extends State<EditPetPopup> {
       status: widget.pet.status,
     );
 
-    widget.onSave(updatedPet);
-    Navigator.pop(context);
+    try {
+      widget.onSave(updatedPet);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pet updated!')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save: $e')),
+      );
+    }
   }
 
   @override

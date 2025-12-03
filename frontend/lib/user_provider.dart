@@ -154,6 +154,8 @@ class UserProvider extends ChangeNotifier {
     String? username,
     String? name,
     List<String>? tags,
+    String? photoUrl,
+    String? bio,
   }) async {
     final session = _supabase.auth.currentSession;
     if (session == null) return;
@@ -165,6 +167,8 @@ class UserProvider extends ChangeNotifier {
       if (username != null) updates['username'] = username;
       if (name != null) updates['name'] = name;
       if (tags != null) updates['role'] = tags;
+      if (photoUrl != null) updates['photo_url'] = photoUrl;
+      if (bio != null) updates['bio'] = bio;
 
       if (updates.isNotEmpty) {
         await _supabase.from('users').update(updates).eq('user_id', userId);
@@ -175,8 +179,8 @@ class UserProvider extends ChangeNotifier {
         username: username ?? _user?.username ?? '',
         name: name ?? _user?.name ?? '',
         roles: tags ?? _user?.roles ?? ['Visitor'],
-        bio: _user?.bio ?? '',
-        photoUrl: _user?.photoUrl ?? '',
+        bio: bio ?? _user?.bio ?? '',
+        photoUrl: photoUrl ?? _user?.photoUrl ?? '',
         following: _user?.following ?? [],
       );
       await _saveToCache();
