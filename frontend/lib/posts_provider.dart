@@ -2,57 +2,124 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+// --- MODEL ---
+
+class Post {
+  final int postId;
+  final String userId;
+  final String authorName;
+  final String authorPhoto;
+  final String title;
+  final String content;
+  final String category;
+  final String timeAgo;
+  final bool isLiked;
+  final int likesCount;
+  final int commentCount;
+  // We keep the raw array for optimistic updates
+  final List<String> likesArray;
+
+  Post({
+    required this.postId,
+    required this.userId,
+    required this.authorName,
+    required this.authorPhoto,
+    required this.title,
+    required this.content,
+    required this.category,
+    required this.timeAgo,
+    required this.isLiked,
+    required this.likesCount,
+    required this.commentCount,
+    required this.likesArray,
+  });
+
+  factory Post.fromMap(Map<String, dynamic> map, String? currentUserId) {
+    final authorData = map['users'] as Map<String, dynamic>?;
+
+    // Parse Likes (Array of UUIDs)
+    final List<dynamic> rawLikes = map['likes'] ?? [];
+    final List<String> likesList = rawLikes.map((e) => e.toString()).toList();
+    final bool liked =
+        currentUserId != null && likesList.contains(currentUserId);
+
+    // Parse Comments (Array or Count)
+    final List<dynamic> commentsArray = map['comments'] ?? [];
+
+    return Post(
+      postId: map['post_id'],
+      userId: map['user_id'] ?? '',
+      authorName: authorData?['username'] ?? 'Unknown',
+      authorPhoto: authorData?['photo_url'] ?? '',
+      title: map['title'] ?? '',
+      content: map['content'] ?? '',
+      category: map['category'] ?? 'General',
+      timeAgo: timeago.format(DateTime.parse(map['created_ts'])),
+      isLiked: liked,
+      likesCount: likesList.length,
+      commentCount: commentsArray.length,
+      likesArray: likesList,
+    );
+  }
+
+  // Helper for optimistic updates
+  Post copyWith({
+    bool? isLiked,
+    int? likesCount,
+    List<String>? likesArray,
+  }) {
+    return Post(
+      postId: postId,
+      userId: userId,
+      authorName: authorName,
+      authorPhoto: authorPhoto,
+      title: title,
+      content: content,
+      category: category,
+      timeAgo: timeAgo,
+      isLiked: isLiked ?? this.isLiked,
+      likesCount: likesCount ?? this.likesCount,
+      commentCount: commentCount,
+      likesArray: likesArray ?? this.likesArray,
+    );
+  }
+}
+
+// --- PROVIDER ---
+
 class PostsProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
-  List<Map<String, dynamic>> _posts = [];
+  List<Post> _posts = [];
   bool _isLoading = false;
+  bool _hasMore = true; // For pagination
 
-  List<Map<String, dynamic>> get posts => _posts;
+  List<Post> get posts => _posts;
   bool get isLoading => _isLoading;
 
+  // Pagination constants
+  static const int _pageSize = 10;
+
+  // Fetch initial posts (Refresh)
   Future<void> fetchPosts() async {
     _isLoading = true;
+    _hasMore = true;
     notifyListeners();
 
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
 
-      // Select Posts + Join Users table to get Author Name/Photo
-      // We also get a count of comments (approximate via array length or separate query)
-      final response = await _supabase.from('posts').select('''
+      final response = await _supabase
+          .from('posts')
+          .select('''
         *,
         users:user_id (username, photo_url)
-      ''').order('created_ts', ascending: false);
+      ''')
+          .order('created_ts', ascending: false)
+          .range(0, _pageSize - 1); // Fetch first 10
 
-      _posts = List<Map<String, dynamic>>.from(response).map((data) {
-        final authorData = data['users'] as Map<String, dynamic>?;
-        
-        // Parse the 'likes' array (List of UUIDs)
-        final List<dynamic> likesArray = data['likes'] ?? [];
-        final bool isLiked = currentUserId != null && likesArray.contains(currentUserId);
-        
-        // Parse the 'comments' array (if you are using the array column)
-        // OR if you switched to table, we would do a count. 
-        // Based on your schema having 'comments ARRAY', we use that size.
-        final List<dynamic> commentsArray = data['comments'] ?? [];
-
-        return {
-          'post_id': data['post_id'],
-          'user_id': data['user_id'],
-          'author': authorData?['username'] ?? 'Unknown',
-          'author_photo': authorData?['photo_url'],
-          'title': data['title'] ?? 'No Title',
-          'content': data['content'] ?? '',
-          'category': data['category'] ?? 'General',
-          'timeAgo': timeago.format(DateTime.parse(data['created_ts'])),
-          'likes_count': likesArray.length,
-          'likes_array': likesArray, // Keep for updates
-          'comment_count': commentsArray.length,
-          'liked': isLiked,
-        };
-      }).toList();
-
+      final data = List<Map<String, dynamic>>.from(response);
+      _posts = data.map((m) => Post.fromMap(m, currentUserId)).toList();
     } catch (e) {
       debugPrint('Error fetching posts: $e');
     } finally {
@@ -61,40 +128,70 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
-  // --- LIKE LOGIC (Using Array) ---
-  
+  // Load More (Infinite Scroll)
+  Future<void> loadMorePosts() async {
+    if (!_hasMore || _isLoading) return;
+
+    try {
+      final currentUserId = _supabase.auth.currentUser?.id;
+      final start = _posts.length;
+      final end = start + _pageSize - 1;
+
+      final response = await _supabase.from('posts').select('''
+        *,
+        users:user_id (username, photo_url)
+      ''').order('created_ts', ascending: false).range(start, end);
+
+      final data = List<Map<String, dynamic>>.from(response);
+
+      if (data.isEmpty) {
+        _hasMore = false;
+      } else {
+        final newPosts =
+            data.map((m) => Post.fromMap(m, currentUserId)).toList();
+        _posts.addAll(newPosts);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading more posts: $e');
+    }
+  }
+
+  // --- LIKE LOGIC ---
+
   Future<void> toggleLike(int index) async {
     final post = _posts[index];
-    final int postId = post['post_id'];
-    final String? userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return;
+    final currentUserId = _supabase.auth.currentUser?.id;
+    if (currentUserId == null) return;
 
-    // Create a copy of the list so we can modify it
-    final List<dynamic> currentLikes = List.from(post['likes_array']);
-    final bool wasLiked = post['liked'];
+    final newLikesArray = List<String>.from(post.likesArray);
+    final bool newLikedState = !post.isLiked;
 
-    // 1. Optimistic Update (Update UI instantly)
-    if (wasLiked) {
-      currentLikes.remove(userId);
+    // 1. Optimistic Calculation
+    if (newLikedState) {
+      newLikesArray.add(currentUserId);
     } else {
-      currentLikes.add(userId);
+      newLikesArray.remove(currentUserId);
     }
-    
-    // Update local state
-    _posts[index]['liked'] = !wasLiked;
-    _posts[index]['likes_count'] = currentLikes.length;
-    _posts[index]['likes_array'] = currentLikes;
+
+    // 2. Update Local State Immediately
+    _posts[index] = post.copyWith(
+      isLiked: newLikedState,
+      likesCount: newLikesArray.length,
+      likesArray: newLikesArray,
+    );
     notifyListeners();
 
-    // 2. Send to DB (Background)
+    // 3. Sync to DB
     try {
-      await _supabase.from('posts').update({
-        'likes': currentLikes // Send the updated array
-      }).eq('post_id', postId);
+      await _supabase
+          .from('posts')
+          .update({'likes': newLikesArray}).eq('post_id', post.postId);
     } catch (e) {
       debugPrint("Like failed, reverting: $e");
-      // Revert if API fails
-      await fetchPosts(); 
+      // Revert locally if DB fails
+      _posts[index] = post; // Reverts to original object
+      notifyListeners();
     }
   }
 
@@ -109,10 +206,11 @@ class PostsProvider extends ChangeNotifier {
       'title': title,
       'content': content,
       'category': category,
-      'likes': [], 
-      'comments': [], 
+      'likes': [],
+      'comments': [],
     });
-    
-    await fetchPosts(); // Refresh feed to show new post
+
+    // Refresh to show the new post at the top
+    await fetchPosts();
   }
 }

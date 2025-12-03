@@ -12,7 +12,6 @@ class AppUser {
   final List<String> roles;
   final String bio;
   final String photoUrl;
-  final List<String> following;
 
   AppUser({
     required this.userId,
@@ -21,7 +20,6 @@ class AppUser {
     required this.roles,
     required this.bio,
     required this.photoUrl,
-    required this.following
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
@@ -32,7 +30,6 @@ class AppUser {
       roles: List<String>.from(map['role'] ?? []),
       bio: map['bio'] ?? '',
       photoUrl: map['photo_url'] ?? '',
-      following: List<String>.from(map['following'] ?? []),
     );
   }
 
@@ -44,7 +41,6 @@ class AppUser {
       'role': roles,
       'bio': bio,
       'photo_url': photoUrl,
-      'following': following,
     };
   }
 
@@ -132,7 +128,7 @@ class UserProvider extends ChangeNotifier {
       final response = await _supabase
           .from('users')
           .select(
-              'user_id, username, name, bio, photo_url, role, organizations, following') // Explicit columns
+              'user_id, username, name, bio, photo_url, role, organizations')
           .eq('user_id', session.user.id)
           .maybeSingle();
 

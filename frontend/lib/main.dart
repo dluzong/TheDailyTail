@@ -8,6 +8,7 @@ import 'user_provider.dart';
 import 'pet_provider.dart';
 import 'posts_provider.dart';
 import 'organization_provider.dart';
+import 'log_provider.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -32,6 +33,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => UserProvider()),
         ChangeNotifierProvider(create: (context) => PetProvider()),
+        ChangeNotifierProvider(create: (context) => LogProvider()),
         ChangeNotifierProvider(create: (context) => PostsProvider()),
         ChangeNotifierProvider(create: (context) => OrganizationProvider()),
       ],
