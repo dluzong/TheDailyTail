@@ -33,6 +33,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController?.addListener(() {
+      if (mounted) setState(() {});
+    });
     if (!_isOwnProfile) {
       _loadOtherUserData();
     }
@@ -125,8 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           children: [
             ...List.generate(pets.length, (index) {
               final petMap = pets[index];
-              // Create a temporary Pet object just for display
-              // Note: We use the provider's Pet class here, but fill it with mock data
+              // Create a temporary Pet object with mock data
               final displayPet = pet_provider.Pet(
                 petId: 'mock_$index',
                 userId: 'mock_user',
@@ -140,13 +142,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                 savedMedications: [],
               );
 
-              // We need to map this to the widget expected by ExpandablePetCard if it differs
-              // For now, let's assume ExpandablePetCard takes a pet_provider.Pet
               return Padding(
                 padding: EdgeInsets.only(bottom: size.height * 0.02),
                 child: pet_list.ExpandablePetCard(pet: displayPet),
               );
             }),
+            Center(
+              child: Container(
+                width: size.width * 0.2,
+                height: 1.5,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 100),
           ],
         ),
       );
@@ -181,6 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 );
               }),
+              const SizedBox(height: 12),
               Center(
                 child: Container(
                   width: size.width * 0.2,
@@ -188,54 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   color: Colors.grey,
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
-                child: Consumer<UserProvider>(
-                  builder: (context, userProv, _) {
-                    return ElevatedButton(
-                      onPressed: () {
-                        // Map to display models for the AllPetsScreen
-                        final displayPets = petProv.pets
-                            .map((p) => pet_list.Pet(
-                                  name: p.name,
-                                  imageUrl: p.imageUrl,
-                                ))
-                            .toList();
-
-                        final name = userProv.user?.name ?? 'Your name';
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AllPetsScreen(
-                              pets: displayPets,
-                              name: name,
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7496B3),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.08,
-                          vertical: size.height * 0.015,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'View All',
-                        style: GoogleFonts.lato(
-                          fontSize: size.width * 0.04,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+              const SizedBox(height: 50),
             ],
           ),
         );
@@ -490,27 +452,41 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                               const SizedBox(height: 8),
                               Center(
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: size.width * 0.05,
-                                    vertical: size.height * 0.005,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue[50],
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.blue[100]!,
-                                      width: size.width * 0.005,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    roles.join(', '),
-                                    style: GoogleFonts.inknutAntiqua(
-                                      fontSize: 12 * textScale,
-                                      color: const Color.fromARGB(
-                                          255, 67, 145, 213),
-                                    ),
-                                  ),
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  alignment: WrapAlignment.center,
+                                  children: roles.map((role) {
+                                    // Map role to color based on user_settings_dialogs.dart
+                                    final roleColors = {
+                                      'owner': const Color(0xFF2C5F7F),
+                                      'organizer': const Color(0xFF5A8DB3),
+                                      'foster': const Color.fromARGB(255, 118, 178, 230),
+                                      'visitor': const Color.fromARGB(255, 156, 201, 234),
+                                    };
+                                    
+                                    final roleLower = role.toLowerCase();
+                                    final color = roleColors[roleLower] ?? const Color(0xFF7496B3);
+                                    
+                                    return Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: size.width * 0.04,
+                                        vertical: size.height * 0.005,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        role[0].toUpperCase() + role.substring(1),
+                                        style: GoogleFonts.inknutAntiqua(
+                                          fontSize: 12 * textScale,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
                               ),
                             ],
@@ -611,6 +587,59 @@ class _ProfileScreenState extends State<ProfileScreen>
                     builder: (_) => const user_settings.UserSettingsPage(
                       currentIndex: 4,
                       onTabSelected: _noop,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        // Pet View All button
+        if (_tabController != null && _tabController!.index == 1)
+          Positioned(
+            right: size.width * 0.04,
+            bottom: size.height * 0.02,
+            child: FloatingActionButton.extended(
+              heroTag: 'view_all_pets_fab',
+              backgroundColor: const Color(0xFF7496B3),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.view_list),
+              label: Text(
+                'View All',
+                style: GoogleFonts.lato(fontWeight: FontWeight.w600),
+              ),
+              onPressed: () {
+                List<pet_list.Pet> displayPets;
+                String name;
+
+                if (_isOwnProfile) {
+                  final petProv = context.read<pet_provider.PetProvider>();
+                  final userProv = context.read<UserProvider>();
+                  displayPets = petProv.pets
+                      .map((p) => pet_list.Pet(name: p.name, imageUrl: p.imageUrl))
+                      .toList();
+                  name = userProv.user?.name ?? 'Your name';
+                } else {
+                  final otherPets = (_otherUserData?['pets'] as List<dynamic>?) ?? [];
+                  displayPets = otherPets
+                      .map((e) => pet_list.Pet(
+                            name: e['name']?.toString() ?? 'Pet',
+                            imageUrl: e['imageUrl']?.toString() ?? '',
+                          ))
+                      .toList();
+                  final first = _otherUserData?['firstName']?.toString() ?? '';
+                  final last = _otherUserData?['lastName']?.toString() ?? '';
+                  name = (first + ' ' + last).trim();
+                  if (name.isEmpty) {
+                    name = _otherUserData?['username']?.toString() ?? 'User';
+                  }
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AllPetsScreen(
+                      pets: displayPets,
+                      name: name,
                     ),
                   ),
                 );
