@@ -266,9 +266,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         else
           (() {
             final now = DateTime.now();
-            final threeDaysAgo = now.subtract(const Duration(days: 7));
+            final xDaysAgo = now.subtract(const Duration(days: 7));
             final recentLogs = _currentLogs
-                .where((log) => log.date.isAfter(threeDaysAgo))
+                .where((log) => log.date.isAfter(xDaysAgo))
                 .toList();
             if (recentLogs.isEmpty) {
               return const Center(
