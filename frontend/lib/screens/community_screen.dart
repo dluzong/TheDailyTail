@@ -172,9 +172,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              // Navigate to Profile
-                              // Note: ProfileScreen needs updated logic to handle user ID lookup
-                              // For now, passing name logic
                               if (post.authorName != 'You') {
                                 Navigator.push(
                                   context,
@@ -310,13 +307,17 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   }
 
   Widget _buildOrgsList() {
+    // Access UserProvider to check membership status
+    final userProvider = Provider.of<UserProvider>(context);
+    final user = userProvider.user;
+
     return Consumer<OrganizationProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading && provider.allOrgs.isEmpty) {
+      builder: (context, orgProvider, child) {
+        if (orgProvider.isLoading && orgProvider.allOrgs.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final orgs = provider.allOrgs;
+        final orgs = orgProvider.allOrgs;
 
         if (orgs.isEmpty) {
           return Center(
@@ -330,8 +331,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final org = orgs[index];
+            final orgId = org['organization_id'];
+
+            // Safely handle member count (in case column was removed or is null)
             final membersCount = (org['member_id'] as List?)?.length ?? 0;
-            final isMember = provider.isMember(org);
+
+            // Check if current user is a member using the updated UserProvider logic
+            final isMember = user?.isMemberOf(orgId) ?? false;
 
             return InkWell(
               onTap: () {
@@ -340,12 +346,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     org: org,
                     initiallyJoined: isMember,
                     onJoinChanged: (joined) async {
-                      final orgId = org['organization_id'];
                       if (joined) {
-                        await provider.joinOrg(orgId);
+                        await orgProvider.joinOrg(orgId);
                       } else {
-                        await provider.leaveOrg(orgId);
+                        await orgProvider.leaveOrg(orgId);
                       }
+                      // Refresh user data so the list updates immediately
+                      await userProvider.fetchUser(force: true);
                     },
                   ),
                 ));
@@ -407,9 +414,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   }
 
   void _showNewPostModal({int? editIndex}) {
-    // Note: Edit logic requires implementing an 'updatePost' method in provider
-    // For now, this just handles creation.
-
     _titleController.clear();
     _contentController.clear();
     _selectedCategory = 'General';
@@ -481,10 +485,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 onChanged: (v) {
                   if (v != null) {
                     setState(() => _selectedCategory = v);
-                    // Force rebuild of modal only? No, need stateful builder if inside stateless widget.
-                    // But we are in a stateful widget method, so setState rebuilds the parent screen,
-                    // which might not rebuild the modal contents dynamically without StatefulBuilder.
-                    // Ideally use StatefulBuilder here.
                   }
                 },
               ),
