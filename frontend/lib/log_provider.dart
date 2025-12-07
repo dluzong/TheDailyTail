@@ -142,7 +142,7 @@ class LogProvider extends ChangeNotifier {
       if (['appointment', 'vaccination', 'event'].contains(log.type)) {
         category = "${log.type[0].toUpperCase()}${log.type.substring(1)}s";
       } else if (log.type == 'meal') {
-        title = "Meal: ${log.details['food_name'] ?? 'Unknown'}";
+        title = "Meal: ${log.details['name'] ?? 'Unknown'}";
         desc = "Amount: ${log.details['amount'] ?? ''}";
       } else if (log.type == 'medication') {
         title = "Meds: ${log.details['name'] ?? 'Unknown'}";

@@ -77,7 +77,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               petId: petId!,
               type: 'meal',
               date: selectedDate,
-              details: {'food_name': name, 'amount': amount},
+              details: {'name': name, 'amount': amount},
             );
             // 2. Save definition if it's new (Optional, but good UX)
             Provider.of<PetProvider>(context, listen: false)
@@ -289,7 +289,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                             fontWeight: FontWeight.bold),
                                       ),
                                       content: Text(
-                                        "Remove '${log.details['food_name'] ?? 'meal'}' from this day?",
+                                        "Remove '${log.details['name'] ?? 'meal'}' from this day?",
                                         style: GoogleFonts.inknutAntiqua(),
                                       ),
                                       actions: [
@@ -322,7 +322,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                       content: Text(
-                                          'Deleted ${log.details['food_name'] ?? 'meal'}')),
+                                          'Deleted ${log.details['name'] ?? 'meal'}')),
                                 );
                               },
 
@@ -361,7 +361,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        log.details['food_name']?.toString() ??
+                                        log.details['name']?.toString() ??
                                             'Meal',
                                         style: GoogleFonts.inknutAntiqua(
                                           fontSize: 18,

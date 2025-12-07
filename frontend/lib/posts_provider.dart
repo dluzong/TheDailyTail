@@ -43,8 +43,11 @@ class Post {
     final bool liked =
         currentUserId != null && likesList.contains(currentUserId);
 
-    // Parse Comments (Array or Count)
-    final List<dynamic> commentsArray = map['comments'] ?? [];
+    // Parse Comments count from joined table
+    final commentsData = map['comments'] as List<dynamic>?;
+    final int commentCount = commentsData != null && commentsData.isNotEmpty
+        ? (commentsData[0]['count'] as int? ?? 0)
+        : 0;
 
     return Post(
       postId: map['post_id'],
@@ -57,7 +60,7 @@ class Post {
       createdTs: timeago.format(DateTime.parse(map['created_ts'])),
       isLiked: liked,
       likesCount: likesList.length,
-      commentCount: commentsArray.length,
+      commentCount: commentCount,
       likesArray: likesList,
     );
   }
@@ -113,7 +116,8 @@ class PostsProvider extends ChangeNotifier {
           .from('posts')
           .select('''
         *,
-        users:user_id (username, photo_url)
+        users:user_id (username, photo_url),
+        comments(count)
       ''')
           .order('created_ts', ascending: false)
           .range(0, _pageSize - 1); // Fetch first 10
@@ -139,7 +143,8 @@ class PostsProvider extends ChangeNotifier {
 
       final response = await _supabase.from('posts').select('''
         *,
-        users:user_id (username, photo_url)
+        users:user_id (username, photo_url),
+        comments(count)
       ''').order('created_ts', ascending: false).range(start, end);
 
       final data = List<Map<String, dynamic>>.from(response);
@@ -208,6 +213,7 @@ class PostsProvider extends ChangeNotifier {
       'category': category,
       'likes': [],
       'comments': [],
+      
     });
 
     // Refresh to show the new post at the top
