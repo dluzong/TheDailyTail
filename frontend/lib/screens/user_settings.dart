@@ -35,9 +35,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   bool _isDirty = false;
 
   // User tags/roles selection (local state; persisted in future)
-  final List<String> _availableTags = const ['owner', 'organizer', 'foster', 'visitor'];
+  final List<String> _availableTags = const [
+    'owner',
+    'organizer',
+    'foster',
+    'visitor'
+  ];
   List<String> _selectedTags = ['visitor'];
-  
+
   String? _profilePicturePath;
   final ImagePicker _picker = ImagePicker();
   String _bio = '';
@@ -49,29 +54,37 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   @override
   void initState() {
     super.initState();
-    final up = Provider.of<UserProvider>(context, listen: false);
-    final user = up.user;
-    _name = user?.name ?? _name;
-    _username = user?.username ?? _username;
-    _profilePicturePath = user?.photoUrl.isNotEmpty == true ? user?.photoUrl : null;
-    _bio = user?.bio ?? '';
-    
-    // Initialize selected tags from user's current roles (normalize to lowercase)
-    final userRoles = user?.roles ?? [];
-    _selectedTags = userRoles
-        .map((role) => role.toLowerCase())
-        .where((role) => _availableTags.contains(role))
-        .toList();
-    if (_selectedTags.isEmpty) {
-      _selectedTags = ['visitor']; // Default to visitor if no valid tags
+    _nameController = TextEditingController();
+    _usernameController = TextEditingController();
+    _bioController = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = Provider.of<UserProvider>(context).user;
+
+    if (user != null && !_isDirty) {
+      _name = user.name;
+      _username = user.username;
+      _bio = user.bio;
+      _profilePicturePath = user.photoUrl.isNotEmpty ? user.photoUrl : null;
+
+      if (_nameController.text != _name) _nameController.text = _name;
+      if (_usernameController.text != _username) {
+        _usernameController.text = _username;
+      }
+      if (_bioController.text != _bio) _bioController.text = _bio;
+
+      final userRoles = user.roles;
+      _selectedTags = userRoles
+          .map((role) => role.toLowerCase())
+          .where((role) => _availableTags.contains(role))
+          .toList();
+      if (_selectedTags.isEmpty) {
+        _selectedTags = ['visitor'];
+      }
     }
-
-    _name = user?.name ?? '';
-    _username = user?.username ?? '';
-
-    _nameController = TextEditingController(text: _name);
-    _usernameController = TextEditingController(text: _username);
-    _bioController = TextEditingController(text: _bio);
   }
 
   List<pet_provider.Pet> get _pets {
@@ -103,7 +116,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         .updateUserProfile(
       username: _username,
       name: _name,
-      tags: _selectedTags,
+      roles: _selectedTags,
       photoUrl: _profilePicturePath,
       bio: _bio,
     )
@@ -151,7 +164,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         weight: result['weight'] ?? 0.0,
         imageUrl: result['imageUrl'] as String? ?? '',
         savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
-        savedMedications: result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
+        savedMedications:
+            result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
         status: result['status'] as String? ?? 'owned',
       );
 
@@ -254,7 +268,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                       bottom: 0,
                       child: IconButton(
                         iconSize: 32.0,
-                        icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                        icon:
+                            const Icon(Icons.arrow_back, color: Colors.black87),
                         onPressed: () => Navigator.of(context).pop(),
                         tooltip: 'Back',
                       ),
@@ -273,7 +288,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                   ],
                 ),
               ),
-            
+
               const SizedBox(height: 12),
 
               // Settings Tiles
@@ -329,7 +344,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.logout, color: Color(0xFF7496B3), size: 28),
+                          const Icon(Icons.logout,
+                              color: Color(0xFF7496B3), size: 28),
                           const SizedBox(width: 16),
                           Text(
                             'Log Out',
@@ -374,7 +390,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             color: const Color(0xFF394957),
           ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Color(0xFF7496B3), size: 42),
+        trailing:
+            const Icon(Icons.chevron_right, color: Color(0xFF7496B3), size: 42),
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       ),

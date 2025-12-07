@@ -429,10 +429,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       totalPosts =
           postsProvider.posts.where((post) => post.authorName == 'You').length;
 
-      // TODO: Implement Followers count in DB. For now hardcoded or 0.
-      totalFollowers = 86;
-
-      // Using the real 'following' list from UserProvider
+      totalFollowers = appUser?.followers.length ?? 0;
       totalFollowing = appUser?.following.length ?? 0;
     } else {
       name =
@@ -489,29 +486,57 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Center(
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: size.width * 0.05,
-                                    vertical: size.height * 0.005,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue[50],
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.blue[100]!,
-                                      width: size.width * 0.005,
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                alignment: WrapAlignment.center,
+                                children: roles.map((role) {
+                                  // Color mapping for each role
+                                  Color tagColor;
+                                  switch (role.toLowerCase()) {
+                                    case 'owner':
+                                      tagColor = const Color(
+                                          0xFF2C5F7F); // deep navy blue
+                                      break;
+                                    case 'organizer':
+                                      tagColor = const Color(
+                                          0xFF5A8DB3); // medium blue
+                                      break;
+                                    case 'foster':
+                                      tagColor = const Color.fromARGB(
+                                          255, 118, 178, 230); // light sky blue
+                                      break;
+                                    case 'visitor':
+                                      tagColor = const Color.fromARGB(
+                                          255, 156, 201, 234); // pale blue
+                                      break;
+                                    default:
+                                      tagColor = const Color(
+                                          0xFF7496B3); // default blue
+                                  }
+
+                                  return Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: size.width * 0.04,
+                                      vertical: size.height * 0.005,
                                     ),
-                                  ),
-                                  child: Text(
-                                    roles.join(', '),
-                                    style: GoogleFonts.inknutAntiqua(
-                                      fontSize: 12 * textScale,
-                                      color: const Color.fromARGB(
-                                          255, 67, 145, 213),
+                                    decoration: BoxDecoration(
+                                      color: tagColor,
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
-                                  ),
-                                ),
+                                    child: Text(
+                                      role.isNotEmpty
+                                          ? role[0].toUpperCase() +
+                                              role.substring(1).toLowerCase()
+                                          : role,
+                                      style: GoogleFonts.inknutAntiqua(
+                                        fontSize: 12 * textScale,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
                             ],
                           ),
@@ -667,38 +692,143 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showFollowersDialog(BuildContext context) {
+    final userProvider = context.read<UserProvider>();
+    final isOwn = _isOwnProfile;
+
+    Future<List<Map<String, dynamic>>> fetchFollowers() async {
+      if (isOwn) {
+        final user = userProvider.user;
+        final followerIds = user?.followers ?? [];
+        if (followerIds.isEmpty) return [];
+        return await userProvider.fetchUsersByIds(followerIds);
+      } else {
+        // For other users, we don't have the ID list in the mock data yet
+        // So we return empty list for now
+        return [];
+      }
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Followers"),
-        content: const Text("Follower list implementation coming soon!"),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close"))
-        ],
+      builder: (context) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.75,
+            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 400),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: const [
+                BoxShadow(
+                    color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Followers',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inknutAntiqua(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF394957),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: fetchFollowers(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                            child: Text('Error loading users',
+                                style: GoogleFonts.lato(color: Colors.red)));
+                      }
+
+                      final followers = snapshot.data ?? [];
+
+                      if (followers.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'No followers yet.',
+                            style: GoogleFonts.lato(color: Colors.grey[600]),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: followers.length,
+                        itemBuilder: (context, index) {
+                          final user = followers[index];
+                          final name = user['name'] ?? 'Unknown';
+                          final username = user['username'] ?? '';
+
+                          return ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Color(0xFF7496B3),
+                              child: Icon(Icons.person, color: Colors.white),
+                            ),
+                            title: Text(
+                              username,
+                              style: GoogleFonts.inknutAntiqua(
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(
+                              name,
+                              style: GoogleFonts.lato(color: Colors.grey[600]),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   void _showFollowingDialog(BuildContext context) {
-    List<Map<String, String>> following;
+    final userProvider = context.read<UserProvider>();
+    final isOwn = _isOwnProfile;
 
-    if (_isOwnProfile) {
-      // Use real data from UserProvider
-      final user = context.read<UserProvider>().user;
-      final followingIds = user?.following ?? [];
-
-      // TODO: Fetch user details for these IDs. For now, display IDs or placeholder.
-      following = followingIds
-          .map((id) => {
-                'fullName': 'User ID',
-                'username': id.substring(0, 8),
-              })
-          .toList();
-    } else {
-      // Mock for others
-      following = [];
+    Future<List<Map<String, dynamic>>> fetchFollowing() async {
+      if (isOwn) {
+        final user = userProvider.user;
+        final followingIds = user?.following ?? [];
+        if (followingIds.isEmpty) return [];
+        return await userProvider.fetchUsersByIds(followingIds);
+      } else {
+        // For other users, we don't have the ID list in the mock data yet
+        // So we return empty list for now
+        return [];
+      }
     }
 
     showDialog(
@@ -747,36 +877,57 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const Divider(height: 2, color: Color(0xFF5F7C94)),
                 const SizedBox(height: 12),
                 Flexible(
-                  child: following.isEmpty
-                      ? Center(
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: fetchFollowing(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                            child: Text('Error loading users',
+                                style: GoogleFonts.lato(color: Colors.red)));
+                      }
+
+                      final following = snapshot.data ?? [];
+
+                      if (following.isEmpty) {
+                        return Center(
                           child: Text(
                             'Not following anyone yet.',
                             style: GoogleFonts.lato(color: Colors.grey[600]),
                           ),
-                        )
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: following.length,
-                          itemBuilder: (context, index) {
-                            final user = following[index];
-                            return ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Color(0xFF7496B3),
-                                child: Icon(Icons.person, color: Colors.white),
-                              ),
-                              title: Text(
-                                user['username']!,
-                                style: GoogleFonts.inknutAntiqua(
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              subtitle: Text(
-                                user['fullName']!,
-                                style:
-                                    GoogleFonts.lato(color: Colors.grey[600]),
-                              ),
-                            );
-                          },
-                        ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: following.length,
+                        itemBuilder: (context, index) {
+                          final user = following[index];
+                          final name = user['name'] ?? 'Unknown';
+                          final username = user['username'] ?? '';
+
+                          return ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Color(0xFF7496B3),
+                              child: Icon(Icons.person, color: Colors.white),
+                            ),
+                            title: Text(
+                              username,
+                              style: GoogleFonts.inknutAntiqua(
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(
+                              name,
+                              style: GoogleFonts.lato(color: Colors.grey[600]),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
