@@ -13,7 +13,6 @@ class AppUser {
   final String bio;
   final String photoUrl;
   final List<String> following;
-  final Map<String, String> organizationRoles;
 
   AppUser({
     required this.userId,
@@ -23,7 +22,6 @@ class AppUser {
     required this.bio,
     required this.photoUrl,
     required this.following,
-    required this.organizationRoles,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
@@ -37,17 +35,6 @@ class AppUser {
       parsedFollowing = List<String>.from(map['following']);
     }
 
-    Map<String, String> parsedOrgRoles = {};
-    if (map['organization_members'] != null) {
-      final List<dynamic> membersData = map['organization_members'];
-      for (var m in membersData) {
-        if (m['organization_id'] != null) {
-          // Default to 'member' if role is null
-          parsedOrgRoles[m['organization_id']] = m['role'] ?? 'member';
-        }
-      }
-    }
-
     return AppUser(
       userId: map['user_id'] ?? '',
       name: map['name'] ?? '',
@@ -56,7 +43,6 @@ class AppUser {
       bio: map['bio'] ?? '',
       photoUrl: map['photo_url'] ?? '',
       following: parsedFollowing,
-      organizationRoles: parsedOrgRoles,
     );
   }
 
@@ -69,7 +55,6 @@ class AppUser {
       'bio': bio,
       'photo_url': photoUrl,
       'following': following,
-      'organization_roles': organizationRoles,
     };
   }
 
@@ -77,30 +62,16 @@ class AppUser {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    
-    // Helper to compare maps
-    bool mapsEqual(Map a, Map b) {
-      if (a.length != b.length) return false;
-      return a.keys.every((k) => b.containsKey(k) && a[k] == b[k]);
-    }
-
     return other is AppUser &&
         other.userId == userId &&
         other.username == username &&
         other.name == name &&
         other.bio == bio &&
-        other.photoUrl == photoUrl &&
-        mapsEqual(other.organizationRoles, organizationRoles);
+        other.photoUrl == photoUrl;
   }
 
   @override
   int get hashCode => userId.hashCode ^ username.hashCode;
-  
-  // Helper to check if user is a member of a specific org
-  bool isMemberOf(String orgId) => organizationRoles.containsKey(orgId);
-  
-  // Helper to check if user is an admin of a specific org
-  bool isAdminOf(String orgId) => organizationRoles[orgId] == 'admin';
 }
 
 class UserProvider extends ChangeNotifier {
@@ -125,6 +96,8 @@ class UserProvider extends ChangeNotifier {
 
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
       final event = data.event;
+
+      // only fetch or clear on sign in/out or initial session
       if (event == AuthChangeEvent.signedIn ||
           event == AuthChangeEvent.initialSession) {
         fetchUser();
@@ -140,12 +113,19 @@ class UserProvider extends ChangeNotifier {
     super.dispose();
   }
 
+  // Fetch user data
   Future<void> fetchUser({bool force = false}) async {
-    if (_isFetching) return;
+    if (_isFetching) {
+      debugPrint('WARNING: Fetch skipped: Already fetching.');
+      return;
+    }
 
     if (!force && _lastFetchTime != null) {
       final difference = DateTime.now().difference(_lastFetchTime!);
-      if (difference.inSeconds < 2) return;
+      if (difference.inSeconds < 2) {
+        debugPrint('WARNING: Fetch skipped: Debounced (too soon).');
+        return;
+      }
     }
 
     final session = _supabase.auth.currentSession;
@@ -158,9 +138,10 @@ class UserProvider extends ChangeNotifier {
 
     try {
       debugPrint('INFO: Fetching user profile for: ${session.user.id}');
-      // 1. Fetch user data
-      // 2. Join 'follows' to get following list
-      // 3. Join 'organization_members' to get memberships and roles
+
+      // 1. Fetches standard user columns.
+      // 2. Joins 'follows' table using the foreign key 'follower_id'.
+      // 3. Selects 'followee_id' from that table.
       final response = await _supabase.from('users').select('''
             user_id, 
             username, 
@@ -168,8 +149,8 @@ class UserProvider extends ChangeNotifier {
             bio, 
             photo_url, 
             role, 
-            follows!follower_id(followee_id),
-            organization_members(organization_id, role)
+            organizations,
+            follows!follower_id(followee_id) 
           ''').eq('user_id', session.user.id).maybeSingle();
 
       if (response == null) {
@@ -209,7 +190,6 @@ class UserProvider extends ChangeNotifier {
       final jsonStr = prefs.getString(_cacheKey);
       if (jsonStr != null) {
         final Map<String, dynamic> map = json.decode(jsonStr);
-        // Handle cache migration manually if structure changed, or just try/catch
         _user = AppUser.fromMap(map);
         notifyListeners();
         debugPrint("SUCCESS: Loaded user from cache.");
@@ -236,19 +216,39 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> updateUserProfile({
-    required String username,
-    required String name,
+    String? username,
+    String? name,
+    List<String>? tags,
+    String? photoUrl,
+    String? bio,
   }) async {
     final session = _supabase.auth.currentSession;
     if (session == null) return;
 
     try {
-      await _supabase.from('users').update({
-        'username': username,
-        'name': name,
-      }).eq('user_id', session.user.id);
+      // Build update map with only provided fields
+      final Map<String, dynamic> updates = {};
+      if (username != null) updates['username'] = username;
+      if (name != null) updates['name'] = name;
+      if (tags != null) updates['role'] = tags;
+      if (photoUrl != null) updates['photo_url'] = photoUrl;
+      if (bio != null) updates['bio'] = bio;
 
-      await fetchUser(force: true);
+      if (updates.isNotEmpty) {
+        await _supabase.from('users').update(updates).eq('user_id', session.user.id);
+      }
+
+      _user = AppUser(
+        userId: session.user.id,
+        username: username ?? _user?.username ?? '',
+        name: name ?? _user?.name ?? '',
+        roles: tags ?? _user?.roles ?? ['Visitor'],
+        bio: bio ?? _user?.bio ?? '',
+        photoUrl: photoUrl ?? _user?.photoUrl ?? '',
+        following: _user?.following ?? [],
+      );
+      await _saveToCache();
+      notifyListeners();
     } catch (e) {
       debugPrint('ERROR: Failed to update user profile: $e');
       rethrow;
