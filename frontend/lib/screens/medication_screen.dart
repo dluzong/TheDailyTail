@@ -487,61 +487,90 @@ class _MedicationScreenState extends State<MedicationScreen> {
                       Column(
                         children: savedMeds.asMap().entries.map((entry) {
                           final med = entry.value;
-                          // In the future, you can implement 'delete saved med' here
-                          return GestureDetector(
-                            onTap: () => _promptLogForToday(med),
-                            child: Container(
-                              width: double.infinity,
+                          final idx = entry.key;
+                          return Dismissible(
+                            key: Key("saved_med_${idx}_${med['name'] ?? ''}"),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
                               margin: const EdgeInsets.symmetric(vertical: 8),
-                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Colors.redAccent,
                                 borderRadius: BorderRadius.circular(14),
-                                border:
-                                    Border.all(color: const Color(0xFFBCD9EC)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 5,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
                               ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          med['name'] ?? 'Medication',
-                                          style: GoogleFonts.inknutAntiqua(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        if (med['dose'] != null)
+                              child: const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (_) async {
+                              return _confirmDialog(
+                                title: 'Delete medication?',
+                                message: "Remove '${med['name'] ?? 'medication'}' from your list?",
+                                confirmText: 'Delete',
+                              );
+                            },
+                            onDismissed: (_) async {
+                              final petId = context.read<PetProvider>().selectedPetId;
+                              if (petId != null) {
+                                await context
+                                    .read<PetProvider>()
+                                    .removeSavedMedication(petId, idx);
+                              }
+                            },
+                            child: GestureDetector(
+                              onTap: () => _promptLogForToday(med),
+                              child: Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border:
+                                      Border.all(color: const Color(0xFFBCD9EC)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            'Dose: ${med['dose']}',
+                                            med['name'] ?? 'Medication',
                                             style: GoogleFonts.inknutAntiqua(
-                                                fontSize: 12),
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        if (med['frequency'] != null)
-                                          Text(
-                                            'Freq: ${med['frequency']}',
-                                            style: GoogleFonts.inknutAntiqua(
-                                                fontSize: 12,
-                                                color: Colors.grey),
-                                          ),
-                                      ],
+                                          if (med['dose'] != null)
+                                            Text(
+                                              'Dose: ${med['dose']}',
+                                              style: GoogleFonts.inknutAntiqua(
+                                                  fontSize: 12),
+                                            ),
+                                          if (med['frequency'] != null)
+                                            Text(
+                                              'Freq: ${med['frequency']}',
+                                              style: GoogleFonts.inknutAntiqua(
+                                                  fontSize: 12,
+                                                  color: Colors.grey),
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const Icon(Icons.add_circle_outline,
-                                      color: Color(0xFF7AA9C8)),
-                                ],
+                                    const Icon(Icons.add_circle_outline,
+                                        color: Color(0xFF7AA9C8)),
+                                  ],
+                                ),
                               ),
                             ),
                           );

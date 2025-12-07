@@ -49,6 +49,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   void _openMealPopup() {
     final petId = context.read<PetProvider>().selectedPetId;
+    if (petId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a pet first.')),
+      );
+      return;
+    }
     // Get the actual Pet object to access savedMeals
     final currentPet =
         context.read<PetProvider>().pets.firstWhere((p) => p.petId == petId);
@@ -74,7 +80,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           onSave: (name, amount) {
             // 1. Log it
             Provider.of<LogProvider>(context, listen: false).addLog(
-              petId: petId!,
+              petId: petId,
               type: 'meal',
               date: selectedDate,
               details: {'food_name': name, 'amount': amount},
@@ -82,6 +88,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             // 2. Save definition if it's new (Optional, but good UX)
             Provider.of<PetProvider>(context, listen: false)
                 .addSavedMeal(petId, {'name': name, 'amount': amount});
+          },
+          onDeleteRecent: (index) async {
+            await context.read<PetProvider>().removeSavedMeal(petId, index);
           },
         );
       },

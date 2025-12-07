@@ -161,6 +161,24 @@ class PetProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> removeSavedMeal(String petId, int index) async {
+    try {
+      final pet = _pets.firstWhere((p) => p.petId == petId);
+      final updatedList = List<Map<String, dynamic>>.from(pet.savedMeals);
+      if (index < 0 || index >= updatedList.length) return;
+      updatedList.removeAt(index);
+
+      await _supabase
+          .from('pets')
+          .update({'saved_meals': updatedList}).eq('pet_id', petId);
+
+      await fetchPets();
+    } catch (e) {
+      debugPrint("Error removing meal: $e");
+      rethrow;
+    }
+  }
+
   // --- SAVED MEDICATIONS LOGIC ---
 
   Future<void> addSavedMedication(
@@ -177,6 +195,24 @@ class PetProvider extends ChangeNotifier {
       await fetchPets();
     } catch (e) {
       debugPrint("Error saving medication: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> removeSavedMedication(String petId, int index) async {
+    try {
+      final pet = _pets.firstWhere((p) => p.petId == petId);
+      final updatedList = List<Map<String, dynamic>>.from(pet.savedMedications);
+      if (index < 0 || index >= updatedList.length) return;
+      updatedList.removeAt(index);
+
+      await _supabase
+          .from('pets')
+          .update({'saved_medications': updatedList}).eq('pet_id', petId);
+
+      await fetchPets();
+    } catch (e) {
+      debugPrint("Error removing medication: $e");
       rethrow;
     }
   }
