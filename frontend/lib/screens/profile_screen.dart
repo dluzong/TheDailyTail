@@ -414,6 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     // Get user data based on profile type
     String name;
     String username;
+    String? profileImageUrl;
     List<String> roles;
     int totalPosts, totalFollowers, totalFollowing;
 
@@ -421,6 +422,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       final appUser = context.watch<UserProvider>().user;
       name = appUser?.name ?? 'Your Name';
       username = appUser?.username ?? 'username';
+      profileImageUrl = appUser?.photoUrl;
       final rolesList = appUser?.roles;
       roles =
           (rolesList == null || rolesList.isEmpty) ? ['Visitor'] : rolesList;
@@ -436,6 +438,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           '${_otherUserData?['firstName'] ?? ''} ${_otherUserData?['lastName'] ?? ''}'
               .trim();
       username = _otherUserData?['username'] ?? '';
+      profileImageUrl = _otherUserData?['photoUrl'];
       roles = [_otherUserData?['role'] ?? 'User'];
       totalPosts = (_otherUserData?['totalPosts'] as int?) ?? 0;
       totalFollowers = (_otherUserData?['totalFollowers'] as int?) ?? 0;
@@ -458,11 +461,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                       CircleAvatar(
                         radius: avatarSize / 2,
                         backgroundColor: const Color(0xFF7496B3),
-                        child: Icon(
+                        // If URL exists and is not empty, load image. Otherwise null.
+                        backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
+                            ? NetworkImage(profileImageUrl!)
+                            : null,
+                        // Only show the Icon child if we DON'T have an image
+                        child: (profileImageUrl == null || profileImageUrl!.isEmpty)
+                            ? Icon(
                           Icons.person,
                           color: Colors.white,
                           size: avatarSize * 0.5,
-                        ),
+                        )
+                            : null,
                       ),
                       Expanded(
                         child: Padding(

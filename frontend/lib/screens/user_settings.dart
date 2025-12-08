@@ -10,6 +10,9 @@ import 'user_settings_dialogs.dart';
 import 'launch_screen.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
+import 'dart:io';
+
+
 class UserSettingsPage extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
@@ -141,6 +144,135 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         );
       }
     });
+  }
+
+  /// Uploads the local file to Supabase Storage and returns the Public URL
+  Future<String?> _uploadProfileImage(File imageFile) async {
+    try {
+      final userId = _supabase.auth.currentUser!.id;
+      // Create a unique file path: user_id/timestamp.jpg
+      final fileExt = imageFile.path.split('.').last;
+      final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+      // Upload to the 'avatars' bucket
+      await _supabase.storage.from('avatars').upload(
+        fileName,
+        imageFile,
+        fileOptions: const FileOptions(upsert: true),
+      );
+
+      // Get the Public URL
+      final imageUrl =
+      _supabase.storage.from('avatars').getPublicUrl(fileName);
+
+      return imageUrl;
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e')),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _deleteOldImage(String oldUrl) async {
+    try {
+      // oldUrl looks like: https://[project].supabase.co/storage/v1/object/public/avatars/[user_id]/[timestamp].jpg
+
+      // 1. Parse the URL to find the path relative to the bucket
+      final uri = Uri.parse(oldUrl);
+      final pathSegments = uri.pathSegments;
+      // pathSegments usually looks like: ['storage', 'v1', 'object', 'public', 'avatars', 'user_id', 'filename.jpg']
+
+      // We need everything after 'avatars'
+      final avatarIndex = pathSegments.indexOf('avatars');
+      if (avatarIndex == -1 || avatarIndex + 1 >= pathSegments.length) return;
+
+      final filePath = pathSegments.sublist(avatarIndex + 1).join('/');
+
+      // 2. Delete the file
+      if (filePath.isNotEmpty) {
+        await _supabase.storage.from('avatars').remove([filePath]);
+        debugPrint('Deleted old image: $filePath');
+      }
+    } catch (e) {
+      // Don't stop the app if deletion fails, just log it
+      debugPrint('Error deleting old image: $e');
+    }
+  }
+
+  Future<void> _saveDataOnly() async {
+    _username = _usernameController.text.trim();
+    _name = _nameController.text.trim();
+    _bio = _bioController.text.trim();
+
+    // 1. HANDLE IMAGE UPLOAD
+    String? finalPhotoUrl = _profilePicturePath;
+
+    // If the path exists and DOES NOT start with http, it's a local file on the phone
+    if (_profilePicturePath != null && !_profilePicturePath!.startsWith('http')) {
+
+      // 1. CAPTURE THE OLD URL (if it exists)
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final String oldPhotoUrl = userProvider.user?.photoUrl ?? '';
+
+      // Show a loading snackbar because upload takes time
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+      );
+
+      final file = File(_profilePicturePath!);
+      final uploadedUrl = await _uploadProfileImage(file);
+
+      if (uploadedUrl == null) {
+        // If upload failed, STOP. Do not save to DB.
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Profile NOT saved. Image upload failed.'),
+                backgroundColor: Colors.red
+            ),
+          );
+        }
+        return; // <--- Exit the function immediately
+      }
+      // If success, delete old image and user new URL
+      if (oldPhotoUrl.isNotEmpty && oldPhotoUrl.startsWith('http')) {
+        await _deleteOldImage(oldPhotoUrl);
+      }
+
+      finalPhotoUrl = uploadedUrl;
+      setState(() => _profilePicturePath = finalPhotoUrl);
+    }
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    try {
+      // 2. UPDATE DATABASE WITH FINAL URL
+      await userProvider.updateUserProfile(
+        username: _username,
+        name: _name,
+        roles: _selectedTags,
+        photoUrl: finalPhotoUrl, // Pass the Web URL, not the local path
+        bio: _bio,
+      );
+
+      if (mounted) {
+        setState(() => _isDirty = false);
+        // Optional success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _addNewPet() async {
@@ -401,10 +533,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   void _showAccountInfoDialog() {
     UserSettingsDialogs.showAccountInfoDialog(
       context: context,
-      formKey: _formKey,
+      formKey: GlobalKey<FormState>(), // Use a fresh key for the dialog validation
       nameController: _nameController,
       usernameController: _usernameController,
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly, // <--- CHANGE THIS: Pass the save function
     );
   }
 
@@ -418,7 +550,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           _profilePicturePath = path;
         });
       },
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly,
     );
   }
 
@@ -426,7 +558,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     UserSettingsDialogs.showAboutDialog(
       context: context,
       bioController: _bioController,
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly,
     );
   }
 
@@ -440,7 +572,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           _selectedTags = tags;
         });
       },
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly,
     );
   }
 
