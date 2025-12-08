@@ -5,8 +5,15 @@ class AddMeal extends StatefulWidget {
   final List<Map<String, String>> recentMeals;
   final Function(String name, String amount) onSave;
   final Function(String name, String amount)? onSaveToFavorites;
+  final Future<void> Function(int index)? onDeleteRecent;
 
-  const AddMeal({super.key, required this.recentMeals, required this.onSave, required this.onSaveToFavorites});
+  const AddMeal({
+    super.key,
+    required this.recentMeals,
+    required this.onSave,
+    this.onSaveToFavorites,
+    this.onDeleteRecent,
+  });
 
   @override
   State<AddMeal> createState() => _AddMealState();
@@ -68,45 +75,105 @@ class _AddMealState extends State<AddMeal> {
                   final meal = widget.recentMeals[i];
                   final isSelected = highlightedIndex == i;
 
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        highlightedIndex = i;
-                        selectedName = meal["name"]!;
-                        selectedAmount = meal["amount"]!;
-                        nameController.text = selectedName;
-                        amountController.text = selectedAmount;
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                          ? const Color(0xFF7AA9C8).withValues(alpha: 0.28)
-                          : const Color(0xFFF6F6F6),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color:
-                              isSelected ? const Color(0xFF7AA9C8) : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            meal["name"]!,
-                            style: GoogleFonts.inknutAntiqua(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                  return Dismissible(
+                    key: Key('recent_meal_${i}_${meal["name"]}'),
+                    direction: DismissDirection.endToStart,
+                    confirmDismiss: (_) async {
+                      if (widget.onDeleteRecent == null) return false;
+                      return await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                              title: const Text('Delete meal?'),
+                              content: Text(
+                                "Remove '${meal["name"]}' from recent meals?",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
                             ),
+                          ) ??
+                          false;
+                    },
+                    onDismissed: (_) async {
+                      if (widget.onDeleteRecent != null) {
+                        await widget.onDeleteRecent!(i);
+                        if (mounted) {
+                          setState(() {
+                            widget.recentMeals.removeAt(i);
+                            if (highlightedIndex == i) {
+                              highlightedIndex = null;
+                              selectedName = '';
+                              selectedAmount = '';
+                              nameController.clear();
+                              amountController.clear();
+                            } else if (highlightedIndex != null && highlightedIndex! > i) {
+                              highlightedIndex = highlightedIndex! - 1;
+                            }
+                          });
+                        }
+                      }
+                    },
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          highlightedIndex = i;
+                          selectedName = meal["name"]!;
+                          selectedAmount = meal["amount"]!;
+                          nameController.text = selectedName;
+                          amountController.text = selectedAmount;
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                            ? const Color(0xFF7AA9C8).withValues(alpha: 0.28)
+                            : const Color(0xFFF6F6F6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color:
+                                isSelected ? const Color(0xFF7AA9C8) : Colors.transparent,
+                            width: 2,
                           ),
-                          Text(
-                            meal["amount"]!,
-                            style: GoogleFonts.inknutAntiqua(fontSize: 14),
-                          ),
-                        ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              meal["name"]!,
+                              style: GoogleFonts.inknutAntiqua(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              meal["amount"]!,
+                              style: GoogleFonts.inknutAntiqua(fontSize: 14),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

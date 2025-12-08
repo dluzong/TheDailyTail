@@ -49,6 +49,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   void _openMealPopup() {
     final petId = context.read<PetProvider>().selectedPetId;
+    if (petId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a pet first.')),
+      );
+      return;
+    }
     // Get the actual Pet object to access savedMeals
     final currentPet =
         context.read<PetProvider>().pets.firstWhere((p) => p.petId == petId);
@@ -70,10 +76,21 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           recentMeals: recentMeals,
           // 1. Standard "Log Meal" button
           onSave: (name, amount) {
+            final now = DateTime.now();
+            final logDate = DateTime(
+              selectedDate.year,
+              selectedDate.month,
+              selectedDate.day,
+              now.hour,
+              now.minute,
+              now.second,
+              now.millisecond,
+              now.microsecond,
+            );
             Provider.of<LogProvider>(context, listen: false).addLog(
-              petId: petId!,
+              petId: petId,
               type: 'meal',
-              date: selectedDate,
+              date: logDate,
               details: {'name': name, 'amount': amount},
             );
             ScaffoldMessenger.of(context).showSnackBar(
@@ -82,11 +99,22 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           },
           // 2. New "Save List" button
           onSaveToFavorites: (name, amount) async {
+            final now = DateTime.now();
+            final logDate = DateTime(
+              selectedDate.year,
+              selectedDate.month,
+              selectedDate.day,
+              now.hour,
+              now.minute,
+              now.second,
+              now.millisecond,
+              now.microsecond,
+            );
             // Log it for the day
             Provider.of<LogProvider>(context, listen: false).addLog(
-              petId: petId!,
+              petId: petId,
               type: 'meal',
-              date: selectedDate,
+              date: logDate,
               details: {'name': name, 'amount': amount},
             );
 
@@ -97,6 +125,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("$name saved to favorites and logged!")),
             );
+          },
+          onDeleteRecent: (index) async {
+            await context.read<PetProvider>().removeSavedMeal(petId, index);
           },
         );
       },
@@ -394,7 +425,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Logged at: ${DateFormat('h:mm a').format(log.date)}',
+                                        'Logged at: ${DateFormat('h:mm a').format(log.loggedAt ?? log.date)}',
                                         style: GoogleFonts.inknutAntiqua(
                                           fontSize: 12,
                                           color: Colors.black54,

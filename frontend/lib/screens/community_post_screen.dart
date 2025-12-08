@@ -91,6 +91,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
         'user_id': user.userId,
         'content': text,
         'likes': [], // Init empty array
+        'created_ts': DateTime.now().toIso8601String(),
+
       });
 
       commentCtrl.clear();
@@ -106,6 +108,47 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to post comment: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteComment(int commentId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Comment'),
+        content: const Text('Are you sure you want to delete this comment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _supabase.from('comments').delete().eq('comment_id', commentId);
+      await _fetchComments();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Comment deleted')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error deleting comment: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete comment: $e')),
         );
       }
     }
@@ -242,6 +285,27 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(post.content),
+                const SizedBox(height: 12),
+                if (post.category.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF7FB),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFBCD9EC)),
+                      ),
+                      child: Text(
+                        post.category,
+                        style: GoogleFonts.lato(
+                          color: const Color(0xFF7496B3),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -276,9 +340,13 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     final user = c['users'] ?? {};
                     final username = user['username'] ?? 'Unknown';
                     final photoUrl = user['photo_url'];
+                    final commentUserId = c['user_id'];
+                    final commentId = c['comment_id'];
+                    final currentUserId = context.read<UserProvider>().user?.userId;
+                    final isOwnComment = currentUserId == commentUserId;
 
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -325,6 +393,14 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                               ],
                             ),
                           ),
+                          if (isOwnComment)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                              color: Colors.grey.shade600,
+                              onPressed: () => _deleteComment(commentId),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
                         ],
                       ),
                     );
@@ -353,6 +429,10 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                       child: TextField(
                         controller: commentCtrl,
                         focusNode: commentFocus,
+                        maxLines: null,
+                        minLines: 1,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
                           hintText: "Write a comment....",
                           filled: true,
