@@ -71,12 +71,24 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                     decoration: BoxDecoration(
                       color: const Color.fromARGB(255, 138, 193, 219),
                       borderRadius: BorderRadius.circular(12),
+                      // ADD THIS SECTION:
+                      image: widget.pet.imageUrl.isNotEmpty
+                          ? DecorationImage(
+                        image: widget.pet.imageUrl.startsWith('http')
+                            ? NetworkImage(widget.pet.imageUrl)
+                            : AssetImage(widget.pet.imageUrl) as ImageProvider,
+                        fit: BoxFit.cover,
+                      )
+                          : null,
                     ),
-                    child: Icon(
+                    // Only show the icon if there is NO image
+                    child: widget.pet.imageUrl.isEmpty
+                        ? Icon(
                       Icons.pets,
                       size: size.width * 0.12,
                       color: Colors.white,
-                    ),
+                    )
+                        : null,
                   ),
                   AnimatedSize(
                     duration: const Duration(milliseconds: 300),
@@ -181,9 +193,12 @@ class PetList extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   image: pet.imageUrl.isNotEmpty
                       ? DecorationImage(
-                          image: AssetImage(pet.imageUrl),
-                          fit: BoxFit.cover,
-                        )
+                    // FIX: Check if it's a network URL (DB) or an Asset
+                    image: pet.imageUrl.startsWith('http')
+                        ? NetworkImage(pet.imageUrl)
+                        : AssetImage(pet.imageUrl) as ImageProvider,
+                    fit: BoxFit.cover,
+                  )
                       : null,
                 ),
                 child: pet.imageUrl.isEmpty
