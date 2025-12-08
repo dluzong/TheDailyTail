@@ -320,6 +320,76 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     }
   }
 
+  Future<void> _editPetInfo(pet_provider.Pet originalPet) async {
+    print("DEBUG: Original Pet ID: ${originalPet.petId}"); // Check your console
+
+    // 1. Show the Edit Popup and wait for result
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => EditPetPopup(pet: originalPet),
+    );
+
+    // If user canceled, do nothing
+    if (result == null) return;
+
+    try {
+      String finalImageUrl = result['imageUrl'] ?? originalPet.imageUrl;
+
+      // 2. CHECK: Is this a new local file? (Not http... and not empty)
+      if (finalImageUrl.isNotEmpty && !finalImageUrl.startsWith('http')) {
+        // It's a local file path. Upload it!
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Uploading pet image...')),
+          );
+        }
+
+        final File imageFile = File(finalImageUrl);
+
+        final uploadedUrl = await _uploadProfileImage(imageFile);
+
+        if (uploadedUrl != null) {
+          finalImageUrl = uploadedUrl;
+        } else {
+          throw Exception("Image upload failed");
+        }
+      }
+
+      // 3. Create a new Pet object with the updated info
+      final updatedPet = pet_provider.Pet(
+        petId: originalPet.petId,
+        userId: originalPet.userId,
+        name: result['name'] ?? originalPet.name,
+        breed: result['breed'] ?? originalPet.breed,
+        age: result['age'] ?? originalPet.age,
+        weight: result['weight'] ?? originalPet.weight,
+        imageUrl: finalImageUrl, // Use the public URL, not local path
+        savedMeals: originalPet.savedMeals,
+        savedMedications: originalPet.savedMedications,
+        status: originalPet.status,
+      );
+      print("DEBUG: Sending Update for ID: ${updatedPet.petId}"); // Check this too
+
+      // 4. Call the provider to save to DB
+      await context.read<pet_provider.PetProvider>().updatePet(updatedPet);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pet updated successfully!'),
+            backgroundColor: Color(0xFF72C9B6),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update pet: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _removePet(String petId) async {
     try {
       // Direct DB delete for now, then refresh provider
@@ -583,28 +653,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       onAddNewPet: () async {
         await _addNewPet();
       },
-      onEditPet: _showEditPetDialog,
+      onEditPet: (index) => _editPetInfo(_pets[index]),
       onRemovePet: (index) => _removePet(_pets[index].petId),
-    );
-  }
-
-  void _showEditPetDialog(int index) {
-    final pet = _pets[index];
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => EditPetPopup(
-        pet: pet,
-        onSave: (updatedPet) {
-          setState(() {
-            _pets[index] = updatedPet;
-            _markDirty();
-          });
-          _showPetsDialog();
-        },
-      ),
     );
   }
 

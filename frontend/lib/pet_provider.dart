@@ -106,6 +106,35 @@ class PetProvider extends ChangeNotifier {
     }
   }
 
+  // --- UPDATE PET LOGIC ---
+  Future<void> updatePet(Pet updatedPet) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      // 1. Update Supabase
+      await supabase.from('pets').update({
+        'name': updatedPet.name,
+        'breed': updatedPet.breed,
+        'age': updatedPet.age,
+        'weight': updatedPet.weight,
+        'image_url': updatedPet.imageUrl,
+        'status': updatedPet.status,
+        'saved_meals': updatedPet.savedMeals,
+        'saved_medications': updatedPet.savedMedications,
+      }).eq('pet_id', updatedPet.petId); // CRITICAL: Use the ID to find the row
+
+      // 2. Update Local State
+      final index = _pets.indexWhere((p) => p.petId == updatedPet.petId);
+      if (index != -1) {
+        _pets[index] = updatedPet;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating pet: $e');
+      rethrow; // Pass error back to UI
+    }
+  }
+
   // --- ADD PET LOGIC ---
 
   Future<void> addPet(Pet newPet) async {
