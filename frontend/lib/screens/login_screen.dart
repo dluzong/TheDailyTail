@@ -28,33 +28,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       // Handle SDK differences: some versions return bool, others return an object
-      if (response is bool) {
-        if (response == false) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Google sign-in failed or was cancelled')),
-            );
-          }
-          return;
+      if (response == false) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Google sign-in failed or was cancelled')),
+          );
         }
-        // response == true -> continue
-      } else {
-        // Try to safely detect an error on dynamic response objects
-        try {
-          final dynamic maybeError = (response as dynamic).error ?? (response as dynamic).message ?? (response as dynamic)['error'];
-          if (maybeError != null) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Google sign-in failed: $maybeError')),
-              );
-            }
-            return;
-          }
-        } catch (_) {
-          // ignore parsing errors and continue
-        }
+        return;
       }
-
+      // response == true -> continue
+    
       // Attempt to load user/profile after OAuth flow
       try {
         await context.read<UserProvider>().fetchUser();

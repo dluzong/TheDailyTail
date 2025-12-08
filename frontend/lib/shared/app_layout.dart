@@ -102,13 +102,13 @@ class _AppLayoutState extends State<AppLayout> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Back button (left side)
+                  // Back button (only shown when showBackButton is true)
                   if (widget.showBackButton)
                     Positioned(
                       left: 0,
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
                   

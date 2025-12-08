@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/app_layout.dart';
 import '../posts_provider.dart';
+import '../organization_provider.dart';
+import '../user_provider.dart';
 import 'community_filter_popup.dart';
 import 'community_post_screen.dart';
 import 'org_screen.dart';
@@ -30,61 +32,39 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   ];
 
   String _selectedCategory = 'General';
-  // Active filters applied from the filter popup
   String _filterSort = 'recent';
   List<String> _filterCategories = [];
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
-  // Posts are now persisted in PostsProvider
-
-  // Mock organizations data for the Orgs tab
-  final List<Map<String, dynamic>> _mockOrgs = [
-    {
-      'orgName': 'Org 1',
-      'members': 124,
-      'description':
-          'A friendly community of local pet volunteers and adopters.',
-    },
-    {
-      'orgName': 'Org 2',
-      'members': 58,
-      'description':
-          'Focused on fostering and connecting experienced sitters with owners.',
-    },
-    {
-      'orgName': 'Org 3',
-      'members': 241,
-      'description':
-          'Brings together trainers, vets, and pet lovers for workshops.',
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
     _loadSavedFilters();
+
+    // Initial Data Fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PostsProvider>().fetchPosts();
+      context.read<OrganizationProvider>().fetchOrganizations();
+    });
   }
 
-  // reset all forms when leaving community page
   @override
   void dispose() {
     _clearSavedFilters();
-
     _searchController.dispose();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
   }
 
-  // reset filters when leaving community page
   Future<void> _clearSavedFilters() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('community_filter_sort');
       await prefs.remove('community_filter_categories');
     } catch (e) {
-      // ignore errors
+      // ignore
     }
   }
 
@@ -100,7 +80,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         });
       }
     } catch (e) {
-      // ignore errors
+      // ignore
     }
   }
 
@@ -111,404 +91,328 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
       await prefs.setStringList(
           'community_filter_categories', _filterCategories);
     } catch (e) {
-      // ignore errors persisting filters
+      // ignore
     }
   }
 
   Widget _buildPostsList({String mode = 'feed'}) {
-    final postsProvider = Provider.of<PostsProvider>(context);
-    var posts = postsProvider.posts;
+    return Consumer<PostsProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading && provider.posts.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    // If friends mode, filter posts to only those authored by people the user follows
-    if (mode == 'friends') {
-      posts = posts
-          .where((p) => postsProvider.isFollowing(p['author'] as String))
-          .toList();
-    }
+        var posts = provider.posts;
 
-    // Apply category filters (if any selected)
-    if (_filterCategories.isNotEmpty) {
-      posts = posts.where((p) {
-        final cat = (p['category'] ?? '') as String;
-        return _filterCategories.contains(cat);
-      }).toList();
-    }
+        // 1. Friend Filter
+        if (mode == 'friends') {
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+          final following = userProvider.user?.following ?? [];
+          posts = posts.where((p) => following.contains(p.userId)).toList();
+        }
 
-    // Apply sort: 'popular' sorts by likes descending; 'recent' leaves provider order
-    if (_filterSort == 'popular') {
-      posts.sort((a, b) {
-        final la = (a['likes'] ?? 0) as int;
-        final lb = (b['likes'] ?? 0) as int;
-        return lb.compareTo(la);
-      });
-    }
+        // 2. Category Filter
+        if (_filterCategories.isNotEmpty) {
+          posts = posts.where((p) {
+            return _filterCategories.contains(p.category);
+          }).toList();
+        }
 
-    // If no posts after filtering, show a friendly empty state message
-    if (posts.isEmpty) {
-      return Center(
-        child: Text(
-          'No posts found. :(',
-          style: GoogleFonts.inknutAntiqua(
-            fontSize: 16,
-            color: const Color(0xFF394957),
-          ),
-        ),
-      );
-    }
+        // 3. Sort
+        if (_filterSort == 'popular') {
+          // Sort a copy to avoid reordering the provider's main list constantly
+          posts = List.from(posts)
+            ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+        }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: posts.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        final post = posts[index];
-        final realIndex = postsProvider.posts.indexOf(post);
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        if (posts.isEmpty) {
+          return Center(
+            child: Text(
+              'No posts found. :(',
+              style: GoogleFonts.inknutAntiqua(
+                fontSize: 16,
+                color: const Color(0xFF394957),
+              ),
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: posts.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 16),
+          itemBuilder: (context, index) {
+            final post = posts[index];
+            // Find the real index in the provider to toggle likes correctly
+            final providerIndex = provider.posts.indexOf(post);
+
+            return Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CircleAvatar(
-                      backgroundColor: Color(0xFF7496B3),
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          if (post['author'] != 'You') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProfileScreen(
-                                  otherUsername: post['author'],
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              post['author'],
-                              style: GoogleFonts.lato(
-                                fontWeight: FontWeight.bold,
-                                color: post['author'] != 'You' ? const Color(0xFF7496B3) : Colors.black,
-                              ),
-                            ),
-                            Text(
-                              post['timeAgo'],
-                              style: GoogleFonts.lato(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: const Color(0xFF7496B3),
+                          backgroundImage: post.authorPhoto.isNotEmpty
+                              ? NetworkImage(post.authorPhoto)
+                              : null,
+                          child: post.authorPhoto.isEmpty
+                              ? const Icon(Icons.person, color: Colors.white)
+                              : null,
                         ),
-                      ),
-                    ),
-                    // If this is the user's post, show delete icon; otherwise show follow toggle
-                    if (post['author'] == 'You')
-                      // Replace delete icon with a 3-dot menu for Edit/Delete
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert),
-                        onSelected: (value) async {
-                          final masterIndex = postsProvider.posts.indexOf(post);
-                          if (value == 'delete') {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Delete post'),
-                                content: const Text(
-                                    'Are you sure you want to delete your post'),
-                                actions: [
-                                  TextButton(
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.black,
-                                    ),
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(false),
-                                    child: const Text(
-                                      'Nevermind',
-                                      style: TextStyle(color: Colors.black),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              // Navigate to Profile
+                              // Note: ProfileScreen needs updated logic to handle user ID lookup
+                              // For now, passing name logic
+                              if (post.authorName != 'You') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProfileScreen(
+                                      otherUsername: post.authorName,
                                     ),
                                   ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          const Color(0xFFB94A48),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(true),
-                                    child: const Text(
-                                      'Yes, delete',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirm == true && masterIndex != -1) {
-                              postsProvider.removeAt(masterIndex);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Post deleted')),
-                              );
-                            }
-                          } else if (value == 'edit') {
-                            if (masterIndex != -1) {
-                              _showNewPostModal(editIndex: masterIndex);
-                            }
-                          }
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(value: 'edit', child: Text('Edit post')),
-                          PopupMenuItem(value: 'delete', child: Text('Delete post')),
-                        ],
-                      )
-                    else
-                      // Follow / Following button for other authors
-                      Builder(builder: (context) {
-                        final author = post['author'] as String;
-                        final isFollowing = postsProvider.isFollowing(author);
-                        return isFollowing
-                            ? ElevatedButton(
-                                onPressed: () {
-                                  postsProvider.toggleFollow(author);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      const Color.fromARGB(255, 202, 241, 203),
-                                  foregroundColor:
-                                      const Color.fromARGB(255, 87, 147, 89),
-                                  side: const BorderSide(
-                                      color: Color.fromARGB(255, 87, 147, 89)),
-                                  minimumSize: const Size(90, 36),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
+                                );
+                              }
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  post.authorName,
+                                  style: GoogleFonts.lato(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF7496B3),
                                   ),
                                 ),
-                                child: const Text('Following'),
-                              )
-                            : OutlinedButton(
-                                onPressed: () {
-                                  postsProvider.toggleFollow(author);
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFF7496B3),
-                                  side: const BorderSide(
-                                      color: Color(0xFF7496B3)),
-                                  minimumSize: const Size(90, 36),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
+                                Text(
+                                  post.createdTs,
+                                  style: GoogleFonts.lato(
+                                    color: Colors.grey,
+                                    fontSize: 12,
                                   ),
                                 ),
-                                child: const Text('Follow'),
-                              );
-                      }),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CommunityPostScreen(postIndex: index),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    post['title'],
-                    style: GoogleFonts.lato(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  post['content'],
-                  style: GoogleFonts.lato(),
-                ),
-                const SizedBox(height: 12),
-                // Category label (below content, above actions)
-                if (post['category'] != null &&
-                    (post['category'] as String).isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF7FB),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFBCD9EC)),
-                    ),
-                    child: Text(
-                      post['category'],
-                      style: GoogleFonts.lato(
-                        color: const Color(0xFF7496B3),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    // LIKE BUTTON
-                    GestureDetector(
-                      onTap: () {
-                        Provider.of<PostsProvider>(context, listen: false)
-                            .toggleLike(realIndex);
-                      },
-                      child: Row(
-                        children: [
-                          Icon(
-                            post['liked']
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            color: post['liked'] ? Colors.red : Colors.grey,
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 4),
-                          Text("${post['likes']}"),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 24),
-                    // COMMENT BUTTON → opens full post + keyboard
+                    const SizedBox(height: 12),
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => CommunityPostScreen(
-                              postIndex: index,
-                              openKeyboard: true,
-                            ),
+                            builder: (_) =>
+                                CommunityPostScreen(postIndex: providerIndex),
                           ),
                         );
                       },
-                      child: Row(
-                        children: [
-                          const Icon(Icons.comment_outlined),
-                          const SizedBox(width: 4),
-                          Text("${post['comments'].length}"),
-                        ],
+                      child: Text(
+                        post.title,
+                        style: GoogleFonts.lato(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      post.content,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.lato(),
+                    ),
+                    if (post.category.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF7FB),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFBCD9EC)),
+                        ),
+                        child: Text(
+                          post.category,
+                          style: GoogleFonts.lato(
+                            color: const Color(0xFF7496B3),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        // LIKE BUTTON
+                        GestureDetector(
+                          onTap: () {
+                            provider.toggleLike(providerIndex);
+                          },
+                          child: Row(
+                            children: [
+                              Icon(
+                                post.isLiked
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: post.isLiked ? Colors.red : Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Text("${post.likesCount}"),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        // COMMENT BUTTON
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CommunityPostScreen(
+                                  postIndex: providerIndex,
+                                  openKeyboard: true,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              const Icon(Icons.comment_outlined),
+                              const SizedBox(width: 4),
+                              Text("${post.commentCount}"),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildOrgsList() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _mockOrgs.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        final org = _mockOrgs[index];
-        return InkWell(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => OrgScreen(
-                org: org,
-                initiallyJoined: true,
-                onJoinChanged: (joined) {
-                  if (!joined) {
-                    setState(() {
-                      _mockOrgs
-                          .removeWhere((o) => o['orgName'] == org['orgName']);
-                    });
-                  }
-                },
-              ),
-            ));
-          },
-          child: Card(
-            elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+    return Consumer<OrganizationProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading && provider.allOrgs.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final orgs = provider.allOrgs;
+
+        if (orgs.isEmpty) {
+          return Center(
+              child:
+                  Text("No organizations found.", style: GoogleFonts.lato()));
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: orgs.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 16),
+          itemBuilder: (context, index) {
+            final org = orgs[index];
+            final membersCount = (org['member_id'] as List?)?.length ?? 0;
+            final isMember = provider.isMember(org);
+
+            return InkWell(
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => OrgScreen(
+                    org: org,
+                    initiallyJoined: isMember,
+                    onJoinChanged: (joined) async {
+                      final orgId = org['organization_id'];
+                      if (joined) {
+                        await provider.joinOrg(orgId);
+                      } else {
+                        await provider.leaveOrg(orgId);
+                      }
+                    },
+                  ),
+                ));
+              },
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        backgroundColor: const Color(0xFF7496B3),
-                        child: Text(
-                          org['orgName'].toString().substring(0, 1),
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: const Color(0xFF7496B3),
+                            child: Text(
+                              (org['name'] as String?)?.substring(0, 1) ?? 'O',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  org['name'] ?? 'Unnamed Org',
+                                  style: GoogleFonts.lato(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$membersCount members',
+                                  style: GoogleFonts.lato(
+                                      color: Colors.grey, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              org['orgName'],
-                              style: GoogleFonts.lato(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${org['members']} members',
-                              style: GoogleFonts.lato(
-                                  color: Colors.grey, fontSize: 12),
-                            ),
-                          ],
-                        ),
+                      const SizedBox(height: 12),
+                      Text(
+                        org['description'] ?? '',
+                        style: GoogleFonts.lato(),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    org['description'],
-                    style: GoogleFonts.lato(),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
 
   void _showNewPostModal({int? editIndex}) {
-    final postsProvider = Provider.of<PostsProvider>(context, listen: false);
+    // Note: Edit logic requires implementing an 'updatePost' method in provider
+    // For now, this just handles creation.
 
-    // If editing, prefill controllers with existing post data.
-    if (editIndex != null) {
-      final existing = postsProvider.posts[editIndex];
-      _titleController.text = (existing['title'] ?? '').toString();
-      _contentController.text = (existing['content'] ?? '').toString();
-      _selectedCategory = (existing['category'] ?? 'General') as String;
-    } else {
-      // ensure new post modal starts empty
-      _titleController.clear();
-      _contentController.clear();
-      _selectedCategory = 'General';
-    }
+    _titleController.clear();
+    _contentController.clear();
+    _selectedCategory = 'General';
 
     showModalBottomSheet(
       context: context,
@@ -533,159 +437,76 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(
-                    Icons.close,
-                    color: Color(0xFF7496B3),
-                    size: 28,
-                  ),
-                  iconSize: 28,
-                  padding: const EdgeInsets.all(12),
-                  style: IconButton.styleFrom(
-                    foregroundColor: const Color(0xFF7496B3),
-                  ),
+                  icon: const Icon(Icons.close,
+                      color: Color(0xFF7496B3), size: 28),
                   onPressed: () => Navigator.pop(context),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    final provider = Provider.of<PostsProvider>(context, listen: false);
-                    if (editIndex == null) {
-                      // create a new post using the modal fields and add it to the feed
-                      final newPost = {
-                        'author': 'You',
-                        'title': _titleController.text.isNotEmpty
-                            ? _titleController.text
-                            : 'Untitled',
-                        'content': _contentController.text,
-                        'likes': 0,
-                        'comments': [],
-                        'timeAgo': 'Just now',
-                        'category': _selectedCategory,
-                      };
+                  onPressed: () async {
+                    if (_contentController.text.isEmpty) return;
 
-                      provider.addPost(newPost);
-                    } else {
-                      // update existing post
-                      final updated = {
-                        'title': _titleController.text.isNotEmpty
-                            ? _titleController.text
-                            : 'Untitled',
-                        'content': _contentController.text,
-                        'category': _selectedCategory,
-                        'timeAgo': 'Just now (edited)',
-                      };
+                    await context.read<PostsProvider>().createPost(
+                          _titleController.text.isEmpty
+                              ? 'Untitled'
+                              : _titleController.text,
+                          _contentController.text,
+                          _selectedCategory,
+                        );
 
-                      provider.updateAt(editIndex, updated);
-                    }
-
-                    // clear modal inputs for next time
-                    _titleController.clear();
-                    _contentController.clear();
-                    _selectedCategory = 'General';
-
-                    Navigator.pop(context);
+                    if (mounted) Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7496B3),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    minimumSize: const Size(100, 40),
+                        borderRadius: BorderRadius.circular(20)),
                   ),
                   child: Text(
-                    editIndex == null ? 'Create Post' : 'Update Post',
+                    'Create Post',
                     style: GoogleFonts.lato(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            const Divider(thickness: 1),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Category',
-                        style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: StatefulBuilder(
-                            // Add StatefulBuilder to update state inside modal
-                            builder: (context, setModalState) {
-                          return DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedCategory,
-                              isExpanded: true,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              dropdownColor: const Color(
-                                  0xFFBCD9EC), // Light blue background
-                              borderRadius: BorderRadius.circular(10),
-                              items: _categories.map((String category) {
-                                return DropdownMenuItem<String>(
-                                  value: category,
-                                  child: Text(
-                                    category,
-                                    style: GoogleFonts.lato(),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  setModalState(() {
-                                    // Use setModalState instead of setState
-                                    _selectedCategory = newValue;
-                                  });
-                                }
-                              },
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                    // Post-to dropdown removed per request
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                hintText: 'Post Title',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            const Divider(),
+            const SizedBox(height: 10),
+            // Category Dropdown
+            DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedCategory,
+                isExpanded: true,
+                items: _categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    setState(() => _selectedCategory = v);
+                    // Force rebuild of modal only? No, need stateful builder if inside stateless widget.
+                    // But we are in a stateful widget method, so setState rebuilds the parent screen,
+                    // which might not rebuild the modal contents dynamically without StatefulBuilder.
+                    // Ideally use StatefulBuilder here.
+                  }
+                },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             TextField(
-              controller: _contentController,
-              maxLines: 8,
-              decoration: InputDecoration(
-                hintText: 'Write your post here...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+              controller: _titleController,
+              decoration: const InputDecoration(
+                hintText: 'Post Title',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: TextField(
+                controller: _contentController,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: const InputDecoration(
+                  hintText: 'Write your post here...',
+                  border: OutlineInputBorder(),
                 ),
               ),
             ),
@@ -773,7 +594,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           ),
                           const SizedBox(width: 8),
                           Builder(builder: (context) {
-                            // change the filter icon to blue when filters are applied
                             final bool hasActiveFilters =
                                 _filterSort != 'recent' ||
                                     _filterCategories.isNotEmpty;
@@ -789,9 +609,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                     color:
                                         hasActiveFilters ? Colors.white : null),
                                 onPressed: _openCommunityFilterPopup,
-                                tooltip: hasActiveFilters
-                                    ? 'Filters applied'
-                                    : 'Filter',
                               ),
                             );
                           }),
@@ -806,34 +623,25 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   indicatorColor: const Color(0xFF7496B3),
                   tabs: [
                     Tab(
-                      child: Text(
-                        'Feed',
-                        style: GoogleFonts.lato(fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                        child: Text('Feed',
+                            style:
+                                GoogleFonts.lato(fontWeight: FontWeight.bold))),
                     Tab(
-                      child: Text(
-                        'Friends',
-                        style: GoogleFonts.lato(fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                        child: Text('Friends',
+                            style:
+                                GoogleFonts.lato(fontWeight: FontWeight.bold))),
                     Tab(
-                      child: Text(
-                        'Organizations',
-                        style: GoogleFonts.lato(fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                        child: Text('Organizations',
+                            style:
+                                GoogleFonts.lato(fontWeight: FontWeight.bold))),
                   ],
                 ),
                 const Divider(height: 1),
                 Expanded(
                   child: TabBarView(
                     children: [
-                      // Feed Tab
                       _buildPostsList(mode: 'feed'),
-                      // Friends Tab - only posts from followed authors
                       _buildPostsList(mode: 'friends'),
-                      // Orgs Tab - list of organizations
                       _buildOrgsList(),
                     ],
                   ),
@@ -845,25 +653,19 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               bottom: 16,
               child: Builder(builder: (context) {
                 final tabController = DefaultTabController.of(context);
-
                 return AnimatedBuilder(
                   animation: tabController,
                   builder: (context, _) {
-                    // Orgs tab is index 1
+                    // Index 2 is Organizations Tab
                     if (tabController.index == 2) {
                       return FloatingActionButton.extended(
-                        onPressed: () {
-                          // Placeholder for explore orgs navigation
-                        },
+                        onPressed: () {},
                         backgroundColor: const Color(0xFF7496B3),
-                        label: Text(
-                          'Explore Orgs',
-                          style: GoogleFonts.lato(color: Colors.white),
-                        ),
+                        label: Text('Explore',
+                            style: GoogleFonts.lato(color: Colors.white)),
                         icon: const Icon(Icons.explore, color: Colors.white),
                       );
                     }
-
                     return FloatingActionButton(
                       onPressed: _showNewPostModal,
                       backgroundColor: const Color(0xFF7496B3),

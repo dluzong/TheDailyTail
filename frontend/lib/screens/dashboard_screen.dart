@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../pet_provider.dart';
 import '../user_provider.dart';
 import '../shared/app_layout.dart';
+import '../log_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -33,7 +34,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await userProvider.fetchUser();
     debugPrint('User authenticated: ${userProvider.isAuthenticated}');
 
-
     if (userProvider.isAuthenticated && mounted) {
       await petProvider.fetchPets();
 
@@ -44,18 +44,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _selectPet(Pet pet) async {
+    // Update Global Pet State
+    context.read<PetProvider>().selectPet(pet.petId);
+
     setState(() {
       _selectedPetId = pet.petId;
       _isLogsLoading = true;
-      _currentLogs = [];
     });
 
-    final provider = context.read<PetProvider>();
-    final logs = await provider.fetchPetLogs(pet.petId);
+    // Check if logs are loading
+    final logProvider = context.read<LogProvider>();
+    await logProvider.fetchLogs(pet.petId);
 
     if (mounted) {
       setState(() {
-        _currentLogs = logs;
+        // Get generic logs for display
+        _currentLogs = logProvider.getLogsForPet(pet.petId);
         _isLogsLoading = false;
       });
     }
@@ -156,7 +160,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Pet? selectedPet,
     Map<String, String> details,
   ) {
-    // 1. Check for authentication
+    // Check for authentication
     if (!userProvider.isAuthenticated) {
       return const Center(
         child: Text(
@@ -166,7 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    // 2. Check if pets are loading
+    // Check if pets are loading
     if (petProvider.isLoading) {
       return const Center(
         child: Column(
@@ -180,17 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    // 3. Check for errors
-    if (petProvider.errorMessage != null) {
-      return Center(
-        child: Text(
-          'Error: ${petProvider.errorMessage}',
-          style: const TextStyle(fontSize: 18, color: Colors.red),
-        ),
-      );
-    }
-
-    // 4. Check if user has pets
+    // Check if user has pets
     if (!hasPets) {
       return Center(
         child: Text(
@@ -269,33 +263,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
             padding: EdgeInsets.all(16.0),
             child: CircularProgressIndicator(),
           ))
-        else if (_currentLogs.isEmpty)
-          const Center(
-              child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text('No recent log for this pet.'),
-          ))
         else
-          ListView.separated(
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _currentLogs.length,
-            separatorBuilder: (_, __) => const Divider(),
-            itemBuilder: (context, index) {
-              final log = _currentLogs[index];
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.check_circle_outline),
-                title: Text(log.logDetails, style: GoogleFonts.lato()),
-                subtitle: Text(
-                  // MM/DD/YYYY format
-                  '${log.logDate.month}/${log.logDate.day}/${log.logDate.year}',
-                  style: GoogleFonts.lato(fontSize: 12),
-                ),
-              );
-            },
-          ),
+          (() {
+            final now = DateTime.now();
+            final xDaysAgo = now.subtract(const Duration(days: 7));
+            final recentLogs = _currentLogs
+                .where((log) => log.date.isAfter(xDaysAgo))
+                .toList();
+            if (recentLogs.isEmpty) {
+              return const Center(
+                  child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('No recent log for this pet.'),
+              ));
+            }
+            return ListView.separated(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: recentLogs.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) {
+                final log = recentLogs[index];
+                String titleText = '';
+                if (log.type == 'meal') {
+                  titleText = "Ate ${log.details['name']}";
+                } else if (log.type == 'medication') {
+                  titleText = "Took ${log.details['name']}";
+                } else {
+                  titleText =
+                      "${log.type.toUpperCase()}: ${log.details['title']}";
+                }
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.check_circle_outline),
+                  title: Text(titleText, style: GoogleFonts.lato()),
+                  subtitle: Text(
+                    // MM/DD/YYYY format
+                    '${log.date.month}/${log.date.day}/${log.date.year}',
+                    style: GoogleFonts.lato(fontSize: 12),
+                  ),
+                );
+              },
+            );
+          })(),
       ],
     );
   }

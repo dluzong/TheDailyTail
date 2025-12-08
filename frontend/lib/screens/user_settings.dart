@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/launch_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../shared/app_layout.dart';
-import '../shared/starting_widgets.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'add_pet_screen.dart';
 import 'package:provider/provider.dart';
+import '../shared/app_layout.dart';
+import 'add_pet_screen.dart';
+import 'edit_pet_popup.dart';
+import 'user_settings_dialogs.dart';
+import 'launch_screen.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
-
 class UserSettingsPage extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
@@ -25,40 +26,76 @@ class UserSettingsPage extends StatefulWidget {
 
 class _UserSettingsPageState extends State<UserSettingsPage> {
   final _formKey = GlobalKey<FormState>();
+  // We can access Supabase directly for auth actions like signOut
+  final _supabase = Supabase.instance.client;
 
-  String _name = 'Your name';
-  String _username = 'name123';
-
-  late List<pet_provider.Pet> _pets;
+  String _name = '';
+  String _username = '';
 
   bool _isDirty = false;
 
-  bool _notifyEmail = true;
-  bool _notifyPush = true;
+  // User tags/roles selection (local state; persisted in future)
+  final List<String> _availableTags = const [
+    'owner',
+    'organizer',
+    'foster',
+    'visitor'
+  ];
+  List<String> _selectedTags = ['visitor'];
+
+  String? _profilePicturePath;
+  final ImagePicker _picker = ImagePicker();
+  String _bio = '';
 
   late TextEditingController _nameController;
   late TextEditingController _usernameController;
+  late TextEditingController _bioController;
 
   @override
   void initState() {
     super.initState();
-    final up = Provider.of<UserProvider>(context, listen: false);
-    final user = up.user;
-    _name = user?.name ?? _name;
-    _username = user?.username ?? _username;
+    _nameController = TextEditingController();
+    _usernameController = TextEditingController();
+    _bioController = TextEditingController();
+  }
 
-    _pets = List.from(
-      Provider.of<pet_provider.PetProvider>(context, listen: false).pets,
-    );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = Provider.of<UserProvider>(context).user;
 
-    _nameController = TextEditingController(text: _name);
-    _usernameController = TextEditingController(text: _username);
+    if (user != null && !_isDirty) {
+      _name = user.name;
+      _username = user.username;
+      _bio = user.bio;
+      _profilePicturePath = user.photoUrl.isNotEmpty ? user.photoUrl : null;
+
+      if (_nameController.text != _name) _nameController.text = _name;
+      if (_usernameController.text != _username) {
+        _usernameController.text = _username;
+      }
+      if (_bioController.text != _bio) _bioController.text = _bio;
+
+      final userRoles = user.roles;
+      _selectedTags = userRoles
+          .map((role) => role.toLowerCase())
+          .where((role) => _availableTags.contains(role))
+          .toList();
+      if (_selectedTags.isEmpty) {
+        _selectedTags = ['visitor'];
+      }
+    }
+  }
+
+  List<pet_provider.Pet> get _pets {
+    return Provider.of<pet_provider.PetProvider>(context, listen: false).pets;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _usernameController.dispose();
+    _bioController.dispose();
     super.dispose();
   }
 
@@ -67,53 +104,58 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   void _saveSettings() {
-    _username = _usernameController.text;
-    _name = _nameController.text;
+    if (!_formKey.currentState!.validate()) return;
+
+    _username = _usernameController.text.trim();
+    _name = _nameController.text.trim();
+    _bio = _bioController.text.trim();
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final petProvider =
-        Provider.of<pet_provider.PetProvider>(context, listen: false);
 
-    userProvider.updateUserProfile(
+    userProvider
+        .updateUserProfile(
       username: _username,
       name: _name,
+      roles: _selectedTags,
+      photoUrl: _profilePicturePath,
+      bio: _bio,
     )
-        .then((_) async {
-      // Persist pets locally (local-only for now)
-      await petProvider.setPetsLocal(_pets);
-
+        .then((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Settings have been saved!'),
-            backgroundColor: Color.fromARGB(255, 114, 201, 182),
+            backgroundColor: Color(0xFF72C9B6), // Success Green
           ),
         );
-        _isDirty = false;
-        Navigator.of(context).pop();
+        setState(() => _isDirty = false);
+        Navigator.of(context).pop(); // Go back to profile
       }
     }).catchError((e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save settings: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save settings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     });
   }
 
   Future<void> _addNewPet() async {
+    // 1. Get new pet details from the AddPetScreen
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(builder: (context) => const AddPetScreen()),
     );
 
     if (result == null) return;
 
-    setState(() {
+    try {
+      // 2. Create a Pet object (ID will be generated by DB, userId by Provider/DB)
       final newPet = pet_provider.Pet(
         petId: result['id'] as String? ?? '',
-            //DateTime.now().millisecondsSinceEpoch.toString(),
-        ownerId: result['ownerId'] as String? ?? '',
+        userId: result['userId'] as String? ?? '',
         name: result['name'] as String? ?? '',
         breed: result['breed'] as String? ?? '',
         age: (result['age'] is int)
@@ -121,29 +163,50 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             : int.tryParse(result['age']?.toString() ?? '') ?? 0,
         weight: result['weight'] ?? 0.0,
         imageUrl: result['imageUrl'] as String? ?? '',
-        logsIds: result['logIds'] as List<String>,
-        savedMeals: result['savedMeals'] as List<String>,     
-        status: result['status'] as String? ?? 'Owned',
+        savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
+        savedMedications:
+            result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
+        status: result['status'] as String? ?? 'owned',
       );
 
-      _pets.add(newPet);
-      _markDirty();
-    });
+      // 3. Use the Provider to save to DB
+      // Note: Ensure your PetProvider has the addPet method we defined!
+      await context.read<pet_provider.PetProvider>().addPet(newPet);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pet added successfully!')),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error adding pet: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add pet: $e')),
+        );
+      }
+    }
   }
 
-  void _removePet(int index) {
-    if (_pets.length > 1) {
-      setState(() {
-        _pets.removeAt(index);
-        _markDirty();
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must have at least one pet.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+  Future<void> _removePet(String petId) async {
+    try {
+      // Direct DB delete for now, then refresh provider
+      await _supabase.from('pets').delete().eq('pet_id', petId);
+
+      if (mounted) {
+        // Refresh the list in the provider
+        await context.read<pet_provider.PetProvider>().fetchPets();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Pet removed")),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error removing pet: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to remove pet")),
+        );
+      }
     }
   }
 
@@ -165,117 +228,140 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             child: const Text('Discard'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7496B3)),
             onPressed: () => Navigator.of(context).pop('save'),
-            child: const Text('Save'),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
 
     if (action == 'save') {
-      // _saveSettings will call Navigator.pop() after saving, so return false to avoid double-pop
       _saveSettings();
-      return false;
+      return false; // _saveSettings pops automatically on success
     }
 
-    if (action == 'discard') {
-      // allow pop and discard changes
-      return true;
-    }
+    if (action == 'discard') return true;
 
-    // cancel or null -> don't pop
     return false;
   }
 
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      currentIndex: widget.currentIndex,
+      currentIndex: 0,
       onTabSelected: widget.onTabSelected,
-      showBackButton: true,
       child: WillPopScope(
         onWillPop: _onWillPop,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Settings header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                child: Text(
-                  'Settings',
-                  style: GoogleFonts.inknutAntiqua(
-                    fontSize: 32,
-                    color: Colors.black,
-                  ),
+              SizedBox(
+                height: 80,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 10,
+                      top: 2,
+                      bottom: 0,
+                      child: IconButton(
+                        iconSize: 32.0,
+                        icon:
+                            const Icon(Icons.arrow_back, color: Colors.black87),
+                        onPressed: () => Navigator.of(context).pop(),
+                        tooltip: 'Back',
+                      ),
+                    ),
+                    // Settings header
+                    Center(
+                      child: Text(
+                        'Settings',
+                        style: GoogleFonts.lato(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 32,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 24),
-
-              // General section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'General',
-                  style: GoogleFonts.lato(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF394957),
-                  ),
-                ),
-              ),
               const SizedBox(height: 12),
+
+              // Settings Tiles
 
               _buildSettingsTile(
                 icon: Icons.person_outline,
-                title: 'Account information',
+                title: 'Account Information',
                 onTap: () => _showAccountInfoDialog(),
               ),
-
+              const SizedBox(height: 8),
+              _buildSettingsTile(
+                icon: Icons.account_circle,
+                title: 'Profile Picture',
+                onTap: () => _showProfilePictureDialog(),
+              ),
+              const SizedBox(height: 8),
+              _buildSettingsTile(
+                icon: Icons.note_outlined,
+                title: 'Edit About',
+                onTap: () => _showAboutDialog(),
+              ),
+              const SizedBox(height: 8),
+              _buildSettingsTile(
+                icon: Icons.label_outlined,
+                title: 'User Tags',
+                onTap: () => _showTagsDialog(),
+              ),
+              const SizedBox(height: 8),
               _buildSettingsTile(
                 icon: Icons.pets,
                 title: 'My Pets',
                 onTap: () => _showPetsDialog(),
               ),
 
-              _buildSettingsTile(
-                icon: Icons.notifications_outlined,
-                title: 'Notifications',
-                onTap: () => _showNotificationsDialog(),
-              ),
+              const SizedBox(height: 16),
 
-              const SizedBox(height: 32),
-
-              // Logout button
+              // Logout
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: SizedBox(
-                    width: 200,
-                    height: 56,
+                    width: 190,
+                    height: 60,
                     child: OutlinedButton(
                       onPressed: () => _handleLogout(),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF7496B3), width: 2),
+                        side: const BorderSide(
+                            color: Color(0xFF7496B3), width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
                       ),
-                      child: Text(
-                        'Log out',
-                        style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF7496B3),
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.logout,
+                              color: Color(0xFF7496B3), size: 28),
+                          const SizedBox(width: 16),
+                          Text(
+                            'Log Out',
+                            style: GoogleFonts.lato(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF7496B3),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 80),
             ],
           ),
         ),
@@ -296,15 +382,16 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         border: Border.all(color: const Color(0xFFBCD9EC)),
       ),
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF7496B3), size: 24),
+        leading: Icon(icon, color: const Color(0xFF7496B3), size: 32),
         title: Text(
           title,
           style: GoogleFonts.lato(
-            fontSize: 16,
+            fontSize: 18,
             color: const Color(0xFF394957),
           ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Color(0xFF7496B3)),
+        trailing:
+            const Icon(Icons.chevron_right, color: Color(0xFF7496B3), size: 42),
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       ),
@@ -312,449 +399,99 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   void _showAccountInfoDialog() {
-    showDialog(
+    UserSettingsDialogs.showAccountInfoDialog(
       context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Account Information',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inknutAntiqua(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
-                const SizedBox(height: 20),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      buildAppTextField(
-                        hint: 'Enter your full name',
-                        controller: _nameController,
-                      ),
-                      const SizedBox(height: 16),
-                      buildAppTextField(
-                        hint: 'Enter your username',
-                        controller: _usernameController,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: SizedBox(
-                    width: 160,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7F9CB3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          _markDirty();
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Remember to save your changes!')),
-                          );
-                        }
-                      },
-                      child: Text(
-                        'Save',
-                        style: GoogleFonts.inknutAntiqua(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
-      ),
+      formKey: _formKey,
+      nameController: _nameController,
+      usernameController: _usernameController,
+      onMarkDirty: _markDirty,
+    );
+  }
+
+  void _showProfilePictureDialog() {
+    UserSettingsDialogs.showProfilePictureDialog(
+      context: context,
+      picker: _picker,
+      profilePicturePath: _profilePicturePath,
+      onImagePicked: (path) {
+        setState(() {
+          _profilePicturePath = path;
+        });
+      },
+      onMarkDirty: _markDirty,
+    );
+  }
+
+  void _showAboutDialog() {
+    UserSettingsDialogs.showAboutDialog(
+      context: context,
+      bioController: _bioController,
+      onMarkDirty: _markDirty,
+    );
+  }
+
+  void _showTagsDialog() {
+    UserSettingsDialogs.showTagsDialog(
+      context: context,
+      availableTags: _availableTags,
+      selectedTags: _selectedTags,
+      onTagsChanged: (tags) {
+        setState(() {
+          _selectedTags = tags;
+        });
+      },
+      onMarkDirty: _markDirty,
     );
   }
 
   void _showPetsDialog() {
+    UserSettingsDialogs.showPetsDialog(
+      context: context,
+      pets: _pets,
+      onAddNewPet: () async {
+        await _addNewPet();
+      },
+      onEditPet: _showEditPetDialog,
+      onRemovePet: (index) => _removePet(_pets[index].petId),
+    );
+  }
+
+  void _showEditPetDialog(int index) {
+    final pet = _pets[index];
+
     showDialog(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'My Pets',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inknutAntiqua(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () async {
-                        await _addNewPet();
-                      },
-                      icon: const Icon(
-                        Icons.add_circle,
-                        color: Color(0xFF7496B3),
-                        size: 28,
-                      ),
-                      tooltip: 'Add New Pet',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.maxFinite,
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _pets.length,
-                    itemBuilder: (context, index) {
-                      final pet = _pets[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
-                        ),
-                        child: Row(
-                          children: [
-                            const CircleAvatar(
-                              backgroundColor: Color(0xFF7496B3),
-                              child: Icon(Icons.pets, color: Colors.white),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                pet.name,
-                                style: GoogleFonts.lato(
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF394957),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                _removePet(index);
-                                Navigator.pop(context);
-                                _showPetsDialog();
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
+      builder: (context) => EditPetPopup(
+        pet: pet,
+        onSave: (updatedPet) {
+          setState(() {
+            _pets[index] = updatedPet;
+            _markDirty();
+          });
+          _showPetsDialog();
+        },
       ),
     );
   }
 
-  void _showNotificationsDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.92,
-              constraints: const BoxConstraints(maxWidth: 460),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade300),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 12,
-                    offset: Offset(0, 6),
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Notifications',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inknutAntiqua(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF394957),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Divider(height: 2, color: Color(0xFF5F7C94)),
-                  const SizedBox(height: 20),
-                  SwitchListTile(
-                    title: Text(
-                      'Email notifications',
-                      style: GoogleFonts.lato(
-                        fontSize: 16,
-                        color: const Color(0xFF394957),
-                      ),
-                    ),
-                    value: _notifyEmail,
-                    activeColor: const Color(0xFF7496B3),
-                    onChanged: (v) {
-                      setDialogState(() => _notifyEmail = v);
-                      setState(() => _notifyEmail = v);
-                      _markDirty();
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    title: Text(
-                      'Push notifications',
-                      style: GoogleFonts.lato(
-                        fontSize: 16,
-                        color: const Color(0xFF394957),
-                      ),
-                    ),
-                    value: _notifyPush,
-                    activeColor: const Color(0xFF7496B3),
-                    onChanged: (v) {
-                      setDialogState(() => _notifyPush = v);
-                      setState(() => _notifyPush = v);
-                      _markDirty();
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
+  // Logs out user and sends them back to the launch screen
   Future<void> _handleLogout() async {
-    final should = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
-                      onPressed: () => Navigator.of(context).pop(false),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Log out',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inknutAntiqua(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
-                const SizedBox(height: 20),
-                Text(
-                  'Are you sure you want to log out?',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.lato(
-                    color: const Color(0xFF394957),
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 120,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade400, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: Text(
-                          'Cancel',
-                          style: GoogleFonts.inknutAntiqua(
-                            color: const Color(0xFF394957),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 120,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7F9CB3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: Text(
-                          'Log out',
-                          style: GoogleFonts.inknutAntiqua(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    final should = await UserSettingsDialogs.showLogoutDialog(context);
 
     if (should == true) {
       await Supabase.instance.client.auth.signOut();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Logged out')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Logged out')));
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LaunchScreen()),
-        (route) => false,
-      );
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LaunchScreen()),
+          (route) => false,
+        );
+      }
     }
   }
-
-
 }

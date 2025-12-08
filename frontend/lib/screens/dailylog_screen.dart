@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../pet_provider.dart';
-import '../user_provider.dart';
-import '../events_provider.dart';
 import '../shared/app_layout.dart';
 import 'add_event.dart';
 import 'meal_plan_screen.dart';
 import 'medication_screen.dart';
+import '../pet_provider.dart';
+import '../log_provider.dart';
 
 class DailyLogScreen extends StatefulWidget {
   const DailyLogScreen({super.key});
@@ -22,65 +21,56 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   DateTime? _selectedDay;
   final Set<String> _selectedTabs = {};
 
-  // --- Pet selection ---
-  //final List<String> _pets = ['Daisy', 'Teddy', 'Aries'];
-  Pet? _selectedPet;
-  String? _selectedPetId;
-  String _selectedPetName = '';
-
-  @override
-  void initState() {
-    super.initState();
-    // Fetch pets when screen loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final petProvider = Provider.of<PetProvider>(context, listen: false);
-      // Only fetch if list is empty to avoid re-fetching constantly
-      if (petProvider.pets.isEmpty) {
-        petProvider.fetchPets().then((_) {
-          _setDefaultPet(petProvider);
-        });
-      } else {
-        _setDefaultPet(petProvider);
-      }
-    });
-  }
-
-  void _setDefaultPet(PetProvider provider) {
-    if (provider.pets.isNotEmpty && mounted) {
-      setState(() {
-        _selectedPet = provider.pets.first;
-        _selectedPetId = _selectedPet!.petId;
-        _selectedPetName = _selectedPet!.name;
-      });
-    }
-  }
-
-  Map<String, List<Map<String, String>>> get _events =>
-      context.watch<EventsProvider>().getEventsForPet(_selectedPetName);
-
   final Map<String, Color> tabColors = {
-  'Appointments': const Color(0xFF34D399),
-  'Vaccinations': const Color(0xFF8B5CF6),
-  'Events': const Color(0xFF60A5FA),
-  'Other': const Color(0xFFFBBF24),
-};
+    'Appointments': const Color(0xFF34D399),
+    'Vaccinations': const Color(0xFF8B5CF6),
+    'Events': const Color(0xFF60A5FA),
+    'Other': const Color(0xFFFBBF24),
+  };
 
+  // --- GET EVENTS FROM DB ---
+  Map<String, List<Map<String, String>>> get _events {
+    final petId = context.watch<PetProvider>().selectedPetId;
+    if (petId == null) return {};
+    // This returns the events organized by category ('Appointments', 'Other', etc.)
+    return context.watch<LogProvider>().getEventsForCalendar(petId);
+  }
 
   List<Map<String, String>> _getVisibleMarkersForDay(DateTime day) {
     final dateKey =
         '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+
+    // If no tabs selected, show all. Otherwise show selected.
     final activeTabs = _selectedTabs.isEmpty ? _events.keys : _selectedTabs;
-    return [
-      for (var tab in activeTabs)
-        for (var event in _events[tab]!)
-          if (event['date'] == dateKey) {...event, 'category': tab}
-    ];
+
+    List<Map<String, String>> markers = [];
+
+    for (var tab in activeTabs) {
+      final eventsInTab = _events[tab];
+      if (eventsInTab != null) {
+        for (var event in eventsInTab) {
+          if (event['date'] == dateKey) {
+            markers.add({...event, 'category': tab});
+          }
+        }
+      }
+    }
+    return markers;
   }
 
   List<Map<String, String>> _getEventsForDay(DateTime day) =>
       _getVisibleMarkersForDay(day);
 
+  // --- ADD EVENT ---
   void _navigateToAddEvent() async {
+    final petId = context.read<PetProvider>().selectedPetId;
+    if (petId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a pet first.')),
+      );
+      return;
+    }
+
     final newEvent = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -90,17 +80,24 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     );
 
     if (newEvent != null) {
-      setState(() {
-        _events[newEvent['category']]!.add({
-          'date': newEvent['date'],
-          'title': newEvent['title'],
-          'desc': newEvent['desc'],
-        });
-      });
+      // Convert UI category (e.g. 'Events') to DB type (e.g. 'event')
+      // Simple logic: lowercase and remove trailing 's' if present
+      String uiCategory = newEvent['category'].toString();
+      String dbType = uiCategory.toLowerCase();
+      if (dbType.endsWith('s')) {
+        dbType = dbType.substring(0, dbType.length - 1);
+      }
+
+      await context.read<LogProvider>().addLog(
+        petId: petId,
+        type: dbType,
+        date: DateTime.parse(newEvent['date']),
+        details: {'title': newEvent['title'], 'desc': newEvent['desc']},
+      );
     }
   }
 
-  //show events with a edit and delete option
+  // --- SHOW DETAILS / DELETE ---
   void _showEventDialog(Map<String, String> event, String category) {
     showDialog(
       context: context,
@@ -127,13 +124,15 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
               child: const Text('Edit'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  _events[category]!.removeWhere((e) =>
-                      e['title'] == event['title'] &&
-                      e['date'] == event['date']);
-                });
-                Navigator.pop(context);
+              onPressed: () async {
+                final petId = context.read<PetProvider>().selectedPetId;
+                final logId = event['id']; // This comes from LogProvider now
+
+                if (petId != null && logId != null) {
+                  await context.read<LogProvider>().deleteLog(logId, petId);
+                }
+
+                if (mounted) Navigator.pop(context);
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
@@ -147,6 +146,8 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     );
   }
 
+  // --- EDIT EVENT ---
+  // Since we don't have an 'updateLog' yet, we will Delete Old + Add New
   void _showEditEventDialog(Map<String, String> event, String category) {
     final titleController = TextEditingController(text: event['title']);
     final descController = TextEditingController(text: event['desc']);
@@ -183,9 +184,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           lastDate: DateTime(2030),
                         );
                         if (picked != null) {
-                          setState(() {
-                            eventDate = picked;
-                          });
+                          // Update local state for the dialog only
+                          // (In a real app, use a StatefulBuilder for dialog content)
+                          eventDate = picked;
                         }
                       },
                       child: Text(
@@ -203,21 +204,33 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  final idx = _events[category]!.indexWhere((e) =>
-                      e['title'] == event['title'] &&
-                      e['date'] == event['date']);
-                  if (idx != -1) {
-                    _events[category]![idx] = {
-                      'title': titleController.text,
-                      'desc': descController.text,
-                      'date':
-                          '${eventDate.year}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}',
-                    };
+              onPressed: () async {
+                final petId = context.read<PetProvider>().selectedPetId;
+                final logId = event['id'];
+
+                if (petId != null && logId != null) {
+                  // 1. Delete old
+                  await context.read<LogProvider>().deleteLog(logId, petId);
+
+                  // 2. Add new
+                  // Map UI Category back to DB type
+                  String dbType = category.toLowerCase();
+                  if (dbType.endsWith('s')) {
+                    dbType = dbType.substring(0, dbType.length - 1);
                   }
-                });
-                Navigator.pop(context);
+
+                  await context.read<LogProvider>().addLog(
+                    petId: petId,
+                    type: dbType,
+                    date: eventDate,
+                    details: {
+                      'title': titleController.text,
+                      'desc': descController.text
+                    },
+                  );
+                }
+
+                if (mounted) Navigator.pop(context);
               },
               child: const Text('Save'),
             ),
@@ -229,8 +242,10 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch providers
     final petProvider = context.watch<PetProvider>();
     final pets = petProvider.pets;
+    final selectedPetId = petProvider.selectedPetId;
 
     return AppLayout(
       currentIndex: 0,
@@ -246,41 +261,36 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 children: [
                   const SizedBox(height: 8),
 
-                  // ---- Pet Dropdown (Updated) ----
-                  if (petProvider.isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (pets.isEmpty)
-                    const Text("No pets found. Add a pet in profile!")
-                  else
-                    Row(
-                      children: [
-                        const Text('Pet: ', style: TextStyle(fontSize: 18)),
-                        const SizedBox(width: 10),
+                  // ---- Pet Dropdown ----
+                  Row(
+                    children: [
+                      const Text('Pet: ', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 10),
+                      // Only show dropdown if we have pets
+                      if (pets.isEmpty)
+                        const Text("No pets")
+                      else
                         DropdownButton<String>(
-                          value: _selectedPetId,
-                          // Ensure the value actually exists in items to avoid crashes
-                          items: pets.map((p) => DropdownMenuItem(
-                            value: p.petId,
-                            child: Text(
-                              p.name,
-                              style: GoogleFonts.lato(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ))
-                              .toList(),
+                          value: selectedPetId,
+                          items: pets.map((p) {
+                            return DropdownMenuItem(
+                              value: p.petId,
+                              child: Text(
+                                p.name,
+                                style: GoogleFonts.lato(
+                                    fontSize: 20, fontWeight: FontWeight.w500),
+                              ),
+                            );
+                          }).toList(),
                           onChanged: (newId) {
                             if (newId == null) return;
-                            setState(() {
-                              _selectedPetId = newId;
-                              _selectedPet = pets.firstWhere((p) => p.petId == newId);
-                            });
+                            // Update both providers
+                            context.read<PetProvider>().selectPet(newId);
+                            context.read<LogProvider>().fetchLogs(newId);
                           },
                         ),
-                      ],
-                    ),
-
-                  const SizedBox(height: 16),
+                    ],
+                  ),
 
                   const SizedBox(height: 16),
 
@@ -292,15 +302,10 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           icon: Icons.restaurant_menu,
                           label: 'Meal Plan',
                           onTap: () {
-                            // Prevent navigation if no pet is selected
-                            if (_selectedPetId == null) return;
-
                             Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  // PASS THE SELECTED PET ID HERE
-                                  builder: (context) => MealPlanScreen(petId: _selectedPetId!),
-                                ),
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const MealPlanScreen()),
                             );
                           },
                         ),
@@ -313,7 +318,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const MedicationScreen()),
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MedicationScreen()),
                             );
                           },
                         ),
