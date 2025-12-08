@@ -167,11 +167,22 @@ class _MedicationScreenState extends State<MedicationScreen> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7AA9C8)),
               onPressed: () {
+                final now = DateTime.now();
+                final logDate = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  now.hour,
+                  now.minute,
+                  now.second,
+                  now.millisecond,
+                  now.microsecond,
+                );
                 // Create Log Entry
                 context.read<LogProvider>().addLog(
                   petId: petId,
                   type: 'medication',
-                  date: selectedDate,
+                  date: logDate,
                   details: {
                     'name': name,
                     'dose': medData['dose'] ?? '',
@@ -453,7 +464,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                           ),
                                         ),
                                         Text(
-                                          "Taken at ${DateFormat('h:mm a').format(log.date)}",
+                                          "Taken at ${DateFormat('h:mm a').format(log.loggedAt ?? log.date)}",
                                           style: GoogleFonts.inknutAntiqua(
                                               fontSize: 12),
                                         ),

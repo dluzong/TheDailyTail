@@ -4,12 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 class AddMeal extends StatefulWidget {
   final List<Map<String, String>> recentMeals;
   final Function(String name, String amount) onSave;
+  final Function(String name, String amount)? onSaveToFavorites;
   final Future<void> Function(int index)? onDeleteRecent;
 
   const AddMeal({
     super.key,
     required this.recentMeals,
     required this.onSave,
+    this.onSaveToFavorites,
     this.onDeleteRecent,
   });
 
@@ -57,7 +59,7 @@ class _AddMealState extends State<AddMeal> {
             const SizedBox(height: 10),
 
             Text(
-              "Recent meals",
+              "Saved meals",
               style: GoogleFonts.inknutAntiqua(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -242,28 +244,65 @@ class _AddMealState extends State<AddMeal> {
 
             const SizedBox(height: 20),
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (selectedName.trim().isEmpty) return;
-
-                  widget.onSave(selectedName, selectedAmount);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7AA9C8),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            // --- Buttons (Updated to Row) ---
+            Row(
+              children: [
+                // Button 1: Save to Favorites
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      if (selectedName.trim().isEmpty) return;
+                      // Call the new callback
+                      if (widget.onSaveToFavorites != null) {
+                        widget.onSaveToFavorites!(selectedName, selectedAmount);
+                      }
+                      Navigator.pop(context);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFF7AA9C8), width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.favorite_border,
+                        color: Color(0xFF7AA9C8)),
+                    label: Text(
+                      "Save List",
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        color: const Color(0xFF7AA9C8),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  "Save",
-                  style: GoogleFonts.inknutAntiqua(fontSize: 18),
+
+                const SizedBox(width: 12),
+
+                // Button 2: Log Meal (Existing)
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (selectedName.trim().isEmpty) return;
+                      widget.onSave(selectedName, selectedAmount);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7AA9C8),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      "Log Meal",
+                      style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             )
           ],
         ),

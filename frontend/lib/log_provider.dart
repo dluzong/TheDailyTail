@@ -9,6 +9,7 @@ class PetLog {
   final String
       type; // 'meal', 'medication', 'event', 'appointment', 'vaccination'
   final Map<String, dynamic> details;
+  final DateTime? loggedAt; // precise timestamp when the log was created
 
   PetLog({
     required this.logId,
@@ -16,15 +17,26 @@ class PetLog {
     required this.date,
     required this.type,
     required this.details,
+    this.loggedAt,
   });
 
   factory PetLog.fromMap(Map<String, dynamic> map) {
+    final details = Map<String, dynamic>.from(map['log_details'] ?? {});
+    final loggedAtRaw = details['logged_at'];
+    DateTime? loggedAt;
+    if (loggedAtRaw is String) {
+      loggedAt = DateTime.tryParse(loggedAtRaw);
+    } else if (loggedAtRaw is DateTime) {
+      loggedAt = loggedAtRaw;
+    }
+
     return PetLog(
       logId: map['log_id'] ?? '',
       petId: map['pet_id'] ?? '',
       date: DateTime.parse(map['log_date']),
       type: map['log_type'] ?? 'general',
-      details: map['log_details'] ?? {},
+      details: details,
+      loggedAt: loggedAt,
     );
   }
 }
@@ -72,11 +84,16 @@ class LogProvider extends ChangeNotifier {
     required Map<String, dynamic> details,
   }) async {
     try {
+      final enrichedDetails = {
+        ...details,
+        'logged_at': date.toIso8601String(),
+      };
+
       await _supabase.from('logs').insert({
         'pet_id': petId,
         'log_type': type,
         'log_date': date.toIso8601String(),
-        'log_details': details,
+        'log_details': enrichedDetails,
       });
       // Refresh local state immediately
       await fetchLogs(petId);

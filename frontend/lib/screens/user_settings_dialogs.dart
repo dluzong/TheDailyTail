@@ -152,6 +152,7 @@ class UserSettingsDialogs {
     required Function(String path) onImagePicked,
     required VoidCallback onMarkDirty,
   }) {
+    String? currentDialogPath = profilePicturePath;
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -225,9 +226,12 @@ class UserSettingsDialogs {
                             imageQuality: 85,
                           );
                           if (image != null) {
+                            // 1. Update the parent state
+                            onImagePicked(image.path);
+
+                            // 2. Update the DIALOG state immediately to show the new preview
                             setDialogState(() {
-                              onImagePicked(image.path);
-                              onMarkDirty();
+                              currentDialogPath = image.path;
                             });
                           }
                         } catch (e) {
@@ -241,14 +245,17 @@ class UserSettingsDialogs {
                       child: CircleAvatar(
                         radius: 64,
                         backgroundColor: const Color(0xFF7496B3),
-                        backgroundImage: profilePicturePath != null
-                            ? (profilePicturePath.startsWith('assets/') ||
-                                    profilePicturePath.startsWith('http')
-                                ? NetworkImage(profilePicturePath) as ImageProvider
-                                : FileImage(File(profilePicturePath)))
-                            : null,
-                        child: profilePicturePath == null
-                            ? const Icon(Icons.camera_alt, size: 42, color: Colors.white)
+                        backgroundImage: currentDialogPath != null
+                            ? (currentDialogPath!.startsWith('http')
+                              // If it is a web URL (old image)
+                              ? NetworkImage(currentDialogPath!)
+                              // If it is a local path (new image)
+                              : FileImage(File(currentDialogPath!)))
+                              as ImageProvider
+                          : null,
+                        child: currentDialogPath == null
+                            ? const Icon(Icons.camera_alt,
+                            size: 42, color: Colors.white)
                             : null,
                       ),
                     ),
@@ -266,10 +273,9 @@ class UserSettingsDialogs {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () {
+                          // Trigger the save when clicking "Save"
+                          onMarkDirty();
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Profile picture successfully updated.')),
-                          );
                         },
                         child: Text(
                           'Save',
