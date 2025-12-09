@@ -101,6 +101,7 @@ class _AddEventPageState extends State<AddEventPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor:
           Colors.black.withValues(alpha: 0.4), // semi-transparent overlay
       appBar: AppBar(
