@@ -97,6 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     const buttonBlue = Color(0xFF8DB6D9);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Column(
         children: [

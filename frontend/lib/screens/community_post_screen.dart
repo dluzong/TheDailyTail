@@ -186,6 +186,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     final double bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
           Container(height: 50, color: outerBlue),
