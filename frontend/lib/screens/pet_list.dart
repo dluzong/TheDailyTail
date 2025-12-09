@@ -27,43 +27,22 @@ class ExpandablePetCard extends StatefulWidget {
 
 class _ExpandablePetCardState extends State<ExpandablePetCard> {
   bool _isExpanded = false;
-  bool _expandedDone = false;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final petNameLength = widget.pet.name.length;
-    // Calculate font size based on name length
-    double collapsedFontSize = size.width * 0.04;
-    if (petNameLength > 15) {
-      collapsedFontSize = size.width * 0.032;
-    } else if (petNameLength > 10) {
-      collapsedFontSize = size.width * 0.036;
-    }
     
     return Center(
       child: GestureDetector(
         onTap: () {
           setState(() {
             _isExpanded = !_isExpanded;
-            // Reset completion flag when toggling
-            _expandedDone = false;
           });
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          onEnd: () {
-            // Mark completion after expand; clear after collapse
-            setState(() {
-              _expandedDone = _isExpanded;
-            });
-          },
           padding: EdgeInsets.all(size.width * 0.04),
-          constraints: BoxConstraints(
-            maxWidth: _isExpanded ? size.width * 0.85 : size.width * 0.35,
-            minHeight: _isExpanded ? size.width * 0.25 : 0,
-          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -79,49 +58,56 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
               ),
             ],
           ),
-          child: _isExpanded
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: size.width * 0.25,
-                      height: size.width * 0.35,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 138, 193, 219),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.pets,
-                        size: size.width * 0.12,
-                        color: Colors.white,
-                      ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: size.width * 0.25,
+                    height: size.width * 0.25,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 138, 193, 219),
+                      borderRadius: BorderRadius.circular(12),
+                      // ADD THIS SECTION:
+                      image: widget.pet.imageUrl.isNotEmpty
+                          ? DecorationImage(
+                        image: widget.pet.imageUrl.startsWith('http')
+                            ? NetworkImage(widget.pet.imageUrl)
+                            : AssetImage(widget.pet.imageUrl) as ImageProvider,
+                        fit: BoxFit.cover,
+                      )
+                          : null,
                     ),
-                    Flexible(
-                      child: (_expandedDone)
-                          ? AnimatedOpacity(
-                              opacity: 1.0,
-                              duration: const Duration(milliseconds: 200),
-                              child: Container(
-                          padding: EdgeInsets.only(left: size.width * 0.04),
-                          constraints: BoxConstraints(
-                            maxHeight: size.width * 0.35,
-                          ),
-                          child: SingleChildScrollView(
+                    // Only show the icon if there is NO image
+                    child: widget.pet.imageUrl.isEmpty
+                        ? Icon(
+                      Icons.pets,
+                      size: size.width * 0.12,
+                      color: Colors.white,
+                    )
+                        : null,
+                  ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: _isExpanded
+                        ? Container(
+                            width: size.width * 0.5,
+                            padding: EdgeInsets.only(left: size.width * 0.04),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   widget.pet.name,
                                   style: GoogleFonts.inknutAntiqua(
-                                    fontSize: size.width * 0.05,
+                                    fontSize: size.width * 0.045,
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFF394957),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 SizedBox(height: size.height * 0.01),
                                 _buildPetInfoRow('Breed', widget.pet.breed, size),
@@ -129,46 +115,25 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                                 _buildPetInfoRow('Weight', '${widget.pet.weight} lbs', size),
                               ],
                             ),
-                                  ),
-                                ),
-                              )
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: size.width * 0.3,
-                      height: size.width * 0.3,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 138, 193, 219),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.pets,
-                        size: size.width * 0.12,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: size.height * 0.01),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
-                      child: Text(
-                        widget.pet.name,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inknutAntiqua(
-                          fontSize: collapsedFontSize,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF394957),
-                        ),
-                      ),
-                    ),
-                  ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+              if (!_isExpanded) ...[
+                SizedBox(height: size.height * 0.01),
+                Text(
+                  widget.pet.name,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inknutAntiqua(
+                    fontSize: size.width * 0.04,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF394957),
+                  ),
                 ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -176,13 +141,13 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
 
   Widget _buildPetInfoRow(String label, String value, Size size) {
     return Padding(
-      padding: EdgeInsets.only(bottom: size.height * 0.002),
+      padding: EdgeInsets.only(bottom: size.height * 0.005),
       child: Row(
         children: [
           Text(
             '$label: ',
             style: GoogleFonts.lato(
-              fontSize: size.width * 0.04,
+              fontSize: size.width * 0.035,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF7496B3),
             ),
@@ -191,7 +156,7 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
             child: Text(
               value,
               style: GoogleFonts.lato(
-                fontSize: size.width * 0.04,
+                fontSize: size.width * 0.035,
                 color: const Color(0xFF394957),
               ),
             ),
@@ -228,9 +193,12 @@ class PetList extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   image: pet.imageUrl.isNotEmpty
                       ? DecorationImage(
-                          image: AssetImage(pet.imageUrl),
-                          fit: BoxFit.cover,
-                        )
+                    // FIX: Check if it's a network URL (DB) or an Asset
+                    image: pet.imageUrl.startsWith('http')
+                        ? NetworkImage(pet.imageUrl)
+                        : AssetImage(pet.imageUrl) as ImageProvider,
+                    fit: BoxFit.cover,
+                  )
                       : null,
                 ),
                 child: pet.imageUrl.isEmpty

@@ -263,41 +263,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
             padding: EdgeInsets.all(16.0),
             child: CircularProgressIndicator(),
           ))
-        else if (_currentLogs.isEmpty)
-          const Center(
-              child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text('No recent log for this pet.'),
-          ))
         else
-          ListView.separated(
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _currentLogs.length,
-            separatorBuilder: (_, __) => const Divider(),
-            itemBuilder: (context, index) {
-              final log = _currentLogs[index];
-              String titleText = '';
-              if (log.type == 'meal') {
-                titleText = "Ate ${log.details['food_name']}";
-              } else if (log.type == 'medication') {
-                titleText = "Took ${log.details['name']}";
-              } else {
-                titleText = log.details['title'] ?? log.type;
-              }
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.check_circle_outline),
-                title: Text(titleText, style: GoogleFonts.lato()),
-                subtitle: Text(
-                  // MM/DD/YYYY format
-                  '${log.date.month}/${log.date.day}/${log.date.year}',
-                  style: GoogleFonts.lato(fontSize: 12),
-                ),
-              );
-            },
-          ),
+          (() {
+            final now = DateTime.now();
+            final xDaysAgo = now.subtract(const Duration(days: 7));
+            final recentLogs = _currentLogs
+                .where((log) => log.date.isAfter(xDaysAgo))
+                .toList();
+            if (recentLogs.isEmpty) {
+              return const Center(
+                  child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('No recent log for this pet.'),
+              ));
+            }
+            return ListView.separated(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: recentLogs.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) {
+                final log = recentLogs[index];
+                String titleText = '';
+                if (log.type == 'meal') {
+                  titleText = "Ate ${log.details['name']}";
+                } else if (log.type == 'medication') {
+                  titleText = "Took ${log.details['name']}";
+                } else {
+                  titleText =
+                      "${log.type.toUpperCase()}: ${log.details['title']}";
+                }
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.check_circle_outline),
+                  title: Text(titleText, style: GoogleFonts.lato()),
+                  subtitle: Text(
+                    // MM/DD/YYYY format
+                    '${log.date.month}/${log.date.day}/${log.date.year}',
+                    style: GoogleFonts.lato(fontSize: 12),
+                  ),
+                );
+              },
+            );
+          })(),
       ],
     );
   }

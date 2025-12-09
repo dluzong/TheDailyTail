@@ -7,12 +7,13 @@ import '../shared/starting_widgets.dart';
 
 class EditPetPopup extends StatefulWidget {
   final pet_provider.Pet pet;
-  final Function(pet_provider.Pet) onSave;
+  // Remove the onSave callback, we will return data instead
+  // final Function(pet_provider.Pet) onSave;
 
   const EditPetPopup({
     super.key,
     required this.pet,
-    required this.onSave,
+    // required this.onSave, // Remove this
   });
 
   @override
@@ -36,6 +37,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
     weightController = TextEditingController(text: widget.pet.weight.toString());
     tempImagePath = widget.pet.imageUrl.isNotEmpty ? widget.pet.imageUrl : null;
   }
+
   @override
   void dispose() {
     nameController.dispose();
@@ -81,34 +83,20 @@ class _EditPetPopupState extends State<EditPetPopup> {
       return;
     }
 
-    final updatedPet = pet_provider.Pet(
-      petId: widget.pet.petId,
-      userId: widget.pet.userId,
-      name: name,
-      breed: breed,
-      age: age,
-      weight: weight,
-      imageUrl: tempImagePath ?? '',
-      savedMeals: widget.pet.savedMeals,
-      savedMedications: widget.pet.savedMedications,
-      status: widget.pet.status,
-    );
-
-    try {
-      widget.onSave(updatedPet);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pet updated!')),
-      );
-      Navigator.of(context).pop();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save: $e')),
-      );
-    }
+    // Instead of calling onSave, we pop the Navigator with a Map of the changes.
+    // The parent (user_settings.dart) will receive this map.
+    Navigator.of(context).pop({
+      'name': name,
+      'breed': breed,
+      'age': age,
+      'weight': weight,
+      'imageUrl': tempImagePath, // This might be a local file path now
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // ... (The rest of your build method remains exactly the same)
     return Center(
       child: Material(
         color: Colors.transparent,
@@ -137,7 +125,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.of(context).pop(), // Returns null
                     ),
                     Expanded(
                       child: Text(
@@ -174,9 +162,11 @@ class _EditPetPopupState extends State<EditPetPopup> {
                       radius: 48,
                       backgroundColor: const Color(0xFF7496B3),
                       backgroundImage: tempImagePath != null
-                          ? (tempImagePath!.startsWith('assets/')
-                              ? AssetImage(tempImagePath!) as ImageProvider
-                              : FileImage(File(tempImagePath!)))
+                          ? (tempImagePath!.startsWith('http') || tempImagePath!.startsWith('assets/')
+                          ? (tempImagePath!.startsWith('http')
+                          ? NetworkImage(tempImagePath!)
+                          : AssetImage(tempImagePath!)) as ImageProvider
+                          : FileImage(File(tempImagePath!)))
                           : null,
                       child: tempImagePath == null
                           ? const Icon(Icons.camera_alt, size: 36, color: Colors.white)

@@ -209,6 +209,7 @@ class _AppLayoutState extends State<AppLayout> {
                     child: Column(
                       children: [
                         GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () {
                             if (currentIndex != 1) {
                               widget.onTabSelected(1);

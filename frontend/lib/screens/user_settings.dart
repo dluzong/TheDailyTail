@@ -10,6 +10,9 @@ import 'user_settings_dialogs.dart';
 import 'launch_screen.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
+import 'dart:io';
+
+
 class UserSettingsPage extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
@@ -35,9 +38,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   bool _isDirty = false;
 
   // User tags/roles selection (local state; persisted in future)
-  final List<String> _availableTags = const ['owner', 'organizer', 'foster', 'visitor'];
+  final List<String> _availableTags = const [
+    'owner',
+    'organizer',
+    'foster',
+    'visitor'
+  ];
   List<String> _selectedTags = ['visitor'];
-  
+
   String? _profilePicturePath;
   final ImagePicker _picker = ImagePicker();
   String _bio = '';
@@ -49,29 +57,37 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   @override
   void initState() {
     super.initState();
-    final up = Provider.of<UserProvider>(context, listen: false);
-    final user = up.user;
-    _name = user?.name ?? _name;
-    _username = user?.username ?? _username;
-    _profilePicturePath = user?.photoUrl.isNotEmpty == true ? user?.photoUrl : null;
-    _bio = user?.bio ?? '';
-    
-    // Initialize selected tags from user's current roles (normalize to lowercase)
-    final userRoles = user?.roles ?? [];
-    _selectedTags = userRoles
-        .map((role) => role.toLowerCase())
-        .where((role) => _availableTags.contains(role))
-        .toList();
-    if (_selectedTags.isEmpty) {
-      _selectedTags = ['visitor']; // Default to visitor if no valid tags
+    _nameController = TextEditingController();
+    _usernameController = TextEditingController();
+    _bioController = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = Provider.of<UserProvider>(context).user;
+
+    if (user != null && !_isDirty) {
+      _name = user.name;
+      _username = user.username;
+      _bio = user.bio;
+      _profilePicturePath = user.photoUrl.isNotEmpty ? user.photoUrl : null;
+
+      if (_nameController.text != _name) _nameController.text = _name;
+      if (_usernameController.text != _username) {
+        _usernameController.text = _username;
+      }
+      if (_bioController.text != _bio) _bioController.text = _bio;
+
+      final userRoles = user.roles;
+      _selectedTags = userRoles
+          .map((role) => role.toLowerCase())
+          .where((role) => _availableTags.contains(role))
+          .toList();
+      if (_selectedTags.isEmpty) {
+        _selectedTags = ['visitor'];
+      }
     }
-
-    _name = user?.name ?? '';
-    _username = user?.username ?? '';
-
-    _nameController = TextEditingController(text: _name);
-    _usernameController = TextEditingController(text: _username);
-    _bioController = TextEditingController(text: _bio);
   }
 
   List<pet_provider.Pet> get _pets {
@@ -103,7 +119,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         .updateUserProfile(
       username: _username,
       name: _name,
-      tags: _selectedTags,
+      roles: _selectedTags,
       photoUrl: _profilePicturePath,
       bio: _bio,
     )
@@ -130,6 +146,135 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     });
   }
 
+  /// Uploads the local file to Supabase Storage and returns the Public URL
+  Future<String?> _uploadProfileImage(File imageFile) async {
+    try {
+      final userId = _supabase.auth.currentUser!.id;
+      // Create a unique file path: user_id/timestamp.jpg
+      final fileExt = imageFile.path.split('.').last;
+      final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+      // Upload to the 'avatars' bucket
+      await _supabase.storage.from('avatars').upload(
+        fileName,
+        imageFile,
+        fileOptions: const FileOptions(upsert: true),
+      );
+
+      // Get the Public URL
+      final imageUrl =
+      _supabase.storage.from('avatars').getPublicUrl(fileName);
+
+      return imageUrl;
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e')),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _deleteOldImage(String oldUrl) async {
+    try {
+      // oldUrl looks like: https://[project].supabase.co/storage/v1/object/public/avatars/[user_id]/[timestamp].jpg
+
+      // 1. Parse the URL to find the path relative to the bucket
+      final uri = Uri.parse(oldUrl);
+      final pathSegments = uri.pathSegments;
+      // pathSegments usually looks like: ['storage', 'v1', 'object', 'public', 'avatars', 'user_id', 'filename.jpg']
+
+      // We need everything after 'avatars'
+      final avatarIndex = pathSegments.indexOf('avatars');
+      if (avatarIndex == -1 || avatarIndex + 1 >= pathSegments.length) return;
+
+      final filePath = pathSegments.sublist(avatarIndex + 1).join('/');
+
+      // 2. Delete the file
+      if (filePath.isNotEmpty) {
+        await _supabase.storage.from('avatars').remove([filePath]);
+        debugPrint('Deleted old image: $filePath');
+      }
+    } catch (e) {
+      // Don't stop the app if deletion fails, just log it
+      debugPrint('Error deleting old image: $e');
+    }
+  }
+
+  Future<void> _saveDataOnly() async {
+    _username = _usernameController.text.trim();
+    _name = _nameController.text.trim();
+    _bio = _bioController.text.trim();
+
+    // 1. HANDLE IMAGE UPLOAD
+    String? finalPhotoUrl = _profilePicturePath;
+
+    // If the path exists and DOES NOT start with http, it's a local file on the phone
+    if (_profilePicturePath != null && !_profilePicturePath!.startsWith('http')) {
+
+      // 1. CAPTURE THE OLD URL (if it exists)
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final String oldPhotoUrl = userProvider.user?.photoUrl ?? '';
+
+      // Show a loading snackbar because upload takes time
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+      );
+
+      final file = File(_profilePicturePath!);
+      final uploadedUrl = await _uploadProfileImage(file);
+
+      if (uploadedUrl == null) {
+        // If upload failed, STOP. Do not save to DB.
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Profile NOT saved. Image upload failed.'),
+                backgroundColor: Colors.red
+            ),
+          );
+        }
+        return; // <--- Exit the function immediately
+      }
+      // If success, delete old image and user new URL
+      if (oldPhotoUrl.isNotEmpty && oldPhotoUrl.startsWith('http')) {
+        await _deleteOldImage(oldPhotoUrl);
+      }
+
+      finalPhotoUrl = uploadedUrl;
+      setState(() => _profilePicturePath = finalPhotoUrl);
+    }
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    try {
+      // 2. UPDATE DATABASE WITH FINAL URL
+      await userProvider.updateUserProfile(
+        username: _username,
+        name: _name,
+        roles: _selectedTags,
+        photoUrl: finalPhotoUrl, // Pass the Web URL, not the local path
+        bio: _bio,
+      );
+
+      if (mounted) {
+        setState(() => _isDirty = false);
+        // Optional success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _addNewPet() async {
     // 1. Get new pet details from the AddPetScreen
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
@@ -151,7 +296,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         weight: result['weight'] ?? 0.0,
         imageUrl: result['imageUrl'] as String? ?? '',
         savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
-        savedMedications: result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
+        savedMedications:
+            result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
         status: result['status'] as String? ?? 'owned',
       );
 
@@ -169,6 +315,76 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to add pet: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _editPetInfo(pet_provider.Pet originalPet) async {
+    print("DEBUG: Original Pet ID: ${originalPet.petId}"); // Check your console
+
+    // 1. Show the Edit Popup and wait for result
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => EditPetPopup(pet: originalPet),
+    );
+
+    // If user canceled, do nothing
+    if (result == null) return;
+
+    try {
+      String finalImageUrl = result['imageUrl'] ?? originalPet.imageUrl;
+
+      // 2. CHECK: Is this a new local file? (Not http... and not empty)
+      if (finalImageUrl.isNotEmpty && !finalImageUrl.startsWith('http')) {
+        // It's a local file path. Upload it!
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Uploading pet image...')),
+          );
+        }
+
+        final File imageFile = File(finalImageUrl);
+
+        final uploadedUrl = await _uploadProfileImage(imageFile);
+
+        if (uploadedUrl != null) {
+          finalImageUrl = uploadedUrl;
+        } else {
+          throw Exception("Image upload failed");
+        }
+      }
+
+      // 3. Create a new Pet object with the updated info
+      final updatedPet = pet_provider.Pet(
+        petId: originalPet.petId,
+        userId: originalPet.userId,
+        name: result['name'] ?? originalPet.name,
+        breed: result['breed'] ?? originalPet.breed,
+        age: result['age'] ?? originalPet.age,
+        weight: result['weight'] ?? originalPet.weight,
+        imageUrl: finalImageUrl, // Use the public URL, not local path
+        savedMeals: originalPet.savedMeals,
+        savedMedications: originalPet.savedMedications,
+        status: originalPet.status,
+      );
+      print("DEBUG: Sending Update for ID: ${updatedPet.petId}"); // Check this too
+
+      // 4. Call the provider to save to DB
+      await context.read<pet_provider.PetProvider>().updatePet(updatedPet);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pet updated successfully!'),
+            backgroundColor: Color(0xFF72C9B6),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update pet: $e')),
         );
       }
     }
@@ -254,7 +470,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                       bottom: 0,
                       child: IconButton(
                         iconSize: 32.0,
-                        icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                        icon:
+                            const Icon(Icons.arrow_back, color: Colors.black87),
                         onPressed: () => Navigator.of(context).pop(),
                         tooltip: 'Back',
                       ),
@@ -273,7 +490,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                   ],
                 ),
               ),
-            
+
               const SizedBox(height: 12),
 
               // Settings Tiles
@@ -329,7 +546,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.logout, color: Color(0xFF7496B3), size: 28),
+                          const Icon(Icons.logout,
+                              color: Color(0xFF7496B3), size: 28),
                           const SizedBox(width: 16),
                           Text(
                             'Log Out',
@@ -364,13 +582,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFBCD9EC)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: ListTile(
         leading: Icon(icon, color: const Color(0xFF7496B3), size: 32),
@@ -381,7 +592,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             color: const Color(0xFF394957),
           ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Color(0xFF7496B3), size: 42),
+        trailing:
+            const Icon(Icons.chevron_right, color: Color(0xFF7496B3), size: 42),
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       ),
@@ -391,10 +603,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   void _showAccountInfoDialog() {
     UserSettingsDialogs.showAccountInfoDialog(
       context: context,
-      formKey: _formKey,
+      formKey: GlobalKey<FormState>(), // Use a fresh key for the dialog validation
       nameController: _nameController,
       usernameController: _usernameController,
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly, // <--- CHANGE THIS: Pass the save function
     );
   }
 
@@ -408,7 +620,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           _profilePicturePath = path;
         });
       },
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly,
     );
   }
 
@@ -416,7 +628,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     UserSettingsDialogs.showAboutDialog(
       context: context,
       bioController: _bioController,
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly,
     );
   }
 
@@ -430,7 +642,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           _selectedTags = tags;
         });
       },
-      onMarkDirty: _markDirty,
+      onMarkDirty: _saveDataOnly,
     );
   }
 
@@ -441,28 +653,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       onAddNewPet: () async {
         await _addNewPet();
       },
-      onEditPet: _showEditPetDialog,
+      onEditPet: (index) => _editPetInfo(_pets[index]),
       onRemovePet: (index) => _removePet(_pets[index].petId),
-    );
-  }
-
-  void _showEditPetDialog(int index) {
-    final pet = _pets[index];
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => EditPetPopup(
-        pet: pet,
-        onSave: (updatedPet) {
-          setState(() {
-            _pets[index] = updatedPet;
-            _markDirty();
-          });
-          _showPetsDialog();
-        },
-      ),
     );
   }
 

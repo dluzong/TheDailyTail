@@ -4,8 +4,16 @@ import 'package:google_fonts/google_fonts.dart';
 class AddMeal extends StatefulWidget {
   final List<Map<String, String>> recentMeals;
   final Function(String name, String amount) onSave;
+  final Function(String name, String amount)? onSaveToFavorites;
+  final Future<void> Function(int index)? onDeleteRecent;
 
-  const AddMeal({super.key, required this.recentMeals, required this.onSave});
+  const AddMeal({
+    super.key,
+    required this.recentMeals,
+    required this.onSave,
+    this.onSaveToFavorites,
+    this.onDeleteRecent,
+  });
 
   @override
   State<AddMeal> createState() => _AddMealState();
@@ -51,7 +59,7 @@ class _AddMealState extends State<AddMeal> {
             const SizedBox(height: 10),
 
             Text(
-              "Recent meals",
+              "Saved meals",
               style: GoogleFonts.inknutAntiqua(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -67,45 +75,105 @@ class _AddMealState extends State<AddMeal> {
                   final meal = widget.recentMeals[i];
                   final isSelected = highlightedIndex == i;
 
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        highlightedIndex = i;
-                        selectedName = meal["name"]!;
-                        selectedAmount = meal["amount"]!;
-                        nameController.text = selectedName;
-                        amountController.text = selectedAmount;
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                          ? const Color(0xFF7AA9C8).withValues(alpha: 0.28)
-                          : const Color(0xFFF6F6F6),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color:
-                              isSelected ? const Color(0xFF7AA9C8) : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            meal["name"]!,
-                            style: GoogleFonts.inknutAntiqua(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                  return Dismissible(
+                    key: Key('recent_meal_${i}_${meal["name"]}'),
+                    direction: DismissDirection.endToStart,
+                    confirmDismiss: (_) async {
+                      if (widget.onDeleteRecent == null) return false;
+                      return await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                              title: const Text('Delete meal?'),
+                              content: Text(
+                                "Remove '${meal["name"]}' from recent meals?",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
                             ),
+                          ) ??
+                          false;
+                    },
+                    onDismissed: (_) async {
+                      if (widget.onDeleteRecent != null) {
+                        await widget.onDeleteRecent!(i);
+                        if (mounted) {
+                          setState(() {
+                            widget.recentMeals.removeAt(i);
+                            if (highlightedIndex == i) {
+                              highlightedIndex = null;
+                              selectedName = '';
+                              selectedAmount = '';
+                              nameController.clear();
+                              amountController.clear();
+                            } else if (highlightedIndex != null && highlightedIndex! > i) {
+                              highlightedIndex = highlightedIndex! - 1;
+                            }
+                          });
+                        }
+                      }
+                    },
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          highlightedIndex = i;
+                          selectedName = meal["name"]!;
+                          selectedAmount = meal["amount"]!;
+                          nameController.text = selectedName;
+                          amountController.text = selectedAmount;
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                            ? const Color(0xFF7AA9C8).withValues(alpha: 0.28)
+                            : const Color(0xFFF6F6F6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color:
+                                isSelected ? const Color(0xFF7AA9C8) : Colors.transparent,
+                            width: 2,
                           ),
-                          Text(
-                            meal["amount"]!,
-                            style: GoogleFonts.inknutAntiqua(fontSize: 14),
-                          ),
-                        ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              meal["name"]!,
+                              style: GoogleFonts.inknutAntiqua(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              meal["amount"]!,
+                              style: GoogleFonts.inknutAntiqua(fontSize: 14),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -176,28 +244,65 @@ class _AddMealState extends State<AddMeal> {
 
             const SizedBox(height: 20),
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (selectedName.trim().isEmpty) return;
-
-                  widget.onSave(selectedName, selectedAmount);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7AA9C8),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            // --- Buttons (Updated to Row) ---
+            Row(
+              children: [
+                // Button 1: Save to Favorites
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      if (selectedName.trim().isEmpty) return;
+                      // Call the new callback
+                      if (widget.onSaveToFavorites != null) {
+                        widget.onSaveToFavorites!(selectedName, selectedAmount);
+                      }
+                      Navigator.pop(context);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFF7AA9C8), width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.favorite_border,
+                        color: Color(0xFF7AA9C8)),
+                    label: Text(
+                      "Save List",
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        color: const Color(0xFF7AA9C8),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  "Save",
-                  style: GoogleFonts.inknutAntiqua(fontSize: 18),
+
+                const SizedBox(width: 12),
+
+                // Button 2: Log Meal (Existing)
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (selectedName.trim().isEmpty) return;
+                      widget.onSave(selectedName, selectedAmount);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7AA9C8),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      "Log Meal",
+                      style: GoogleFonts.inknutAntiqua(fontSize: 16),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             )
           ],
         ),
