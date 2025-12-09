@@ -87,6 +87,7 @@ class _AppLayoutState extends State<AppLayout> {
     final double adjustedInnerHeight = baseInnerHeight + (bottomInset / 2);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         top: false,
         bottom: false,
@@ -209,6 +210,7 @@ class _AppLayoutState extends State<AppLayout> {
                     child: Column(
                       children: [
                         GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () {
                             if (currentIndex != 1) {
                               widget.onTabSelected(1);
