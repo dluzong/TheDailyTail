@@ -212,12 +212,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  'assets/dog.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Center(child: Icon(Icons.pets)),
-                ),
+                child: (selectedPet!.imageUrl.isNotEmpty)
+                    ? Image.network(
+                        selectedPet.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(child: Icon(Icons.pets, size: 48)),
+                      )
+                    : Image.asset(
+                        'assets/dog.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(child: Icon(Icons.pets, size: 48)),
+                      ),
               ),
             ),
             const SizedBox(width: 16),
