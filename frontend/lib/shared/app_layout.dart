@@ -155,7 +155,7 @@ class _AppLayoutState extends State<AppLayout> {
 
             Expanded(
               child: Container(
-                color: Colors.grey[100],
+                color: Colors.white,
                 child: widget.child,
               ),
             ),
