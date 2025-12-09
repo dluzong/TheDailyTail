@@ -121,9 +121,6 @@ class UserSettingsDialogs {
                         if (formKey.currentState!.validate()) {
                           onMarkDirty();
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Changes saved successfully.')),
-                          );
                         }
                       },
                       child: Text(
@@ -420,154 +417,154 @@ class UserSettingsDialogs {
     );
   }
 
+  // In user_settings_dialogs.dart
+
   static void showTagsDialog({
     required BuildContext context,
     required List<String> availableTags,
     required List<String> selectedTags,
-    required Function(List<String> tags) onTagsChanged,
+    required Function(List<String>) onTagsChanged,
     required VoidCallback onMarkDirty,
   }) {
+    // Create a local copy so we don't modify the parent state until "Save" is clicked
+    List<String> tempSelectedTags = List.from(selectedTags);
+
     showDialog(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: StatefulBuilder(
-              builder: (context, setDialogState) => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Your Tags',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inknutAntiqua(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF394957),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.92,
+                constraints: const BoxConstraints(maxWidth: 460),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    )
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Select Roles',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inknutAntiqua(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF394957),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Divider(height: 2, color: Color(0xFF5F7C94)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Select all tags that describe you:',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.lato(
-                      fontSize: 16,
-                      color: const Color(0xFF394957),
+                        const SizedBox(width: 48), // Balance the close button
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: availableTags.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final tag = entry.value;
-                      final selected = selectedTags.contains(tag);
-                      
-                      // Dramatic different shades of blue for each tag
-                      final tagColors = [
-                        const Color(0xFF2C5F7F), // owner - deep navy blue
-                        const Color(0xFF5A8DB3), // organizer - medium blue
-                        const Color.fromARGB(255, 118, 178, 230), // foster - light sky blue
-                        const Color.fromARGB(255, 156, 201, 234), // visitor - pale blue
-                      ];
-                      
-                      return FilterChip(
-                        label: Text(
-                          tag[0].toUpperCase() + tag.substring(1),
-                          style: TextStyle(
-                            color: selected ? tagColors[index] : Colors.white,
-                            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    const SizedBox(height: 4),
+                    const Divider(height: 2, color: Color(0xFF5F7C94)),
+                    const SizedBox(height: 20),
+
+                    // Tags Wrap
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      alignment: WrapAlignment.center,
+                      children: availableTags.map((tag) {
+                        final isSelected = tempSelectedTags.contains(tag);
+                        return FilterChip(
+                          label: Text(
+                            tag[0].toUpperCase() + tag.substring(1), // Capitalize
+                            style: GoogleFonts.lato(
+                              color: isSelected ? Colors.white : const Color(0xFF394957),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        selected: selected,
-                        onSelected: (value) {
-                          setDialogState(() {
-                            List<String> newTags;
-                            if (value) {
-                              newTags = {...selectedTags, tag}.toList();
-                            } else {
-                              newTags = selectedTags.where((t) => t != tag).toList();
+                          selected: isSelected,
+                          selectedColor: const Color(0xFF7F9CB3),
+                          checkmarkColor: Colors.white,
+                          backgroundColor: Colors.grey.shade200,
+                          onSelected: (bool selected) {
+                            setState(() {
+                              if (selected) {
+                                tempSelectedTags.add(tag);
+                              } else {
+                                tempSelectedTags.remove(tag);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Save Button
+                    Center(
+                      child: SizedBox(
+                        width: 160,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7F9CB3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            // Validate: Ensure at least one tag is selected if required
+                            if (tempSelectedTags.isEmpty) {
+                              // Default to visitor if they try to save empty
+                              tempSelectedTags.add('visitor');
                             }
-                            onTagsChanged(newTags);
+
+                            onTagsChanged(tempSelectedTags);
                             onMarkDirty();
-                          });
-                        },
-                        selectedColor: tagColors[index].withValues(alpha: 0.2),
-                        checkmarkColor: tagColors[index],
-                        backgroundColor: tagColors[index],
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: SizedBox(
-                      width: 160,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7F9CB3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Your Tags have been updated.')),
-                          );
-                        },
-                        child: Text(
-                          'Save',
-                          style: GoogleFonts.inknutAntiqua(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                            Navigator.pop(context);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Roles updated successfully.')),
+                            );
+                          },
+                          child: Text(
+                            'Save',
+                            style: GoogleFonts.inknutAntiqua(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+
 
   static void showPetsDialog({
     required BuildContext context,

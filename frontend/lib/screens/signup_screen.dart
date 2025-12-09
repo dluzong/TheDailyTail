@@ -71,6 +71,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  Future<bool> _isUsernameTaken(String username) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('user_id')
+          .eq('username', username)
+          .maybeSingle();
+      return response != null;
+    } catch (e) {
+      debugPrint('Error checking username: $e');
+      // Default to true to prevent accidental overwrites on error
+      return true;
+    }
+  }
+
   Future<void> _signUp() async {
     // Basic validation
     if (_password.text != _confirmPassword.text) {
@@ -84,6 +99,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
         const SnackBar(content: Text('Please enter a valid email')),
       );
       return; // Exit early
+    }
+
+    // Username validation
+    final username = _username.text.trim();
+    if (username.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username cannot be empty')),
+      );
+      return;
+    }
+
+    final invalidChars = RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]');
+    if (invalidChars.hasMatch(username)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Username contains invalid characters. Do not include special characters.')),
+      );
+      return;
     }
 
     setState(() => _isLoading = true);

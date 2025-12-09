@@ -4,6 +4,8 @@ import '../screens/dailylog_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/community_screen.dart';
 import '../screens/profile_screen.dart';
+import 'package:provider/provider.dart';
+import '../user_provider.dart';
 
 class AppLayout extends StatefulWidget {
   final Widget child;
@@ -124,21 +126,38 @@ class _AppLayoutState extends State<AppLayout> {
                   ),
 
                   // Profile icon and button
-                  Positioned(
-                    right: 0,
+                  Positioned(right: 0,
                     child: GestureDetector(
                       onTap: _openProfile,
-                      child: const CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Color(0xFF7496B3),
-                        child: Icon(Icons.person, color: Colors.white),
+                      child: Consumer<UserProvider>(
+                        builder: (context, userProvider, child) {
+                          // 1. Get the current user from provider
+                          final user = userProvider.user;
+
+                          // 2. Check if we have a valid photo URL
+                          // Note: Verify if your User model uses 'photoUrl', 'imageUrl', or 'profileImage'
+                          final photoUrl = user?.photoUrl;
+                          final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
+                          return CircleAvatar(
+                            radius: 22,
+                            backgroundColor: const Color(0xFF7496B3),
+                            // 3. Load image if it exists
+                            backgroundImage: hasPhoto
+                                ? NetworkImage(photoUrl)
+                                : null,
+                            // 4. Show Icon fallback if no image
+                            child: !hasPhoto
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          );
+                        },
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-
             Expanded(child: widget.child),
 
             // Bottom navigation + floating button

@@ -29,12 +29,34 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   bool get _isOwnProfile => widget.otherUsername == null;
 
+  List<Post> _profilePosts = [];
+  bool _isLoadingPosts = false;
+  bool _postsLoaded = false; // To prevent constant refetching
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     if (!_isOwnProfile) {
       _loadOtherUserData();
+    }
+  }
+
+  void _loadUserPosts(String userId) async {
+    if (_isLoadingPosts || _postsLoaded) return;
+
+    setState(() {
+      _isLoadingPosts = true;
+    });
+
+    final posts = await context.read<PostsProvider>().fetchPostsByUserId(userId);
+
+    if (mounted) {
+      setState(() {
+        _profilePosts = posts;
+        _isLoadingPosts = false;
+        _postsLoaded = true;
+      });
     }
   }
 
@@ -243,161 +265,161 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildPostsTab() {
+  Widget _buildPostsTab(String currentUserId) {
+    if (!_postsLoaded) {
+      _loadUserPosts(currentUserId);
+    }
     final size = MediaQuery.of(context).size;
-    return Consumer<PostsProvider>(
-      builder: (context, postsProvider, _) {
-        final targetAuthorName = _isOwnProfile ? 'You' : widget.otherUsername;
 
-        // Filter posts where author name matches.
-        // Note: Ideally, we should filter by userId, but for now matching Name logic from CommunityScreen
-        final userPosts = postsProvider.posts
-            .where((post) => post.authorName == targetAuthorName)
-            .toList();
+    if (_isLoadingPosts) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        if (userPosts.isEmpty) {
-          return Center(
-            child: Text(
-              'No posts yet.',
-              style: GoogleFonts.lato(
-                fontSize: size.width * 0.04,
-                color: const Color(0xFF394957),
-              ),
-            ),
-          );
-        }
+    if (_profilePosts.isEmpty) {
+      return Center(
+        child: Text(
+          'No posts yet.',
+          style: GoogleFonts.lato(
+            fontSize: size.width * 0.04,
+            color: const Color(0xFF394957),
+          ),
+        ),
+      );
+    }
 
-        return ListView.separated(
-          padding: EdgeInsets.all(size.width * 0.04),
-          itemCount: userPosts.length,
-          separatorBuilder: (context, index) =>
-              SizedBox(height: size.height * 0.02),
-          itemBuilder: (context, index) {
-            final post = userPosts[index];
-            // Find real index for toggleLike
-            final realIndex = postsProvider.posts.indexOf(post);
+    return ListView.separated(
+      padding: EdgeInsets.all(size.width * 0.04),
+      itemCount: _profilePosts.length,
+      separatorBuilder: (context, index) =>
+          SizedBox(height: size.height * 0.02),
+      itemBuilder: (context, index) {
+        final post = _profilePosts[index];
 
-            return Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(size.width * 0.04),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(size.width * 0.04),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. POST TITLE
+                Text(
+                  post.title,
+                  style: GoogleFonts.lato(
+                    fontSize: size.width * 0.045,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF394957),
+                  ),
+                ),
+
+                SizedBox(height: size.height * 0.01),
+
+                // 2. POST BODY (CONTENT)
+                Text(
+                  post.content,
+                  maxLines: 4, // Limit lines to keep profile clean
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.lato(
+                    fontSize: size.width * 0.038,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+
+                // 3. OPTIONAL: CATEGORY CHIP
+                if (post.category.isNotEmpty) ...[
+                  SizedBox(height: size.height * 0.015),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: size.width * 0.03,
+                      vertical: size.height * 0.005,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF7FB),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: const Color(0xFFBCD9EC)),
+                    ),
+                    child: Text(
+                      post.category,
+                      style: GoogleFonts.lato(
+                        fontSize: size.width * 0.03,
+                        color: const Color(0xFF7496B3),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+
+                SizedBox(height: size.height * 0.015),
+
+                // 4. ACTION ROW (Likes/Comments)
+                Row(
                   children: [
-                    Text(
-                      post.title,
-                      style: GoogleFonts.lato(
-                        fontSize: size.width * 0.045,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF394957),
-                      ),
-                    ),
-                    SizedBox(height: size.height * 0.01),
-                    Text(
-                      post.content,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.lato(
-                        fontSize: size.width * 0.038,
-                        color: const Color(0xFF394957),
-                      ),
-                    ),
-                    SizedBox(height: size.height * 0.015),
-                    if (post.category.isNotEmpty)
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.03,
-                          vertical: size.height * 0.007,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
-                        ),
-                        child: Text(
-                          post.category,
-                          style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
-                            fontWeight: FontWeight.w600,
-                            fontSize: size.width * 0.03,
+                    GestureDetector(
+                      onTap: () async {
+                        final updatedPost = await context
+                            .read<PostsProvider>()
+                            .toggleLikeForPost(post);
+
+                        setState(() {
+                          _profilePosts[index] = updatedPost;
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                              post.isLiked
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: size.width * 0.045,
+                              color: post.isLiked
+                                  ? Colors.red
+                                  : const Color(0xFF7496B3)),
+                          SizedBox(width: size.width * 0.01),
+                          Text(
+                            '${post.likesCount}',
+                            style: GoogleFonts.lato(
+                              color: const Color(0xFF394957),
+                              fontSize: size.width * 0.035,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    SizedBox(height: size.height * 0.015),
+                    ),
+
+                    SizedBox(width: size.width * 0.05),
+
+                    // Comments Icon (Visual only, or navigate)
                     Row(
                       children: [
-                        GestureDetector(
-                          onTap: () => postsProvider.toggleLike(realIndex),
-                          child: Row(
-                            children: [
-                              Icon(
-                                  post.isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  size: size.width * 0.045,
-                                  color: post.isLiked
-                                      ? Colors.red
-                                      : const Color(0xFF7496B3)),
-                              SizedBox(width: size.width * 0.01),
-                              Text(
-                                '${post.likesCount}',
-                                style: GoogleFonts.lato(
-                                  color: const Color(0xFF394957),
-                                  fontSize: size.width * 0.035,
-                                ),
-                              ),
-                            ],
-                          ),
+                        Icon(
+                          Icons.comment_outlined,
+                          size: size.width * 0.045,
+                          color: const Color(0xFF7496B3),
                         ),
-                        SizedBox(width: size.width * 0.04),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    CommunityPostScreen(postIndex: realIndex),
-                              ),
-                            );
-                          },
-                          child: Row(
-                            children: [
-                              Icon(Icons.comment_outlined,
-                                  size: size.width * 0.045,
-                                  color: const Color(0xFF7496B3)),
-                              SizedBox(width: size.width * 0.01),
-                              Text(
-                                '${post.commentCount}',
-                                style: GoogleFonts.lato(
-                                  color: const Color(0xFF394957),
-                                  fontSize: size.width * 0.035,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Spacer(),
+                        SizedBox(width: size.width * 0.01),
                         Text(
-                          post.createdTs,
+                          '${post.commentCount}',
                           style: GoogleFonts.lato(
-                            fontSize: size.width * 0.03,
-                            color: Colors.grey,
+                            color: const Color(0xFF394957),
+                            fontSize: size.width * 0.035,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         );
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -412,6 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final textScale = MediaQuery.of(context).textScaleFactor;
 
     // Get user data based on profile type
+    String currentUserId;
     String name;
     String username;
     String? profileImageUrl;
@@ -420,6 +443,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     if (_isOwnProfile) {
       final appUser = context.watch<UserProvider>().user;
+      currentUserId = appUser?.userId ?? '';
       name = appUser?.name ?? 'Your Name';
       username = appUser?.username ?? 'username';
       profileImageUrl = appUser?.photoUrl;
@@ -428,8 +452,15 @@ class _ProfileScreenState extends State<ProfileScreen>
           (rolesList == null || rolesList.isEmpty) ? ['Visitor'] : rolesList;
 
       final postsProvider = context.watch<PostsProvider>();
-      totalPosts =
-          postsProvider.posts.where((post) => post.authorName == 'You').length;
+      // Use the local list length instead of fetching a Future
+      totalPosts = _profilePosts.length;
+
+      // Trigger load if not already loaded so the count updates from 0
+      if (!_postsLoaded && !_isLoadingPosts && currentUserId.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _loadUserPosts(currentUserId);
+        });
+      }
 
       totalFollowers = appUser?.followers.length ?? 0;
       totalFollowing = appUser?.following.length ?? 0;
@@ -437,6 +468,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       name =
           '${_otherUserData?['firstName'] ?? ''} ${_otherUserData?['lastName'] ?? ''}'
               .trim();
+      currentUserId = _otherUserData?['username'] ?? '';
       username = _otherUserData?['username'] ?? '';
       profileImageUrl = _otherUserData?['photoUrl'];
       roles = [_otherUserData?['role'] ?? 'User'];
@@ -622,7 +654,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: [
                   _buildAboutTab(),
                   _buildPetsTab(),
-                  _buildPostsTab(),
+                  _buildPostsTab(currentUserId),
                 ],
               ),
             ),

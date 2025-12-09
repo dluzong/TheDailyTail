@@ -162,6 +162,62 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
+  // Fetch posts for a specific user profile (not limited to global feed list)
+  Future<List<Post>> fetchPostsByUserId(String targetUserId) async {
+    final currentUserId = _supabase.auth.currentUser?.id;
+
+    try {
+      final response = await _supabase
+          .from('posts')
+          .select('''
+            *,
+            users:user_id (username, photo_url),
+            comments(count)
+          ''')
+          .eq('user_id', targetUserId)
+          .order('created_ts', ascending: false);
+
+      final data = List<Map<String, dynamic>>.from(response);
+      return data.map((m) => Post.fromMap(m, currentUserId)).toList();
+    } catch (e) {
+      debugPrint('Error fetching user posts: $e');
+      return [];
+    }
+  }
+
+  // 2. New method to handle liking a post that isn't in the global feed list
+  Future<Post> toggleLikeForPost(Post post) async {
+    final currentUserId = _supabase.auth.currentUser?.id;
+    if (currentUserId == null) return post;
+
+    final newLikesArray = List<String>.from(post.likesArray);
+    final bool newLikedState = !post.isLiked;
+
+    if (newLikedState) {
+      newLikesArray.add(currentUserId);
+    } else {
+      newLikesArray.remove(currentUserId);
+    }
+
+    // Update DB
+    try {
+      await _supabase
+          .from('posts')
+          .update({'likes': newLikesArray}).eq('post_id', post.postId);
+
+      // Return updated model so UI can update locally
+      return post.copyWith(
+        isLiked: newLikedState,
+        likesCount: newLikesArray.length,
+        likesArray: newLikesArray,
+      );
+    } catch (e) {
+      debugPrint("Like failed: $e");
+      return post; // Return original if failed
+    }
+  }
+
+
   // --- LIKE LOGIC ---
 
   Future<void> toggleLike(int index) async {

@@ -32,6 +32,31 @@ class AppUser {
     required this.organizationRoles,
   });
 
+
+  AppUser copyWith({
+    String? name,
+    String? username,
+    List<String>? roles,
+    String? bio,
+    String? photoUrl,
+    List<String>? following,
+    List<String>? followers,
+    Map<String, String>? organizationRoles,
+  }) {
+    return AppUser(
+      userId: userId, // ID never changes
+      name: name ?? this.name,
+      username: username ?? this.username,
+      roles: roles ?? this.roles,
+      bio: bio ?? this.bio,
+      photoUrl: photoUrl ?? this.photoUrl,
+      following: following ?? this.following,
+      followers: followers ?? this.followers,
+      organizationRoles: organizationRoles ?? this.organizationRoles,
+    );
+  }
+
+
   factory AppUser.fromMap(Map<String, dynamic> map) {
     // 1. Parse Following
     List<String> parsedFollowing = [];
@@ -134,7 +159,9 @@ class UserProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
   AppUser? _user;
+
   AppUser? get user => _user;
+
   bool get isAuthenticated => _user != null;
 
   bool _isFetching = false;
@@ -341,7 +368,6 @@ class UserProvider extends ChangeNotifier {
     required String name,
     String? bio,
     List<String>? roles,
-    // TODO: Implement photo upload functionality
     String? photoUrl,
   }) async {
     final session = _supabase.auth.currentSession;
@@ -350,36 +376,48 @@ class UserProvider extends ChangeNotifier {
       return;
     }
 
+    // 1. Prepare Supabase update data
+    final updateData = <String, dynamic>{
+      'username': username,
+      'name': name,
+    };
+
+    if (bio != null) updateData['bio'] = bio;
+    if (roles != null) updateData['role'] = roles;
+    if (photoUrl != null) updateData['photo_url'] = photoUrl;
+
     try {
-      final updateData = <String, dynamic>{
-        'username': username,
-        'name': name,
-      };
+      debugPrint('INFO: Updating user profile in DB: $updateData');
 
-      if (bio != null) {
-        updateData['bio'] = bio;
-        debugPrint('DEBUG: Updating bio');
-      }
-
-      if (roles != null) {
-        updateData['role'] = roles;
-        debugPrint('DEBUG: Updating roles to: $roles');
-      }
-
-      // TODO: Implement photo upload to storage and store URL
-      if (photoUrl != null) {
-        updateData['photo_url'] = photoUrl;
-        debugPrint('DEBUG: Updating photo URL');
-      }
-
-      debugPrint('INFO: Updating user profile with data: $updateData');
+      // 2. Perform DB Update
       await _supabase
           .from('users')
           .update(updateData)
           .eq('user_id', session.user.id);
-      debugPrint('INFO: Database update successful');
 
-      await fetchUser(force: true);
+      // 3. OPTIMISTIC UPDATE (Critical Fix)
+      // Manually update the local _user object so UI updates instantly
+      if (_user != null) {
+        _user = _user!.copyWith(
+          username: username,
+          name: name,
+          bio: bio,
+          roles: roles,
+          photoUrl: photoUrl,
+        );
+
+        // Update the cache immediately
+        await _saveToCache();
+
+        // Notify UI listeners (ProfileScreen)
+        notifyListeners();
+      }
+
+      debugPrint('INFO: Local user state updated and listeners notified.');
+
+      // 4. Background Fetch (Optional safety net)
+      // We don't strictly need to await this anymore since we updated locally
+      fetchUser(force: true);
     } catch (e) {
       debugPrint('ERROR: Failed to update user profile: $e');
       rethrow;
