@@ -220,7 +220,7 @@ class UserProvider extends ChangeNotifier {
         debugPrint('DEBUG: User bio: ${newUser.bio}');
         debugPrint('DEBUG: User photo URL: ${newUser.photoUrl}');
 
-        if (_user != newUser) {
+        if (_user != newUser || force) {
           _user = newUser;
           _lastFetchTime = DateTime.now();
           await _saveToCache();
@@ -269,7 +269,21 @@ class UserProvider extends ChangeNotifier {
           .inFilter('user_id', userIds);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      debugPrint('Error fetching user profiles: $e');
+      debugPrint('Error fetching users by IDs: $e');
+      return [];
+    }
+  }
+
+  // Fetch other user's pets by user ID
+  Future<List<Map<String, dynamic>>> fetchOtherUserPets(String userId) async {
+    try {
+      final response = await _supabase
+          .from('pets')
+          .select()
+          .eq('user_id', userId);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Error fetching other user pets: $e');
       return [];
     }
   }

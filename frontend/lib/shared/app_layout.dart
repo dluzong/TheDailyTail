@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../screens/dailylog_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/community_screen.dart';
 import '../screens/profile_screen.dart';
+import '../user_provider.dart';
 
 class AppLayout extends StatefulWidget {
   final Widget child;
@@ -129,10 +131,32 @@ class _AppLayoutState extends State<AppLayout> {
                     right: 0,
                     child: GestureDetector(
                       onTap: _openProfile,
-                      child: const CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Color(0xFF7496B3),
-                        child: Icon(Icons.person, color: Colors.white),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Consumer<UserProvider>(
+                          builder: (context, userProvider, _) {
+                            final photoUrl = userProvider.user?.photoUrl;
+                            return CircleAvatar(
+                              radius: 22,
+                              backgroundColor: const Color(0xFF7496B3),
+                              backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                                  ? NetworkImage(photoUrl)
+                                  : null,
+                              child: photoUrl == null || photoUrl.isEmpty
+                                  ? const Icon(Icons.person, color: Colors.white)
+                                  : null,
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),

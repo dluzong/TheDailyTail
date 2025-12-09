@@ -273,6 +273,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
       currentIndex: 0,
       onTabSelected: (index) {},
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(

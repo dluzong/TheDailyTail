@@ -249,7 +249,17 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     const SizedBox(width: 10),
                     GestureDetector(
                       onTap: () {
-                        if (post.authorName != 'You') {
+                        final currentUserUsername = context.read<UserProvider>().user?.username;
+                        if (post.authorName == currentUserUsername) {
+                          // Navigate to own profile
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileScreen(),
+                            ),
+                          );
+                        } else {
+                          // Navigate to other user's profile
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -264,7 +274,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         post.authorName,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: post.authorName != 'You'
+                          color: post.authorName != context.read<UserProvider>().user?.username
                               ? const Color(0xFF7496B3)
                               : Colors.black,
                         ),
@@ -368,7 +378,15 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: () {
-                                    if (username != 'You') {
+                                    final currentUserUsername = context.read<UserProvider>().user?.username;
+                                    if (username == currentUserUsername) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const ProfileScreen(),
+                                        ),
+                                      );
+                                    } else {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(

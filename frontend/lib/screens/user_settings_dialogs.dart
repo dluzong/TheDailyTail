@@ -121,9 +121,6 @@ class UserSettingsDialogs {
                         if (formKey.currentState!.validate()) {
                           onMarkDirty();
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Changes saved successfully.')),
-                          );
                         }
                       },
                       child: Text(
@@ -397,9 +394,6 @@ class UserSettingsDialogs {
                       onPressed: () {
                         onMarkDirty();
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Changes saved successfully.')),
-                        );
                       },
                       child: Text(
                         'Save',
@@ -427,6 +421,9 @@ class UserSettingsDialogs {
     required Function(List<String> tags) onTagsChanged,
     required VoidCallback onMarkDirty,
   }) {
+    // Local state for tag selection within this dialog
+    List<String> localSelectedTags = List.from(selectedTags);
+    
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -451,7 +448,8 @@ class UserSettingsDialogs {
               ],
             ),
             child: StatefulBuilder(
-              builder: (context, setDialogState) => Column(
+              builder: (context, setDialogState) {
+                return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -494,7 +492,7 @@ class UserSettingsDialogs {
                     children: availableTags.asMap().entries.map((entry) {
                       final index = entry.key;
                       final tag = entry.value;
-                      final selected = selectedTags.contains(tag);
+                      final selected = localSelectedTags.contains(tag);
                       
                       // Dramatic different shades of blue for each tag
                       final tagColors = [
@@ -515,14 +513,11 @@ class UserSettingsDialogs {
                         selected: selected,
                         onSelected: (value) {
                           setDialogState(() {
-                            List<String> newTags;
                             if (value) {
-                              newTags = {...selectedTags, tag}.toList();
+                              localSelectedTags = {...localSelectedTags, tag}.toList();
                             } else {
-                              newTags = selectedTags.where((t) => t != tag).toList();
+                              localSelectedTags = localSelectedTags.where((t) => t != tag).toList();
                             }
-                            onTagsChanged(newTags);
-                            onMarkDirty();
                           });
                         },
                         selectedColor: tagColors[index].withValues(alpha: 0.2),
@@ -544,10 +539,10 @@ class UserSettingsDialogs {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () {
+                          // Only apply changes when Save is clicked
+                          onTagsChanged(localSelectedTags);
+                          onMarkDirty();
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Your Tags have been updated.')),
-                          );
                         },
                         child: Text(
                           'Save',
@@ -561,7 +556,8 @@ class UserSettingsDialogs {
                   ),
                   const SizedBox(height: 8),
                 ],
-              ),
+              );
+              },
             ),
           ),
         ),
