@@ -91,6 +91,7 @@ class _OrgScreenState extends State<OrgScreen> {
     final description = widget.org['description'] ?? 'No description provided.';
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
