@@ -314,14 +314,17 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   }
 
   Widget _buildOrgsList() {
-    return Consumer<OrganizationProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading && provider.allOrgs.isEmpty) {
+    return Consumer2<OrganizationProvider, UserProvider>(
+      builder: (context, orgProvider, userProvider, child) {
+        if (orgProvider.isLoading && orgProvider.allOrgs.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final orgs = provider.allOrgs;
-        var joinedOrgs = orgs.where((org) => provider.isMember(org)).toList();
+        final orgs = orgProvider.allOrgs;
+        var joinedOrgs = orgs
+            .where((org) =>
+                userProvider.user?.isMemberOf(org['organization_id']) ?? false)
+            .toList();
 
         if (_searchTerm.isNotEmpty) {
           joinedOrgs = joinedOrgs.where((org) {
@@ -363,8 +366,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final org = joinedOrgs[index];
-            final membersCount = (org['member_id'] as List?)?.length ?? 0;
-            final isMember = provider.isMember(org);
+
+            int membersCount = 0;
+            if (org['organization_members'] is List &&
+                (org['organization_members'] as List).isNotEmpty) {
+              membersCount =
+                  (org['organization_members'][0]['count'] as int?) ?? 0;
+            }
+
+            final isMember =
+                userProvider.user?.isMemberOf(org['organization_id']) ?? false;
 
             return InkWell(
               onTap: () {
@@ -376,14 +387,15 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         onJoinChanged: (joined) async {
                           final orgId = org['organization_id'];
                           if (joined) {
-                            await provider.joinOrg(orgId);
+                            await orgProvider.joinOrg(orgId);
                           } else {
-                            await provider.leaveOrg(orgId);
+                            await orgProvider.leaveOrg(orgId);
                           }
+                          await userProvider.fetchUser(force: true);
                         },
                       ),
                     ))
-                    .then((_) => provider.fetchOrganizations());
+                    .then((_) => orgProvider.fetchOrganizations());
               },
               child: Card(
                 elevation: 2,
@@ -617,7 +629,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 onChanged: (value) =>
                                     setState(() => _searchTerm = value),
                                 decoration: const InputDecoration(
-                                  hintText: 'Search posts...',
+                                  hintText: 'Search...',
                                   prefixIcon: Icon(Icons.search),
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(
@@ -687,15 +699,18 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             Positioned(
               right: 16,
               bottom: 16,
-              child: Consumer<OrganizationProvider>(
-                builder: (context, orgProvider, _) {
+              child: Consumer2<OrganizationProvider, UserProvider>(
+                builder: (context, orgProvider, userProvider, _) {
                   final tabController = DefaultTabController.of(context);
                   return AnimatedBuilder(
                     animation: tabController,
                     builder: (context, _) {
                       // Index 2 is Organizations Tab
                       final joinedOrgs = orgProvider.allOrgs
-                          .where((org) => orgProvider.isMember(org))
+                          .where((org) =>
+                              userProvider.user
+                                  ?.isMemberOf(org['organization_id']) ??
+                              false)
                           .toList();
                       final hasJoinedOrgs = joinedOrgs.isNotEmpty;
 
