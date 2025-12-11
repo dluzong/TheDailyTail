@@ -3,10 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OrganizationProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
-  
+
   List<Map<String, dynamic>> _allOrgs = [];
   List<Map<String, dynamic>> get allOrgs => _allOrgs;
-  
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -17,7 +17,7 @@ class OrganizationProvider extends ChangeNotifier {
     try {
       final response = await _supabase
           .from('organizations')
-          .select()
+          .select('*, organization_members(count)')
           .order('name', ascending: true);
 
       _allOrgs = List<Map<String, dynamic>>.from(response);
@@ -29,39 +29,60 @@ class OrganizationProvider extends ChangeNotifier {
     }
   }
 
-  // Check if current user is a member of the org
-  bool isMember(Map<String, dynamic> org) {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return false;
-    final members = List<String>.from(org['member_id'] ?? []);
-    return members.contains(userId);
-  }
-
-  // Check if current user is an admin of the org
-  bool isAdmin(Map<String, dynamic> org) {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return false;
-    final admins = List<String>.from(org['admin_id'] ?? []);
-    return admins.contains(userId);
-  }
-
   Future<void> joinOrg(String orgId) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
     try {
-      // calls supabase/postgress function to join org
-      await _supabase.rpc('join_organization', params: {'org_id': orgId});
-      await fetchOrganizations(); // Refresh list to update UI button
+      await _supabase.from('organization_members').insert({
+        'organization_id': orgId,
+        'user_id': userId,
+        'role': 'member',
+      });
     } catch (e) {
-      debugPrint('Error joining org: $e');
+      debugPrint('ERROR: Error joining org: $e');
       rethrow;
     }
   }
 
   Future<void> leaveOrg(String orgId) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
     try {
-      await _supabase.rpc('leave_organization', params: {'org_id': orgId});
-      await fetchOrganizations();
+      await _supabase.from('organization_members').delete().match({
+        'organization_id': orgId,
+        'user_id': userId,
+      });
     } catch (e) {
-      debugPrint('Error leaving org: $e');
+      debugPrint('ERROR: Error leaving org: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> createOrganization({
+    required String name,
+    required String description,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    try {
+      // Insert new organization
+      final response = await _supabase.from('organizations').insert({
+        'name': name,
+        'description': description,
+        'admin_id': [userId], // Add creator as admin
+        'member_id': [userId], // Add creator as member
+      }).select();
+
+      if (response.isNotEmpty) {
+        final newOrg = response[0];
+        _allOrgs.add(Map<String, dynamic>.from(newOrg));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error creating org: $e');
       rethrow;
     }
   }

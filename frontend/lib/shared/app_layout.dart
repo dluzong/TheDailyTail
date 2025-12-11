@@ -76,20 +76,15 @@ class _AppLayoutState extends State<AppLayout> {
 
   @override
   Widget build(BuildContext context) {
-    // Add safe area padding
     final double bottomInset = MediaQuery.of(context).padding.bottom;
-
-    // Use base height values to adjust for all devices
-    const double baseTotalHeight = 55;
-    // const double baseOuterHeight = 50;
-    const double baseInnerHeight = 70;
-    const double floatingButtonSize = 85;
+    const double baseTotalHeight = 70;
+    const double baseInnerHeight = 65;
+    const double floatingButtonSize = 80;
 
     final double adjustedTotalHeight = baseTotalHeight + bottomInset;
     final double adjustedInnerHeight = baseInnerHeight + (bottomInset / 2);
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       body: SafeArea(
         top: false,
         bottom: false,
@@ -97,6 +92,7 @@ class _AppLayoutState extends State<AppLayout> {
           children: [
             Container(height: 50, color: outerBlue),
 
+            // Top bar
             Container(
               height: 60,
               width: double.infinity,
@@ -105,7 +101,6 @@ class _AppLayoutState extends State<AppLayout> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Back button (only shown when showBackButton is true)
                   if (widget.showBackButton)
                     Positioned(
                       left: 0,
@@ -114,7 +109,6 @@ class _AppLayoutState extends State<AppLayout> {
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
-                  
                   Center(
                     child: Text(
                       "The Daily Tail",
@@ -125,15 +119,95 @@ class _AppLayoutState extends State<AppLayout> {
                       ),
                     ),
                   ),
-
-                  // Profile icon and button
                   Positioned(
                     right: 0,
+                    child: Consumer<UserProvider>(
+                      builder: (context, userProvider, _) {
+                        final photoUrl = userProvider.user?.photoUrl;
+                        return GestureDetector(
+                          onTap: _openProfile,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 2,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 22,
+                              backgroundColor: const Color(0xFF7496B3),
+                              backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                                  ? NetworkImage(photoUrl)
+                                  : null,
+                              child: (photoUrl == null || photoUrl.isEmpty)
+                                  ? const Icon(Icons.person, color: Colors.white)
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: Container(
+                color: Colors.white,
+                child: widget.child,
+              ),
+            ),
+
+            // Bottom navigation with floating button
+            SizedBox(
+              height: adjustedTotalHeight,
+              width: double.infinity,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // Bottom bar with U-shaped cutout
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: CustomPaint(
+                      size: Size(MediaQuery.of(context).size.width, adjustedInnerHeight),
+                      // Pass adjustedInnerHeight as the height to the painter
+                      painter: _BottomNavPainter(innerBlue, floatingButtonSize, adjustedInnerHeight),
+                      child: SizedBox(
+                        height: adjustedInnerHeight,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavIcon(icon: Icons.book, index: 0),
+                            SizedBox(width: floatingButtonSize), // space for floating button
+                            _buildNavIcon(icon: Icons.group, index: 2),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Floating Home Button
+                  Positioned(
+                    // Lower the position to sit properly in the deeper notch
+                    bottom: (adjustedInnerHeight / 2) - 4, // Adjusted position
                     child: GestureDetector(
-                      onTap: _openProfile,
+                      onTap: () {
+                        if (currentIndex != 1) {
+                          widget.onTabSelected(1);
+                          _navigateToIndex(1);
+                          setState(() => currentIndex = 1);
+                        }
+                      },
                       child: Container(
+                        width: floatingButtonSize,
+                        height: floatingButtonSize,
                         decoration: BoxDecoration(
+                          color: Colors.white,
                           shape: BoxShape.circle,
+                          border: Border.all(color: outerBlue, width: 4),
                           boxShadow: const [
                             BoxShadow(
                               color: Colors.black26,
@@ -142,138 +216,12 @@ class _AppLayoutState extends State<AppLayout> {
                             ),
                           ],
                         ),
-                        child: Consumer<UserProvider>(
-                          builder: (context, userProvider, _) {
-                            final photoUrl = userProvider.user?.photoUrl;
-                            return CircleAvatar(
-                              radius: 22,
-                              backgroundColor: const Color(0xFF7496B3),
-                              backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                                  ? NetworkImage(photoUrl)
-                                  : null,
-                              child: photoUrl == null || photoUrl.isEmpty
-                                  ? const Icon(Icons.person, color: Colors.white)
-                                  : null,
-                            );
-                          },
+                        child: Icon(
+                          Icons.home,
+                          color: outerBlue,
+                          size: 36,
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Expanded(child: widget.child),
-
-            // Bottom navigation + floating button
-            SizedBox(
-              height: adjustedTotalHeight,
-              width: double.infinity,
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  // Align(
-                  //   alignment: Alignment.bottomCenter,
-                  //   child: Container(
-                  //     height: baseOuterHeight,
-                  //     color: outerBlue,
-                  //   ),
-                  // ),
-
-                  Align(
-                    alignment: Alignment.bottomCenter,                 
-                      child: Container(
-                        height: adjustedInnerHeight,
-                        color: innerBlue,
-                        child: BottomNavigationBar(
-                          backgroundColor: innerBlue,
-                          currentIndex: currentIndex == 4 ? 0 : currentIndex,
-                          selectedItemColor: Colors.white,
-                          unselectedItemColor: Colors.white,
-                          onTap: (index) {
-                            final actualIndex = index == 1 ? 1 : (index == 0 ? 0 : 2);
-                            if (actualIndex == currentIndex) return;
-                            widget.onTabSelected(actualIndex);
-                            setState(() => currentIndex = actualIndex);
-                            _navigateToIndex(actualIndex);
-                          },
-                          elevation: 0,
-                          type: BottomNavigationBarType.fixed,
-                          selectedLabelStyle: GoogleFonts.inknutAntiqua(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          unselectedLabelStyle: GoogleFonts.inknutAntiqua(
-                            fontSize: 12,
-                            color: Colors.white,
-                          ),
-                          items: const [
-                            BottomNavigationBarItem(
-                              icon: Icon(Icons.note, color: Colors.white),
-                              label: "Logs",
-                            ),
-                            BottomNavigationBarItem(
-                              icon: SizedBox.shrink(),
-                              label: "",
-                            ),
-                            BottomNavigationBarItem(
-                              icon: Icon(Icons.group, color: Colors.white),
-                              label: "Community",
-                            ),
-                          ],
-                        ),
-                      ),
-                  ),
-
-                  // Floating Home Button
-                  Positioned(
-                    bottom: baseInnerHeight - 50 + (bottomInset / 2),
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            if (currentIndex != 1) {
-                              widget.onTabSelected(1);
-                              _navigateToIndex(1);
-                              setState(() => currentIndex = 1);
-                            }
-                          },
-                          child: Container(
-                            width: floatingButtonSize,
-                            height: floatingButtonSize,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: outerBlue, width: 4),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 6,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.home,
-                              color: outerBlue,
-                              size: 36,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Home",
-                          style: GoogleFonts.inknutAntiqua(
-                            fontSize: 12,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ],
@@ -284,4 +232,88 @@ class _AppLayoutState extends State<AppLayout> {
       ),
     );
   }
+
+  Widget _buildNavIcon({required IconData icon, required int index}) {
+    final bool isActive = currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        if (currentIndex != index) {
+          widget.onTabSelected(index);
+          _navigateToIndex(index);
+          setState(() => currentIndex = index);
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 28),
+          const SizedBox(height: 4),
+          if (isActive)
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomNavPainter extends CustomPainter {
+  final Color color;
+  final double fabSize;
+  final double barHeight; // New: Pass the actual bar height
+
+  // Update constructor
+  _BottomNavPainter(this.color, this.fabSize, this.barHeight);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()..color = color;
+    final Path path = Path();
+
+    final double centerX = size.width / 2;
+    // Notch radius is half the button size plus padding
+    final double notchRadius = fabSize / 2 + 10; 
+    // The depth of the curve down from the top edge
+    final double notchDepth = 25; 
+
+    path.moveTo(0, 0);
+    // Line to the start of the curve
+    path.lineTo(centerX - notchRadius - 15, 0); 
+
+    // First part of the curve: down and into the notch
+    path.quadraticBezierTo(
+      centerX - notchRadius, 0, // Control point near the top-left of the notch
+      centerX - notchRadius + 10, notchDepth, // End point for the down-curve
+    );
+    
+    // Curved arc segment for the bottom of the notch
+    path.arcToPoint(
+      Offset(centerX + notchRadius - 10, notchDepth),
+      radius: Radius.circular(notchRadius - 5),
+      clockwise: false,
+    );
+    
+    // Second part of the curve: out and back to the top edge
+    path.quadraticBezierTo(
+      centerX + notchRadius, 0, // Control point near the top-right of the notch
+      centerX + notchRadius + 15, 0, // End point for the up-curve
+    );
+
+    path.lineTo(size.width, 0); // straight line after notch
+    path.lineTo(size.width, barHeight); // Use barHeight for the bottom
+    path.lineTo(0, barHeight);
+    path.close();
+
+    canvas.drawShadow(path, Colors.black26, 4, true); 
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

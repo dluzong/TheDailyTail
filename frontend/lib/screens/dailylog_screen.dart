@@ -251,7 +251,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
       currentIndex: 0,
       onTabSelected: (index) {},
       child: Container(
-        color: const Color(0xFFEFF6FB),
+        color: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: CustomScrollView(
           slivers: [
@@ -351,7 +351,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isSelected ? tabColors[tab] : Colors.white,
+                            color: isSelected ? tabColors[tab] : Colors.grey[200],
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -375,7 +375,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                                     fontSize: 10,
                                     color: isSelected
                                         ? Colors.white
-                                        : Colors.black87,
+                                        : Colors.grey[600],
                                   )),
                             ],
                           ),

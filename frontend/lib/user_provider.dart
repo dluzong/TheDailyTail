@@ -12,12 +12,8 @@ class AppUser {
   final List<String> roles;
   final String bio;
   final String photoUrl;
-
-  // Social
   final List<String> following;
   final List<String> followers;
-
-  // Organization Roles: Maps Organization ID -> Role (e.g., 'admin', 'member')
   final Map<String, String> organizationRoles;
 
   AppUser({
@@ -33,20 +29,17 @@ class AppUser {
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
-    // 1. Parse Following
     List<String> parsedFollowing = [];
     if (map['following'] != null) {
       final List<dynamic> data = map['following'];
       parsedFollowing =
           data.map((item) => item['followee_id'] as String).toList();
     } else if (map['follows'] != null) {
-      // Legacy cache support
       final List<dynamic> data = map['follows'];
       parsedFollowing =
           data.map((item) => item['followee_id'] as String).toList();
     }
 
-    // 2. Parse Followers
     List<String> parsedFollowers = [];
     if (map['followers'] != null) {
       final List<dynamic> data = map['followers'];
@@ -54,7 +47,6 @@ class AppUser {
           data.map((item) => item['follower_id'] as String).toList();
     }
 
-    // 3. Parse Organization Roles
     Map<String, String> parsedOrgRoles = {};
     if (map['organization_members'] != null) {
       final List<dynamic> membersData = map['organization_members'];
@@ -89,7 +81,6 @@ class AppUser {
       'role': roles,
       'bio': bio,
       'photo_url': photoUrl,
-      // Store IDs for cache
       'following': following.map((id) => {'followee_id': id}).toList(),
       'followers': followers.map((id) => {'follower_id': id}).toList(),
       'organization_roles': organizationRoles,
@@ -99,16 +90,18 @@ class AppUser {
   // User Equivalence Operator
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    bool listEquals(List a, List b) {
-      if (a.length != b.length) return false;
-      return a.toSet().containsAll(b);
+    if (identical(this, other)) {
+      return true;
     }
 
     bool mapsEqual(Map a, Map b) {
       if (a.length != b.length) return false;
       return a.keys.every((k) => b.containsKey(k) && a[k] == b[k]);
+    }
+
+    bool listEquals(List a, List b) {
+      if (a.length != b.length) return false;
+      return a.toSet().containsAll(b);
     }
 
     return other is AppUser &&
@@ -152,8 +145,6 @@ class UserProvider extends ChangeNotifier {
 
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
       final event = data.event;
-
-      // only fetch or clear on sign in/out or initial session
       if (event == AuthChangeEvent.signedIn ||
           event == AuthChangeEvent.initialSession) {
         fetchUser();
@@ -169,7 +160,6 @@ class UserProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  // Fetch user data
   Future<void> fetchUser({bool force = false}) async {
     if (_isFetching) {
       debugPrint('WARNING: Fetch skipped: Already fetching.');
@@ -178,26 +168,21 @@ class UserProvider extends ChangeNotifier {
 
     if (!force && _lastFetchTime != null) {
       final difference = DateTime.now().difference(_lastFetchTime!);
-      if (difference.inSeconds < 2) {
-        debugPrint('WARNING: Fetch skipped: Debounced (too soon).');
-        return;
-      }
+      if (difference.inSeconds < 2) return;
     }
 
     final session = _supabase.auth.currentSession;
     if (session == null) {
-      if (_user != null) clearUser();
+      if (_user != null) {
+        clearUser();
+      }
       return;
     }
 
     _isFetching = true;
 
     try {
-      // Fetches:
-      // 1. Basic Info
-      // 2. Organization Memberships (via organization_members)
-      // 3. Following (via follows!follower_id)
-      // 4. Followers (via follows!followee_id)
+      // Fetches user profile + follows + followers + org memberships
       final response = await _supabase.from('users').select('''
             user_id, 
             username, 
@@ -211,21 +196,15 @@ class UserProvider extends ChangeNotifier {
           ''').eq('user_id', session.user.id).maybeSingle();
 
       if (response == null) {
-        debugPrint('WARNING: No user data found in database');
         _user = null;
       } else {
         final newUser = AppUser.fromMap(response);
-        debugPrint('INFO: User data fetched successfully');
-        debugPrint('DEBUG: User roles: ${newUser.roles}');
-        debugPrint('DEBUG: User bio: ${newUser.bio}');
-        debugPrint('DEBUG: User photo URL: ${newUser.photoUrl}');
 
         if (_user != newUser || force) {
           _user = newUser;
           _lastFetchTime = DateTime.now();
           await _saveToCache();
           notifyListeners();
-          debugPrint('INFO: User state updated and listeners notified');
         }
       }
     } catch (e) {
@@ -235,7 +214,7 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch a public profile by username
+  // Fetch a public profile by username (for viewing other users)
   Future<AppUser?> fetchPublicProfile(String username) async {
     try {
       final response = await _supabase.from('users').select('''
@@ -250,7 +229,9 @@ class UserProvider extends ChangeNotifier {
             followers:follows!followee_id(follower_id)
           ''').eq('username', username).maybeSingle();
 
-      if (response == null) return null;
+      if (response == null) {
+        return null;
+      }
       return AppUser.fromMap(response);
     } catch (e) {
       debugPrint('Error fetching public profile: $e');
@@ -258,10 +239,11 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch basic details for a list of user IDs (for follower/following lists)
   Future<List<Map<String, dynamic>>> fetchUsersByIds(
       List<String> userIds) async {
-    if (userIds.isEmpty) return [];
+    if (userIds.isEmpty) {
+      return [];
+    }
     try {
       final response = await _supabase
           .from('users')
@@ -307,7 +289,6 @@ class UserProvider extends ChangeNotifier {
           'followee_id': targetUserId,
         });
       }
-      // Refresh my profile to update 'following' list
       await fetchUser(force: true);
     } catch (e) {
       debugPrint('Error toggling follow: $e');
@@ -365,33 +346,10 @@ class UserProvider extends ChangeNotifier {
     }
 
     try {
-      final updateData = <String, dynamic>{
+      await _supabase.from('users').update({
         'username': username,
         'name': name,
-      };
-
-      if (bio != null) {
-        updateData['bio'] = bio;
-        debugPrint('DEBUG: Updating bio');
-      }
-
-      if (roles != null) {
-        updateData['role'] = roles;
-        debugPrint('DEBUG: Updating roles to: $roles');
-      }
-
-      // TODO: Implement photo upload to storage and store URL
-      if (photoUrl != null) {
-        updateData['photo_url'] = photoUrl;
-        debugPrint('DEBUG: Updating photo URL');
-      }
-
-      debugPrint('INFO: Updating user profile with data: $updateData');
-      await _supabase
-          .from('users')
-          .update(updateData)
-          .eq('user_id', session.user.id);
-      debugPrint('INFO: Database update successful');
+      }).eq('user_id', session.user.id);
 
       await fetchUser(force: true);
     } catch (e) {
