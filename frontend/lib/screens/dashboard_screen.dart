@@ -5,6 +5,7 @@ import '../pet_provider.dart';
 import '../user_provider.dart';
 import '../shared/app_layout.dart';
 import '../log_provider.dart';
+import '../theme_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -92,10 +93,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return AppLayout(
       currentIndex: 1,
       onTabSelected: (index) {},
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Dropdown
             Row(
@@ -128,10 +131,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 24),
 
-            // Dashboard title
-            Text('Dashboard',
-                style: GoogleFonts.lato(
-                    fontSize: 24, fontWeight: FontWeight.bold)),
+            // Dashboard title with theme toggle
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Dashboard',
+                    style: GoogleFonts.lato(
+                        fontSize: 24, fontWeight: FontWeight.bold)),
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, _) {
+                    return IconButton(
+                      icon: Icon(
+                        themeProvider.isDarkMode
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        size: 24,
+                      ),
+                      onPressed: () {
+                        themeProvider.toggleTheme();
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
             const Divider(thickness: 2),
             const SizedBox(height: 16),
@@ -148,7 +171,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   // helper to build main content area

@@ -9,6 +9,7 @@ import 'pet_provider.dart';
 import 'posts_provider.dart';
 import 'organization_provider.dart';
 import 'log_provider.dart';
+import 'theme_provider.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -31,6 +32,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => UserProvider()),
         ChangeNotifierProvider(create: (context) => PetProvider()),
         ChangeNotifierProvider(create: (context) => LogProvider()),
@@ -47,20 +49,31 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'The Daily Tail',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: Consumer<UserProvider>(
-        builder: (context, userProvider, _) {
-          if (userProvider.isAuthenticated) {
-            return const DashboardScreen();
-          } else {
-            return const LaunchScreen();
-          }
-        },
-      ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return MaterialApp(
+          title: 'The Daily Tail',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            scaffoldBackgroundColor: Colors.white,
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            primarySwatch: Colors.blue,
+          ),
+          themeMode: themeProvider.themeMode,
+          home: Consumer<UserProvider>(
+            builder: (context, userProvider, _) {
+              if (userProvider.isAuthenticated) {
+                return const DashboardScreen();
+              } else {
+                return const LaunchScreen();
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }

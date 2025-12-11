@@ -674,7 +674,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       currentIndex: 4,
       onTabSelected: (_) {},
       showBackButton: !_isOwnProfile,
-      child: content,
+      child: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: content,
+      ),
     );
   }
 

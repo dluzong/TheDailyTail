@@ -85,7 +85,7 @@ class _AppLayoutState extends State<AppLayout> {
     final double adjustedInnerHeight = baseInnerHeight + (bottomInset / 2);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         top: false,
         bottom: false,

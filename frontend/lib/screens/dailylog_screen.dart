@@ -21,12 +21,32 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   DateTime? _selectedDay;
   final Set<String> _selectedTabs = {};
 
-  final Map<String, Color> tabColors = {
-    'Appointments': const Color(0xFF34D399),
-    'Vaccinations': const Color(0xFF8B5CF6),
-    'Events': const Color(0xFF60A5FA),
-    'Other': const Color(0xFFFBBF24),
+  // Base colors that will be adjusted based on theme
+  final Map<String, Map<String, Color>> colorSchemes = {
+    'Appointments': {
+      'light': const Color(0xFF34D399), // teal
+      'dark': const Color(0xFF059669), // muted teal for dark mode
+    },
+    'Vaccinations': {
+      'light': const Color(0xFF8B5CF6), // purple
+      'dark': const Color(0xFF6D28D9), // muted purple for dark mode
+    },
+    'Events': {
+      'light': const Color(0xFF60A5FA), // blue
+      'dark': const Color(0xFF2563EB), // muted blue for dark mode
+    },
+    'Other': {
+      'light': const Color(0xFFFBBF24), // yellow/gold
+      'dark': const Color(0xFFD97706), // muted yellow for dark mode
+    },
   };
+
+  // Get colors based on current theme
+  Map<String, Color> getTabColors(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return colorSchemes.map((key, value) =>
+        MapEntry(key, isDarkMode ? value['dark']! : value['light']!));
+  }
 
   // --- GET EVENTS FROM DB ---
   Map<String, List<Map<String, String>>> get _events {
@@ -251,7 +271,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
       currentIndex: 0,
       onTabSelected: (index) {},
       child: Container(
-        color: Colors.white,
+        color: Theme.of(context).scaffoldBackgroundColor,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: CustomScrollView(
           slivers: [
@@ -341,6 +361,24 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       'Other'
                     ].map((tab) {
                       final isSelected = _selectedTabs.contains(tab);
+                      final tabColors = getTabColors(context);
+                      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                      final baseColor = tabColors[tab] ?? Colors.grey;
+                      
+                      // Get light mode colors for the dots (always bright)
+                      final lightModeColor = colorSchemes[tab]?['light'] ?? Colors.grey;
+                      
+                      // Calculate pastel color for light mode selected state
+                      final pastelColor = Color.alphaBlend(
+                        baseColor.withValues(alpha: 0.2),
+                        Colors.white,
+                      );
+                      
+                      // In dark mode, use near-black background for selected tabs
+                      final selectedBgColor = isDarkMode 
+                          ? const Color(0xFF0D0D0D)  // nearly black
+                          : pastelColor;  // use pastel in light mode
+                      
                       return GestureDetector(
                         onTap: () {
                           setState(() => isSelected
@@ -351,7 +389,10 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isSelected ? tabColors[tab] : Colors.grey[200],
+                            color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey[200],
+                            border: isSelected 
+                                ? Border.all(color: lightModeColor, width: 2)
+                                : null,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -365,17 +406,13 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.circle,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : (tabColors[tab] ?? Colors.grey),
+                                  color: lightModeColor,  // always use light mode bright colors
                                   size: 10),
                               const SizedBox(width: 6),
                               Text(tab,
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: 10,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.grey[600],
+                                    color: isDarkMode ? Colors.white : (isSelected ? Colors.black : Colors.grey[600]),
                                   )),
                             ],
                           ),
@@ -402,14 +439,20 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       markersMaxCount: 4,
                       markerDecoration:
                           const BoxDecoration(shape: BoxShape.circle),
-                      selectedDecoration: const BoxDecoration(
-                        color: Color(0xFF7496B3),
+                      selectedDecoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7496B3),
                         shape: BoxShape.circle,
                       ),
                       todayDecoration: BoxDecoration(
-                        color: const Color(0xFFBCD9EC),
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFF3A5A75)
+                            : const Color(0xFFBCD9EC),
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF7496B3)),
+                        border: Border.all(color: Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7496B3)),
                       ),
                     ),
                     headerStyle: HeaderStyle(
@@ -422,6 +465,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                     calendarBuilders: CalendarBuilders(
                       markerBuilder: (context, day, events) {
                         if (events.isEmpty) return const SizedBox();
+                        final tabColors = getTabColors(context);
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: events.take(4).map((event) {
@@ -429,15 +473,15 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                                 (event is Map && event['category'] != null)
                                     ? event['category'] as String
                                     : '';
-                            final Color color =
-                                tabColors[category] ?? Colors.grey;
+                            // Use light mode colors for calendar dots (same as tab dots)
+                            final dotColor = colorSchemes[category]?['light'] ?? Colors.grey;
                             return Container(
                               width: 6,
                               height: 6,
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 1.5, vertical: 2),
                               decoration: BoxDecoration(
-                                  color: color, shape: BoxShape.circle),
+                                  color: dotColor, shape: BoxShape.circle),
                             );
                           }).toList(),
                         );
@@ -453,7 +497,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       width: 180,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7496B3),
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7496B3),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -478,27 +524,38 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       _getEventsForDay(_selectedDay ?? DateTime.now());
                   final event = eventList[index];
                   final category = event['category']!;
+                  final tabColors = getTabColors(context);
                   final baseColor = tabColors[category] ?? Colors.grey;
+                  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                  
+                  // In light mode: pastel color. In dark mode: use muted dark color
                   final pastelColor = Color.alphaBlend(
                     baseColor.withValues(alpha: 0.2),
                     Colors.white,
                   );
+                  final darkColor = Color.alphaBlend(
+                    baseColor.withValues(alpha: 0.15),
+                    const Color(0xFF1A1A1A),
+                  );
+                  
+                  final cardColor = isDarkMode ? darkColor : pastelColor;
+                  final dotColor = baseColor;
 
                   return GestureDetector(
                     onTap: () => _showEventDialog(event, category),
                     child: Card(
-                      color: pastelColor,
+                      color: cardColor,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       margin: const EdgeInsets.symmetric(
                           vertical: 6, horizontal: 4),
                       child: ListTile(
-                        leading: Icon(Icons.circle, color: baseColor, size: 12),
+                        leading: Icon(Icons.circle, color: dotColor, size: 12),
                         title: Text(event['title'] ?? '',
                             style: GoogleFonts.inknutAntiqua(
-                                fontSize: 14, fontWeight: FontWeight.bold)),
+                                fontSize: 14, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black)),
                         subtitle: Text(event['desc'] ?? '',
-                            style: GoogleFonts.inknutAntiqua(fontSize: 12)),
+                            style: GoogleFonts.inknutAntiqua(fontSize: 12, color: isDarkMode ? const Color(0xFFB0B0B0) : const Color(0xFF666666))),
                       ),
                     ),
                   );
@@ -520,6 +577,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -528,10 +586,11 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
             height: 55,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFFBCD9EC),
+              color: isDark ? const Color(0xFF4A6B85) : const Color(0xFFBCD9EC),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 28, color: const Color(0xFF7496B3)),
+            child: Icon(icon, size: 28, 
+                color: isDark ? const Color(0xFF7496B3) : const Color(0xFF7496B3)),
           ),
           const SizedBox(height: 4),
           Text(label,

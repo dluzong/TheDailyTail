@@ -25,7 +25,9 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF7496B3),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2A4A65)
+            : const Color(0xFF7496B3),
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
@@ -56,9 +58,11 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
               child: TextField(
                 controller: _searchController,
                 onChanged: (value) => setState(() => _searchTerm = value),
+                style: const TextStyle(color: Color(0xFF555555)),
                 decoration: const InputDecoration(
                   hintText: 'Search organizations...',
-                  prefixIcon: Icon(Icons.search),
+                  hintStyle: TextStyle(color: Color(0xFF888888)),
+                  prefixIcon: Icon(Icons.search, color: Color(0xFF888888)),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 16,
