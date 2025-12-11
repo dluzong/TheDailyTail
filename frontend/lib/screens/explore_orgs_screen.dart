@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../organization_provider.dart';
+import '../user_provider.dart';
 import 'org_screen.dart';
 
 class ExploreOrgsScreen extends StatefulWidget {
@@ -72,14 +73,20 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
 
           // Organizations List
           Expanded(
-            child: Consumer<OrganizationProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading && provider.allOrgs.isEmpty) {
+            child: Consumer2<OrganizationProvider, UserProvider>(
+              builder: (context, orgProvider, userProvider, child) {
+                if (orgProvider.isLoading && orgProvider.allOrgs.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final orgs = provider.allOrgs;
+                final orgs = orgProvider.allOrgs;
                 final filteredOrgs = orgs.where((org) {
+                  // Exclude organizations the user is already a member of
+                  final orgId = org['organization_id'];
+                  final isMember =
+                      userProvider.user?.isMemberOf(orgId) ?? false;
+                  if (isMember) return false;
+
                   final name = (org['name'] as String? ?? '').toLowerCase();
                   final description =
                       (org['description'] as String? ?? '').toLowerCase();
@@ -104,32 +111,42 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                       const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final org = filteredOrgs[index];
-                    final membersCount =
-                        (org['member_id'] as List?)?.length ?? 0;
-                    final isMember = provider.isMember(org);
+                    // Parse member count from new structure
+                    int membersCount = 0;
+                    if (org['organization_members'] is List &&
+                        (org['organization_members'] as List).isNotEmpty) {
+                      membersCount =
+                          (org['organization_members'][0]['count'] as int?) ??
+                              0;
+                    }
+
+                    final isMember =
+                        userProvider.user?.isMemberOf(org['organization_id']) ??
+                            false;
 
                     return InkWell(
                       onTap: () {
                         Navigator.of(context)
                             .push(MaterialPageRoute(
-                              builder: (_) => OrgScreen(
-                                org: org,
-                                initiallyJoined: isMember,
-                                onJoinChanged: (joined) async {
-                                  final orgId = org['organization_id'];
-                                  if (joined) {
-                                    await provider.joinOrg(orgId);
-                                  } else {
-                                    await provider.leaveOrg(orgId);
-                                  }
-                                },
-                              ),
-                            ))
+                          builder: (_) => OrgScreen(
+                            org: org,
+                            initiallyJoined: isMember,
+                            onJoinChanged: (joined) async {
+                              final orgId = org['organization_id'];
+                              if (joined) {
+                                await orgProvider.joinOrg(orgId);
+                              } else {
+                                await orgProvider.leaveOrg(orgId);
+                              }
+                              // Refresh user to update membership status
+                              await userProvider.fetchUser(force: true);
+                            },
+                          ),
+                        ))
                             .then((_) {
-                              // Refresh orgs after returning from OrgScreen
-                              // so member counts and joined status are up-to-date
-                              provider.fetchOrganizations();
-                            });
+                          // Refresh orgs after returning from OrgScreen
+                          orgProvider.fetchOrganizations();
+                        });
                       },
                       child: Card(
                         elevation: 2,
@@ -145,14 +162,13 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   CircleAvatar(
-                                    backgroundColor:
-                                        const Color(0xFF7496B3),
+                                    backgroundColor: const Color(0xFF7496B3),
                                     child: Text(
                                       (org['name'] as String?)
                                               ?.substring(0, 1) ??
                                           'O',
-                                      style: const TextStyle(
-                                          color: Colors.white),
+                                      style:
+                                          const TextStyle(color: Colors.white),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
