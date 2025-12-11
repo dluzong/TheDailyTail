@@ -70,6 +70,7 @@ class Post {
     bool? isLiked,
     int? likesCount,
     List<String>? likesArray,
+    int? commentCount,
   }) {
     return Post(
       postId: postId,
@@ -82,7 +83,7 @@ class Post {
       createdTs: createdTs,
       isLiked: isLiked ?? this.isLiked,
       likesCount: likesCount ?? this.likesCount,
-      commentCount: commentCount,
+      commentCount: commentCount ?? this.commentCount,
       likesArray: likesArray ?? this.likesArray,
     );
   }
@@ -200,6 +201,24 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
+  // --- COMMENT LOGIC ---
+
+  void incrementCommentCount(int index) {
+    if (index < 0 || index >= _posts.length) return;
+    final post = _posts[index];
+    _posts[index] = post.copyWith(commentCount: post.commentCount + 1);
+    notifyListeners();
+  }
+
+  void decrementCommentCount(int index) {
+    if (index < 0 || index >= _posts.length) return;
+    final post = _posts[index];
+    if (post.commentCount > 0) {
+      _posts[index] = post.copyWith(commentCount: post.commentCount - 1);
+      notifyListeners();
+    }
+  }
+
   // --- CREATE POST ---
 
   Future<void> createPost(String title, String content, String category) async {
@@ -213,7 +232,6 @@ class PostsProvider extends ChangeNotifier {
       'category': category,
       'likes': [],
       'comments': [],
-      
     });
 
     // Refresh to show the new post at the top
