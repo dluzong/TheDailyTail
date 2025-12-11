@@ -219,4 +219,37 @@ class PostsProvider extends ChangeNotifier {
     // Refresh to show the new post at the top
     await fetchPosts();
   }
+
+  // --- UPDATE POST ---
+
+  Future<void> updatePost(int postId, String title, String content, String category) async {
+    try {
+      await _supabase.from('posts').update({
+        'title': title,
+        'content': content,
+        'category': category,
+      }).eq('post_id', postId);
+
+      // Refresh to show updated post
+      await fetchPosts();
+    } catch (e) {
+      debugPrint('Error updating post: $e');
+      rethrow;
+    }
+  }
+
+  // --- DELETE POST ---
+
+  Future<void> deletePost(int postId) async {
+    try {
+      await _supabase.from('posts').delete().eq('post_id', postId);
+
+      // Remove from local list immediately
+      _posts.removeWhere((post) => post.postId == postId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting post: $e');
+      rethrow;
+    }
+  }
 }

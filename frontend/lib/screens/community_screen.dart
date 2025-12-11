@@ -45,7 +45,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     super.initState();
     _loadSavedFilters();
 
-    // Initial Data Fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PostsProvider>().fetchPosts();
       context.read<OrganizationProvider>().fetchOrganizations();
@@ -177,9 +176,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              // Navigate to Profile
-                              // TODO: ProfileScreen needs updated logic to handle user ID lookup
-                              // For now, passing name logic
                               if (post.authorName != 'You') {
                                 Navigator.push(
                                   context,
@@ -212,6 +208,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             ),
                           ),
                         ),
+                        // Show menu if this post belongs to the current user
+                        if ((Provider.of<UserProvider>(context, listen: false).user?.userId == post.userId) ||
+                            post.authorName == 'You')
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showNewPostModal(post: post);
+                              } else if (value == 'delete') {
+                                _confirmDeletePost(post.postId);
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Edit post'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Delete post'),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -262,7 +281,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        // LIKE BUTTON
                         GestureDetector(
                           onTap: () {
                             provider.toggleLike(providerIndex);
@@ -281,7 +299,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           ),
                         ),
                         const SizedBox(width: 24),
-                        // COMMENT BUTTON
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -323,13 +340,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
         final orgs = orgProvider.allOrgs;
         
-        // Filter created orgs (where user is admin)
         var createdOrgs = orgs
             .where((org) =>
                 userProvider.user?.isAdminOf(org['organization_id']) ?? false)
             .toList();
 
-        // Filter joined orgs (where user is member but not admin)
         var joinedOrgs = orgs
             .where((org) =>
                 userProvider.user?.isMemberOf(org['organization_id']) ?? false)
@@ -353,7 +368,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // MY ORGANIZATIONS SECTION
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -378,7 +392,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         )
                         .then((success) {
                           if (success == true) {
-                            // Refresh orgs after creation
                             context
                                 .read<OrganizationProvider>()
                                 .fetchOrganizations();
@@ -516,7 +529,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             const Divider(),
             const SizedBox(height: 16),
 
-            // JOINED ORGANIZATIONS SECTION
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -671,12 +683,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     );
   }
 
-  void _showNewPostModal({int? editIndex}) {
-    // TODO: Edit logic requires implementing an 'updatePost' method in provider
-
-    _titleController.clear();
-    _contentController.clear();
-    _selectedCategory = 'General';
+  void _showNewPostModal({Post? post}) {
+    if (post != null) {
+      _titleController.text = post.title;
+      _contentController.text = post.content;
+      _selectedCategory = post.category;
+    } else {
+      _titleController.clear();
+      _contentController.clear();
+      _selectedCategory = 'General';
+    }
 
     showModalBottomSheet(
       context: context,
@@ -709,13 +725,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   onPressed: () async {
                     if (_contentController.text.isEmpty) return;
 
-                    await context.read<PostsProvider>().createPost(
-                          _titleController.text.isEmpty
-                              ? 'Untitled'
-                              : _titleController.text,
-                          _contentController.text,
-                          _selectedCategory,
-                        );
+                    if (post != null) {
+                      await context.read<PostsProvider>().updatePost(
+                            post.postId,
+                            _titleController.text.isEmpty
+                                ? 'Untitled'
+                                : _titleController.text,
+                            _contentController.text,
+                            _selectedCategory,
+                          );
+                    } else {
+                      await context.read<PostsProvider>().createPost(
+                            _titleController.text.isEmpty
+                                ? 'Untitled'
+                                : _titleController.text,
+                            _contentController.text,
+                            _selectedCategory,
+                          );
+                    }
 
                     if (mounted) Navigator.pop(context);
                   },
@@ -725,7 +752,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         borderRadius: BorderRadius.circular(20)),
                   ),
                   child: Text(
-                    'Create Post',
+                    post != null ? 'Update Post' : 'Create Post',
                     style: GoogleFonts.lato(
                         color: Colors.white, fontWeight: FontWeight.bold),
                   ),
@@ -734,7 +761,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             ),
             const Divider(),
             const SizedBox(height: 10),
-            // Category Dropdown
             DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedCategory,
@@ -745,10 +771,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 onChanged: (v) {
                   if (v != null) {
                     setState(() => _selectedCategory = v);
-                    // Force rebuild of modal only? No, need stateful builder if inside stateless widget.
-                    // But we are in a stateful widget method, so setState rebuilds the parent screen,
-                    // which might not rebuild the modal contents dynamically without StatefulBuilder.
-                    // Ideally use StatefulBuilder here.
                   }
                 },
               ),
@@ -764,7 +786,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             const SizedBox(height: 10),
             Flexible(
               child: Container(
-                margin: const EdgeInsets.only(bottom: 42), // Add spacing from bottom
+                margin: const EdgeInsets.only(bottom: 42),
                 child: TextField(
                   controller: _contentController,
                   maxLines: null,
@@ -810,6 +832,33 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         await _persistFilters();
       }
     }();
+  }
+
+  void _confirmDeletePost(int postId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete post'),
+        content: const Text('Are you sure you want to delete your post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB94A48),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              await context.read<PostsProvider>().deletePost(postId);
+              if (mounted) Navigator.pop(context, true);
+            },
+            child: const Text('Yes, delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -926,7 +975,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   return AnimatedBuilder(
                     animation: tabController,
                     builder: (context, _) {
-                      // Only show FAB on Feed and Friends tabs (not Organizations)
                       if (tabController.index != 2) {
                         return FloatingActionButton(
                           onPressed: _showNewPostModal,
