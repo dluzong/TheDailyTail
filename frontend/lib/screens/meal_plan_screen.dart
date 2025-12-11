@@ -140,6 +140,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       currentIndex: 0,
       onTabSelected: (_) {},
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: Colors.white,
         body: Stack(
           children: [
