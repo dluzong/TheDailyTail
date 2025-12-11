@@ -210,13 +210,29 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 ),
                 Positioned(
                   right: 0,
-                  child: GestureDetector(
-                    onTap: _openProfile,
-                    child: const CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Color(0xFF7496B3),
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
+                  child: Consumer<UserProvider>(
+                    builder: (context, userProvider, _) {
+                      final photoUrl = userProvider.user?.photoUrl;
+                      return GestureDetector(
+                        onTap: _openProfile,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: CircleAvatar(
+                            radius: 22,
+                            backgroundColor: const Color(0xFF7496B3),
+                            backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                                ? NetworkImage(photoUrl)
+                                : null,
+                            child: (photoUrl == null || photoUrl.isEmpty)
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Positioned(
