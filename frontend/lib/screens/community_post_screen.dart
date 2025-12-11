@@ -38,7 +38,9 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
     if (widget.openKeyboard) {
       Future.delayed(const Duration(milliseconds: 300), () {
-        FocusScope.of(context).requestFocus(commentFocus);
+        if (mounted) {
+          FocusScope.of(context).requestFocus(commentFocus);
+        }
       });
     }
   }
@@ -96,7 +98,9 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
       });
 
       commentCtrl.clear();
-      FocusScope.of(context).unfocus();
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+      }
 
       // 2. Refresh Comments List
       await _fetchComments();
@@ -179,7 +183,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
     // Handle case where post might not exist (e.g. deleted while viewing)
     if (widget.postIndex >= postsProvider.posts.length) {
-      return Scaffold(body: Center(child: Text("Post not found")));
+      return Scaffold(body: Center(child: const Text("Post not found")));
     }
 
     final post = postsProvider.posts[widget.postIndex];
@@ -187,6 +191,9 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF121212)
+          : Colors.white,
       body: Column(
         children: [
           Container(height: 50, color: outerBlue),
@@ -428,8 +435,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         ],
                       ),
                     );
-                  }).toList(),
-                SizedBox(height: 80 + bottomInset),
+                  }),
+                const SizedBox(height: 80), // Adjusted for consistency
               ],
             ),
           ),

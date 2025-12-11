@@ -368,16 +368,21 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       // Get light mode colors for the dots (always bright)
                       final lightModeColor = colorSchemes[tab]?['light'] ?? Colors.grey;
                       
-                      // Calculate pastel color for light mode selected state
+                      // Calculate pastel color for light mode (matches widget background)
                       final pastelColor = Color.alphaBlend(
                         baseColor.withValues(alpha: 0.2),
                         Colors.white,
                       );
                       
-                      // In dark mode, use near-black background for selected tabs
-                      final selectedBgColor = isDarkMode 
-                          ? const Color(0xFF0D0D0D)  // nearly black
-                          : pastelColor;  // use pastel in light mode
+                      // Calculate dark color for dark mode (matches widget background)
+                      final darkColor = Color.alphaBlend(
+                        baseColor.withValues(alpha: 0.15),
+                        const Color(0xFF1A1A1A),
+                      );
+                      
+                      // When selected, use the same color as widgets; otherwise use inactive state
+                      final selectedBgColor = isDarkMode ? darkColor : pastelColor;
+                      final unselectedBgColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey[200]!;
                       
                       return GestureDetector(
                         onTap: () {
@@ -389,10 +394,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey[200],
-                            border: isSelected 
-                                ? Border.all(color: lightModeColor, width: 2)
-                                : null,
+                            color: isSelected ? selectedBgColor : unselectedBgColor,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(

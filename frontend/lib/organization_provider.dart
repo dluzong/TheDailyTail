@@ -59,4 +59,31 @@ class OrganizationProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  Future<void> createOrganization({
+    required String name,
+    required String description,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    try {
+      // Insert new organization
+      final response = await _supabase.from('organizations').insert({
+        'name': name,
+        'description': description,
+        'admin_id': [userId], // Add creator as admin
+        'member_id': [userId], // Add creator as member
+      }).select();
+
+      if (response.isNotEmpty) {
+        final newOrg = response[0];
+        _allOrgs.add(Map<String, dynamic>.from(newOrg));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error creating org: $e');
+      rethrow;
+    }
+  }
 }
