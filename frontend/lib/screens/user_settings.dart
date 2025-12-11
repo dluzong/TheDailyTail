@@ -125,12 +125,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     )
         .then((_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Settings have been saved!'),
-            backgroundColor: Color(0xFF72C9B6), // Success Green
-          ),
-        );
         setState(() => _isDirty = false);
         Navigator.of(context).pop(); // Go back to profile
       }
@@ -261,10 +255,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
       if (mounted) {
         setState(() => _isDirty = false);
-        // Optional success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6)),
-        );
       }
     } catch (e) {
       if (mounted) {
@@ -413,53 +403,20 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   Future<bool> _onWillPop() async {
-    if (!_isDirty) return true;
-
-    final action = await showDialog<String?>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsaved changes'),
-        content: const Text('You have unsaved changes. Save before leaving?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop('cancel'),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop('discard'),
-            child: const Text('Discard'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7496B3)),
-            onPressed: () => Navigator.of(context).pop('save'),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (action == 'save') {
-      _saveSettings();
-      return false; // _saveSettings pops automatically on success
-    }
-
-    if (action == 'discard') return true;
-
-    return false;
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
-      currentIndex: 0,
-      onTabSelected: widget.onTabSelected,
-      child: WillPopScope(
-        onWillPop: _onWillPop,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        resizeToAvoidBottomInset: true,
+        body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               SizedBox(
                 height: 80,
                 child: Stack(

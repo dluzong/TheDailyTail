@@ -177,10 +177,21 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              // Navigate to Profile
-                              // TODO: ProfileScreen needs updated logic to handle user ID lookup
-                              // For now, passing name logic
-                              if (post.authorName != 'You') {
+                              final currentUsername = context.read<UserProvider>().user?.username;
+                              final isOwnPost = currentUsername != null && post.authorName == currentUsername;
+                              
+                              debugPrint('DEBUG: Clicked post - currentUsername="$currentUsername", authorName="${post.authorName}", isOwnPost=$isOwnPost');
+
+                              if (isOwnPost) {
+                                debugPrint('DEBUG: Navigating to own profile (no otherUsername)');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ProfileScreen(),
+                                  ),
+                                );
+                              } else {
+                                debugPrint('DEBUG: Navigating to other profile with otherUsername="${post.authorName}"');
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(

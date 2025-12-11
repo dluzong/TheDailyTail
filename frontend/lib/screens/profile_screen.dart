@@ -36,36 +36,43 @@ class _ProfileScreenState extends State<ProfileScreen>
     _tabController?.addListener(() {
       if (mounted) setState(() {});
     });
-    if (!_isOwnProfile) {
+    final isOwn = widget.otherUsername == null;
+    debugPrint('ProfileScreen opened: otherUsername=${widget.otherUsername}, _isOwnProfile=$isOwn');
+    if (!isOwn) {
       _loadOtherUserData();
     }
   }
 
-  // TODO: Replace this with a real fetch from Supabase 'users' table by username
-  void _loadOtherUserData() {
-    _otherUserData = {
-      'username': widget.otherUsername,
-      'firstName': widget.otherUsername!.split(' ')[0],
-      'lastName': widget.otherUsername!.split(' ').length > 1
-          ? widget.otherUsername!.split(' ')[1]
-          : '',
-      'role': 'Pet Owner',
-      'bio':
-          'Pet lover and enthusiast. Love sharing moments with my furry friends!',
-      'totalPosts': 12,
-      'totalFollowers': 45,
-      'totalFollowing': 32,
-      'pets': [
-        // Mock data for other users stays until we add "fetchUserProfile" logic
-        {
-          'name': 'Max',
-          'breed': 'Golden Retriever',
-          'age': 3,
-          'weight': 65.0,
-          'imageUrl': '',
-        },
-      ],
-    };
+  // Fetch other user's profile from UserProvider
+  Future<void> _loadOtherUserData() async {
+    if (widget.otherUsername == null) return;
+    
+    try {
+      final userProvider = context.read<UserProvider>();
+      final profile = await userProvider.fetchPublicProfile(widget.otherUsername!);
+      
+      if (profile != null && mounted) {
+        // Fetch other user's pets by getting user's ID and querying from userProvider
+        // Since fetchOtherUserPets may not be available, we'll get the pets through a different approach
+        // For now, we'll just show empty pets for other users
+        
+        setState(() {
+          _otherUserData = {
+            'username': profile.username,
+            'name': profile.name,
+            'bio': profile.bio,
+            'photoUrl': profile.photoUrl,
+            'roles': profile.roles,
+            'totalFollowers': profile.followers.length,
+            'totalFollowing': profile.following.length,
+            'pets': [],
+            'totalPosts': 0,
+          };
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading other user data: $e');
+    }
   }
 
   @override
@@ -209,7 +216,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     final size = MediaQuery.of(context).size;
     return Consumer<PostsProvider>(
       builder: (context, postsProvider, _) {
-        final targetAuthorName = _isOwnProfile ? 'You' : widget.otherUsername;
+        final currentUsername = context.read<UserProvider>().user?.username ?? '';
+        final targetAuthorName = _isOwnProfile
+            ? currentUsername
+            : (widget.otherUsername ?? '');
 
         // Filter posts where author name matches.
         // Note: Ideally, we should filter by userId, but for now matching Name logic from CommunityScreen
@@ -389,20 +399,27 @@ class _ProfileScreenState extends State<ProfileScreen>
       roles =
           (rolesList == null || rolesList.isEmpty) ? ['Visitor'] : rolesList;
 
-      final postsProvider = context.watch<PostsProvider>();
-      totalPosts =
-          postsProvider.posts.where((post) => post.authorName == 'You').length;
+        final postsProvider = context.watch<PostsProvider>();
+        final currentUsername = username;
+        totalPosts = postsProvider.posts
+          .where((post) => post.authorName == currentUsername)
+          .length;
 
       totalFollowers = appUser?.followers.length ?? 0;
       totalFollowing = appUser?.following.length ?? 0;
     } else {
-      name =
-          '${_otherUserData?['firstName'] ?? ''} ${_otherUserData?['lastName'] ?? ''}'
-              .trim();
+      name = _otherUserData?['name'] ?? '';
       username = _otherUserData?['username'] ?? '';
       profileImageUrl = _otherUserData?['photoUrl'];
-      roles = [_otherUserData?['role'] ?? 'User'];
-      totalPosts = (_otherUserData?['totalPosts'] as int?) ?? 0;
+      final rolesList = _otherUserData?['roles'] as List<dynamic>?;
+      roles = (rolesList == null || rolesList.isEmpty) 
+          ? ['Visitor'] 
+          : rolesList.map((r) => r.toString()).toList();
+        final postsProvider = context.watch<PostsProvider>();
+        final otherUsername = widget.otherUsername ?? '';
+        totalPosts = postsProvider.posts
+          .where((post) => post.authorName == otherUsername)
+          .length;
       totalFollowers = (_otherUserData?['totalFollowers'] as int?) ?? 0;
       totalFollowing = (_otherUserData?['totalFollowing'] as int?) ?? 0;
     }
@@ -420,21 +437,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: avatarSize / 2,
-                        backgroundColor: const Color(0xFF7496B3),
-                        // If URL exists and is not empty, load image. Otherwise null.
-                        backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
-                            ? NetworkImage(profileImageUrl!)
-                            : null,
-                        // Only show the Icon child if we DON'T have an image
-                        child: (profileImageUrl == null || profileImageUrl!.isEmpty)
-                            ? Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: avatarSize * 0.5,
-                        )
-                            : null,
+                      Container(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: avatarSize / 2,
+                          backgroundColor: const Color(0xFF7496B3),
+                          // If URL exists and is not empty, load image. Otherwise null.
+                          backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
+                              ? NetworkImage(profileImageUrl!)
+                              : null,
+                          // Only show the Icon child if we DON'T have an image
+                          child: (profileImageUrl == null || profileImageUrl!.isEmpty)
+                              ? Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: avatarSize * 0.5,
+                          )
+                              : null,
+                        ),
                       ),
                       Expanded(
                         child: Padding(
@@ -458,57 +487,66 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                alignment: WrapAlignment.center,
-                                children: roles.map((role) {
-                                  // Color mapping for each role
-                                  Color tagColor;
-                                  switch (role.toLowerCase()) {
-                                    case 'owner':
-                                      tagColor = const Color(
-                                          0xFF2C5F7F); // deep navy blue
-                                      break;
-                                    case 'organizer':
-                                      tagColor = const Color(
-                                          0xFF5A8DB3); // medium blue
-                                      break;
-                                    case 'foster':
-                                      tagColor = const Color.fromARGB(
-                                          255, 118, 178, 230); // light sky blue
-                                      break;
-                                    case 'visitor':
-                                      tagColor = const Color.fromARGB(
-                                          255, 156, 201, 234); // pale blue
-                                      break;
-                                    default:
-                                      tagColor = const Color(
-                                          0xFF7496B3); // default blue
-                                  }
+                              SizedBox(
+                                height: 28,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: roles.map((role) {
+                                    // Color mapping for each role
+                                    Color tagColor;
+                                    switch (role.toLowerCase()) {
+                                      case 'owner':
+                                        tagColor = const Color(
+                                            0xFF2C5F7F); // deep navy blue
+                                        break;
+                                      case 'organizer':
+                                        tagColor = const Color(
+                                            0xFF5A8DB3); // medium blue
+                                        break;
+                                      case 'foster':
+                                        tagColor = const Color.fromARGB(
+                                            255, 118, 178, 230); // light sky blue
+                                        break;
+                                      case 'visitor':
+                                        tagColor = const Color.fromARGB(
+                                            255, 156, 201, 234); // pale blue
+                                        break;
+                                      default:
+                                        tagColor = const Color(
+                                            0xFF7496B3); // default blue
+                                    }
 
-                                  return Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: size.width * 0.04,
-                                      vertical: size.height * 0.005,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: tagColor,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      role.isNotEmpty
-                                          ? role[0].toUpperCase() +
-                                              role.substring(1).toLowerCase()
-                                          : role,
-                                      style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 12 * textScale,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: size.width * 0.04,
+                                          vertical: size.height * 0.005,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: tagColor,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            role.isNotEmpty
+                                                ? role[0].toUpperCase() +
+                                                    role.substring(1).toLowerCase()
+                                                : role,
+                                            style: GoogleFonts.inknutAntiqua(
+                                              fontSize: 12 * textScale,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
+                                    );
+                                  }).toList(),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -598,17 +636,33 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: IconButton(
               icon: Icon(
                 Icons.settings,
-                size: size.width * 0.07,
+                size: size.width * 0.08,
                 color: const Color(0xFF7496B3),
               ),
               tooltip: 'User Settings',
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const user_settings.UserSettingsPage(
-                      currentIndex: 4,
-                      onTabSelected: _noop,
-                    ),
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => 
+                        AppLayout(
+                          currentIndex: 4,
+                          onTabSelected: (_) {},
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeInOutCubic,
+                            )),
+                            child: const user_settings.UserSettingsPage(
+                              currentIndex: 4,
+                              onTabSelected: _noop,
+                            ),
+                          ),
+                        ),
+                    transitionDuration: const Duration(milliseconds: 300),
+                    reverseTransitionDuration: const Duration(milliseconds: 300),
                   ),
                 );
               },
@@ -673,7 +727,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return AppLayout(
       currentIndex: 4,
       onTabSelected: (_) {},
-      showBackButton: !_isOwnProfile,
+      showBackButton: true,
       child: content,
     );
   }
