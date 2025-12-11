@@ -21,6 +21,7 @@ class CommunityBoardScreen extends StatefulWidget {
 
 class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _searchTerm = '';
   final List<String> _categories = [
     'General',
     'Events',
@@ -105,7 +106,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
         var posts = provider.posts;
 
-        // 1. Friend Filter
+        if (_searchTerm.isNotEmpty) {
+          posts = posts
+              .where((p) =>
+                  p.title.toLowerCase().contains(_searchTerm.toLowerCase()))
+              .toList();
+        }
+
         if (mode == 'friends') {
           final userProvider =
               Provider.of<UserProvider>(context, listen: false);
@@ -113,16 +120,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           posts = posts.where((p) => following.contains(p.userId)).toList();
         }
 
-        // 2. Category Filter
         if (_filterCategories.isNotEmpty) {
           posts = posts.where((p) {
             return _filterCategories.contains(p.category);
           }).toList();
         }
 
-        // 3. Sort
         if (_filterSort == 'popular') {
-          // Sort a copy to avoid reordering the provider's main list constantly
           posts = List.from(posts)
             ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
         }
@@ -145,7 +149,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final post = posts[index];
-            // Find the real index in the provider to toggle likes correctly
             final providerIndex = provider.posts.indexOf(post);
 
             return Card(
@@ -174,7 +177,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           child: GestureDetector(
                             onTap: () {
                               // Navigate to Profile
-                              // Note: ProfileScreen needs updated logic to handle user ID lookup
+                              // TODO: ProfileScreen needs updated logic to handle user ID lookup
                               // For now, passing name logic
                               if (post.authorName != 'You') {
                                 Navigator.push(
@@ -318,8 +321,14 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         }
 
         final orgs = provider.allOrgs;
-        final joinedOrgs =
-            orgs.where((org) => provider.isMember(org)).toList(growable: false);
+        var joinedOrgs = orgs.where((org) => provider.isMember(org)).toList();
+
+        if (_searchTerm.isNotEmpty) {
+          joinedOrgs = joinedOrgs.where((org) {
+            final name = (org['name'] as String? ?? '').toLowerCase();
+            return name.contains(_searchTerm.toLowerCase());
+          }).toList();
+        }
 
         if (joinedOrgs.isEmpty) {
           return Center(
@@ -433,8 +442,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   }
 
   void _showNewPostModal({int? editIndex}) {
-    // Note: Edit logic requires implementing an 'updatePost' method in provider
-    // For now, this just handles creation.
+    // TODO: Edit logic requires implementing an 'updatePost' method in provider
 
     _titleController.clear();
     _contentController.clear();
@@ -606,6 +614,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                               ),
                               child: TextField(
                                 controller: _searchController,
+                                onChanged: (value) =>
+                                    setState(() => _searchTerm = value),
                                 decoration: const InputDecoration(
                                   hintText: 'Search posts...',
                                   prefixIcon: Icon(Icons.search),
@@ -698,13 +708,15 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                               provider.fetchOrganizations();
                               Navigator.of(context)
                                   .push(MaterialPageRoute(
-                                      builder: (_) => const ExploreOrgsScreen()))
+                                      builder: (_) =>
+                                          const ExploreOrgsScreen()))
                                   .then((_) => provider.fetchOrganizations());
                             },
                             backgroundColor: const Color(0xFF7496B3),
                             label: Text('Explore',
                                 style: GoogleFonts.lato(color: Colors.white)),
-                            icon: const Icon(Icons.explore, color: Colors.white),
+                            icon:
+                                const Icon(Icons.explore, color: Colors.white),
                           );
                         }
                         return const SizedBox.shrink();
