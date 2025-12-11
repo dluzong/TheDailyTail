@@ -762,15 +762,18 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  hintText: 'Write your post here...',
-                  border: OutlineInputBorder(),
+            Flexible(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 42), // Add spacing from bottom
+                child: TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    hintText: 'Write your post here...',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
             ),
