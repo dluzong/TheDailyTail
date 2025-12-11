@@ -698,21 +698,22 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.95,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          top: 20,
-          left: 20,
-          right: 20,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.95,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -770,7 +771,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     .toList(),
                 onChanged: (v) {
                   if (v != null) {
-                    setState(() => _selectedCategory = v);
+                    setModalState(() => _selectedCategory = v);
                   }
                 },
               ),
@@ -801,6 +802,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
