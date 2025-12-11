@@ -21,6 +21,7 @@ class CommunityBoardScreen extends StatefulWidget {
 
 class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _searchTerm = '';
   final List<String> _categories = [
     'General',
     'Events',
@@ -105,7 +106,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
         var posts = provider.posts;
 
-        // 1. Friend Filter
+        if (_searchTerm.isNotEmpty) {
+          posts = posts
+              .where((p) =>
+                  p.title.toLowerCase().contains(_searchTerm.toLowerCase()))
+              .toList();
+        }
+
         if (mode == 'friends') {
           final userProvider =
               Provider.of<UserProvider>(context, listen: false);
@@ -113,16 +120,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           posts = posts.where((p) => following.contains(p.userId)).toList();
         }
 
-        // 2. Category Filter
         if (_filterCategories.isNotEmpty) {
           posts = posts.where((p) {
             return _filterCategories.contains(p.category);
           }).toList();
         }
 
-        // 3. Sort
         if (_filterSort == 'popular') {
-          // Sort a copy to avoid reordering the provider's main list constantly
           posts = List.from(posts)
             ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
         }
@@ -145,7 +149,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final post = posts[index];
-            // Find the real index in the provider to toggle likes correctly
             final providerIndex = provider.posts.indexOf(post);
 
             return Card(
@@ -174,7 +177,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           child: GestureDetector(
                             onTap: () {
                               // Navigate to Profile
-                              // Note: ProfileScreen needs updated logic to handle user ID lookup
+                              // TODO: ProfileScreen needs updated logic to handle user ID lookup
                               // For now, passing name logic
                               if (post.authorName != 'You') {
                                 Navigator.push(
@@ -254,7 +257,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         child: Text(
                           post.category,
                           style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF7496B3),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -316,15 +321,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   }
 
   Widget _buildOrgsList() {
-    return Consumer<OrganizationProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading && provider.allOrgs.isEmpty) {
+    return Consumer2<OrganizationProvider, UserProvider>(
+      builder: (context, orgProvider, userProvider, child) {
+        if (orgProvider.isLoading && orgProvider.allOrgs.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final orgs = provider.allOrgs;
-        final joinedOrgs =
-            orgs.where((org) => provider.isMember(org)).toList(growable: false);
+        final orgs = orgProvider.allOrgs;
+        var joinedOrgs = orgs
+            .where((org) =>
+                userProvider.user?.isMemberOf(org['organization_id']) ?? false)
+            .toList();
+
+        if (_searchTerm.isNotEmpty) {
+          joinedOrgs = joinedOrgs.where((org) {
+            final name = (org['name'] as String? ?? '').toLowerCase();
+            return name.contains(_searchTerm.toLowerCase());
+          }).toList();
+        }
 
         if (joinedOrgs.isEmpty) {
           return Center(
@@ -359,8 +373,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final org = joinedOrgs[index];
-            final membersCount = (org['member_id'] as List?)?.length ?? 0;
-            final isMember = provider.isMember(org);
+
+            int membersCount = 0;
+            if (org['organization_members'] is List &&
+                (org['organization_members'] as List).isNotEmpty) {
+              membersCount =
+                  (org['organization_members'][0]['count'] as int?) ?? 0;
+            }
+
+            final isMember =
+                userProvider.user?.isMemberOf(org['organization_id']) ?? false;
 
             return InkWell(
               onTap: () {
@@ -372,14 +394,15 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         onJoinChanged: (joined) async {
                           final orgId = org['organization_id'];
                           if (joined) {
-                            await provider.joinOrg(orgId);
+                            await orgProvider.joinOrg(orgId);
                           } else {
-                            await provider.leaveOrg(orgId);
+                            await orgProvider.leaveOrg(orgId);
                           }
+                          await userProvider.fetchUser(force: true);
                         },
                       ),
                     ))
-                    .then((_) => provider.fetchOrganizations());
+                    .then((_) => orgProvider.fetchOrganizations());
               },
               child: Card(
                 elevation: 2,
@@ -438,8 +461,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   }
 
   void _showNewPostModal({int? editIndex}) {
-    // Note: Edit logic requires implementing an 'updatePost' method in provider
-    // For now, this just handles creation.
+    // TODO: Edit logic requires implementing an 'updatePost' method in provider
 
     _titleController.clear();
     _contentController.clear();
@@ -451,8 +473,10 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.95,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF121212)
+              : Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
         ),
         padding: EdgeInsets.only(
@@ -468,8 +492,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.close,
-                      color: Color(0xFF7496B3), size: 28),
+                  icon: Icon(Icons.close,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF7496B3),
+                      size: 28),
                   onPressed: () => Navigator.pop(context),
                 ),
                 ElevatedButton(
@@ -489,7 +516,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7496B3),
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF4A6B85)
+                        : const Color(0xFF7496B3),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20)),
                   ),
@@ -501,23 +530,35 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 ),
               ],
             ),
-            const Divider(),
+            Divider(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF404040)
+                  : Colors.grey.shade300,
+            ),
             const SizedBox(height: 10),
             // Category Dropdown
             DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedCategory,
                 isExpanded: true,
+                dropdownColor: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1E1E1E)
+                    : Colors.white,
                 items: _categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(
+                          c,
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                        )))
                     .toList(),
                 onChanged: (v) {
                   if (v != null) {
                     setState(() => _selectedCategory = v);
-                    // Force rebuild of modal only? No, need stateful builder if inside stateless widget.
-                    // But we are in a stateful widget method, so setState rebuilds the parent screen,
-                    // which might not rebuild the modal contents dynamically without StatefulBuilder.
-                    // Ideally use StatefulBuilder here.
                   }
                 },
               ),
@@ -525,9 +566,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+              ),
+              decoration: InputDecoration(
                 hintText: 'Post Title',
-                border: OutlineInputBorder(),
+                hintStyle: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade600
+                      : Colors.grey,
+                ),
+                filled: true,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1E1E1E)
+                    : Colors.white,
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF404040)
+                        : Colors.grey.shade300,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -537,9 +598,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+                decoration: InputDecoration(
                   hintText: 'Write your post here...',
-                  border: OutlineInputBorder(),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey,
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : Colors.white,
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF404040)
+                          : Colors.grey.shade300,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -615,9 +696,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                               ),
                               child: TextField(
                                 controller: _searchController,
+                                onChanged: (value) =>
+                                    setState(() => _searchTerm = value),
                                 style: const TextStyle(color: Colors.black),
                                 decoration: const InputDecoration(
-                                  hintText: 'Search posts...',
+                                  hintText: 'Search...',
                                   hintStyle: TextStyle(color: Color(0xFF888888)),
                                   prefixIcon: Icon(Icons.search, color: Color(0xFF888888)),
                                   border: InputBorder.none,
@@ -688,15 +771,18 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             Positioned(
               right: 16,
               bottom: 16,
-              child: Consumer<OrganizationProvider>(
-                builder: (context, orgProvider, _) {
+              child: Consumer2<OrganizationProvider, UserProvider>(
+                builder: (context, orgProvider, userProvider, _) {
                   final tabController = DefaultTabController.of(context);
                   return AnimatedBuilder(
                     animation: tabController,
                     builder: (context, _) {
                       // Index 2 is Organizations Tab
                       final joinedOrgs = orgProvider.allOrgs
-                          .where((org) => orgProvider.isMember(org))
+                          .where((org) =>
+                              userProvider.user
+                                  ?.isMemberOf(org['organization_id']) ??
+                              false)
                           .toList();
                       final hasJoinedOrgs = joinedOrgs.isNotEmpty;
 
@@ -709,7 +795,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                               provider.fetchOrganizations();
                               Navigator.of(context)
                                   .push(MaterialPageRoute(
-                                      builder: (_) => const ExploreOrgsScreen()))
+                                      builder: (_) =>
+                                          const ExploreOrgsScreen()))
                                   .then((_) => provider.fetchOrganizations());
                             },
                             backgroundColor: Theme.of(context).brightness == Brightness.dark
@@ -717,7 +804,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 : const Color(0xFF7496B3),
                             label: Text('Explore',
                                 style: GoogleFonts.lato(color: Colors.white)),
-                            icon: const Icon(Icons.explore, color: Colors.white),
+                            icon:
+                                const Icon(Icons.explore, color: Colors.white),
                           );
                         }
                         return const SizedBox.shrink();

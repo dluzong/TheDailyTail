@@ -44,10 +44,14 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
           curve: Curves.easeInOut,
           padding: EdgeInsets.all(size.width * 0.04),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E1E1E)
+                : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.grey,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF404040)
+                  : Colors.grey,
               width: 1.5,
             ),
             boxShadow: [
@@ -106,7 +110,9 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: size.width * 0.045,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF394957),
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : const Color(0xFF394957),
                                   ),
                                 ),
                                 SizedBox(height: size.height * 0.01),
@@ -128,7 +134,9 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                   style: GoogleFonts.inknutAntiqua(
                     fontSize: size.width * 0.04,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF394957),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : const Color(0xFF394957),
                   ),
                 ),
               ],
@@ -149,7 +157,9 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
             style: GoogleFonts.lato(
               fontSize: size.width * 0.035,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF7496B3),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF7FA8C7)
+                  : const Color(0xFF7496B3),
             ),
           ),
           Expanded(
@@ -157,7 +167,9 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
               value,
               style: GoogleFonts.lato(
                 fontSize: size.width * 0.035,
-                color: const Color(0xFF394957),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF394957),
               ),
             ),
           ),

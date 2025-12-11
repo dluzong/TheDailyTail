@@ -168,9 +168,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white,
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Colors.white,
       body: Column(
         children: [
           buildBorderBar(),
@@ -267,6 +273,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           buildBorderBar(),
         ],
+      ),
       ),
     );
   }

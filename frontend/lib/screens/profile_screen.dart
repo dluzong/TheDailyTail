@@ -97,7 +97,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             textAlign: TextAlign.center,
             style: GoogleFonts.lato(
               fontSize: size.width * 0.038,
-              color: const Color(0xFF394957),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : const Color(0xFF394957),
             ),
           ),
         ],
@@ -223,7 +225,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               'No posts yet.',
               style: GoogleFonts.lato(
                 fontSize: size.width * 0.04,
-                color: const Color(0xFF394957),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : const Color(0xFF394957),
               ),
             ),
           );
@@ -467,24 +471,29 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   Color tagColor;
                                   switch (role.toLowerCase()) {
                                     case 'owner':
-                                      tagColor = const Color(
-                                          0xFF2C5F7F); // deep navy blue
+                                      tagColor = Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF1F4A5F)
+                                          : const Color(0xFF2C5F7F);
                                       break;
                                     case 'organizer':
-                                      tagColor = const Color(
-                                          0xFF5A8DB3); // medium blue
+                                      tagColor = Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF3A5A75)
+                                          : const Color(0xFF5A8DB3);
                                       break;
                                     case 'foster':
-                                      tagColor = const Color.fromARGB(
-                                          255, 118, 178, 230); // light sky blue
+                                      tagColor = Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF5F8FA8)
+                                          : const Color.fromARGB(255, 118, 178, 230);
                                       break;
                                     case 'visitor':
-                                      tagColor = const Color.fromARGB(
-                                          255, 156, 201, 234); // pale blue
+                                      tagColor = Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2A4A65)
+                                          : const Color.fromARGB(255, 156, 201, 234);
                                       break;
                                     default:
-                                      tagColor = const Color(
-                                          0xFF7496B3); // default blue
+                                      tagColor = Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF4A6B85)
+                                          : const Color(0xFF7496B3);
                                   }
 
                                   return Container(
@@ -694,7 +703,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             style: GoogleFonts.lato(
               fontSize: size.width * 0.04,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF394957),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : const Color(0xFF394957),
             ),
             textAlign: TextAlign.center,
           ),
@@ -702,7 +713,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             label,
             style: GoogleFonts.lato(
               fontSize: size.width * 0.035,
-              color: Colors.grey[600],
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : Colors.grey[600],
             ),
             textAlign: TextAlign.center,
           ),

@@ -110,7 +110,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      child: Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Column(
@@ -181,6 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           buildBorderBar(),
         ],
+      ),
       ),
     );
   }

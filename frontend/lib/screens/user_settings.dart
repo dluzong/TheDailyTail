@@ -470,8 +470,12 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                       bottom: 0,
                       child: IconButton(
                         iconSize: 32.0,
-                        icon:
-                            const Icon(Icons.arrow_back, color: Colors.black87),
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
                         onPressed: () => Navigator.of(context).pop(),
                         tooltip: 'Back',
                       ),
@@ -483,7 +487,9 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                         style: GoogleFonts.lato(
                           fontWeight: FontWeight.bold,
                           fontSize: 32,
-                          color: Colors.black,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                         ),
                       ),
                     ),
@@ -537,8 +543,12 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                     child: OutlinedButton(
                       onPressed: () => _handleLogout(),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                            color: Color(0xFF7496B3), width: 2),
+                        side: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3),
+                          width: 2,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
@@ -546,15 +556,22 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.logout,
-                              color: Color(0xFF7496B3), size: 28),
+                          Icon(
+                            Icons.logout,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3),
+                            size: 28,
+                          ),
                           const SizedBox(width: 16),
                           Text(
                             'Log Out',
                             style: GoogleFonts.lato(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF7496B3),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF7FA8C7)
+                                  : const Color(0xFF7496B3),
                             ),
                           ),
                         ],
@@ -579,21 +596,38 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2A2A2A)
+            : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBCD9EC)),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF3A3A3A)
+              : const Color(0xFFBCD9EC),
+        ),
       ),
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF7496B3), size: 32),
+        leading: Icon(icon,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF7FA8C7)
+                : const Color(0xFF7496B3),
+            size: 32),
         title: Text(
           title,
           style: GoogleFonts.lato(
             fontSize: 18,
-            color: const Color(0xFF394957),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : const Color(0xFF394957),
           ),
         ),
-        trailing:
-            const Icon(Icons.chevron_right, color: Color(0xFF7496B3), size: 42),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF7FA8C7)
+              : const Color(0xFF7496B3),
+          size: 42,
+        ),
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       ),

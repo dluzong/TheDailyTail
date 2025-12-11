@@ -25,9 +25,15 @@ class UserSettingsDialogs {
             constraints: const BoxConstraints(maxWidth: 460),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF2A2A2A)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF404040)
+                    : Colors.grey.shade300,
+              ),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -43,7 +49,10 @@ class UserSettingsDialogs {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                      icon: Icon(Icons.close,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
@@ -53,7 +62,9 @@ class UserSettingsDialogs {
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -61,7 +72,12 @@ class UserSettingsDialogs {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                Divider(
+                  height: 2,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : const Color(0xFF5F7C94),
+                ),
                 const SizedBox(height: 20),
                 Center(
                   child: Form(
@@ -77,7 +93,9 @@ class UserSettingsDialogs {
                             style: GoogleFonts.lato(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF394957),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF394957),
                             ),
                           ),
                         ),
@@ -93,7 +111,9 @@ class UserSettingsDialogs {
                             style: GoogleFonts.lato(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF394957),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF394957),
                             ),
                           ),
                         ),
@@ -111,7 +131,9 @@ class UserSettingsDialogs {
                     width: 160,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7F9CB3),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7F9CB3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
@@ -166,9 +188,15 @@ class UserSettingsDialogs {
               constraints: const BoxConstraints(maxWidth: 460),
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : Colors.grey.shade300,
+                ),
                 boxShadow: const [
                   BoxShadow(
                     color: Colors.black26,
@@ -184,7 +212,10 @@ class UserSettingsDialogs {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                        icon: Icon(Icons.close,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3)),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Expanded(
@@ -194,7 +225,9 @@ class UserSettingsDialogs {
                           style: GoogleFonts.inknutAntiqua(
                             fontSize: 22,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF394957),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF394957),
                           ),
                         ),
                       ),
@@ -202,7 +235,12 @@ class UserSettingsDialogs {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Divider(height: 2, color: Color(0xFF5F7C94)),
+                  Divider(
+                    height: 2,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF404040)
+                        : const Color(0xFF5F7C94),
+                  ),
                   const SizedBox(height: 20),
                   Center(
                     child: Text(
@@ -266,7 +304,9 @@ class UserSettingsDialogs {
                       width: 160,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7F9CB3),
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7F9CB3),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
@@ -314,9 +354,15 @@ class UserSettingsDialogs {
             constraints: const BoxConstraints(maxWidth: 460),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF2A2A2A)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF404040)
+                    : Colors.grey.shade300,
+              ),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -332,7 +378,10 @@ class UserSettingsDialogs {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                      icon: Icon(Icons.close,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
@@ -342,7 +391,9 @@ class UserSettingsDialogs {
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -350,7 +401,12 @@ class UserSettingsDialogs {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                Divider(
+                  height: 2,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : const Color(0xFF5F7C94),
+                ),
                 const SizedBox(height: 20),
                 TextField(
                   controller: bioController,
@@ -359,10 +415,14 @@ class UserSettingsDialogs {
                   decoration: InputDecoration(
                     hintText: 'Write something about yourself...',
                     hintStyle: GoogleFonts.lato(
-                      color: Colors.grey.shade400,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade600
+                          : Colors.grey.shade400,
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF2A2A2A)
+                        : Colors.grey.shade100,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Color(0xFFBCD9EC)),
@@ -379,7 +439,9 @@ class UserSettingsDialogs {
                   ),
                   style: GoogleFonts.lato(
                     fontSize: 16,
-                    color: const Color(0xFF394957),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : const Color(0xFF394957),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -388,7 +450,9 @@ class UserSettingsDialogs {
                     width: 160,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7F9CB3),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7F9CB3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
@@ -439,9 +503,15 @@ class UserSettingsDialogs {
             constraints: const BoxConstraints(maxWidth: 460),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF2A2A2A)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF404040)
+                    : Colors.grey.shade300,
+              ),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -458,7 +528,10 @@ class UserSettingsDialogs {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                        icon: Icon(Icons.close,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3)),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Expanded(
@@ -468,7 +541,9 @@ class UserSettingsDialogs {
                           style: GoogleFonts.inknutAntiqua(
                             fontSize: 22,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF394957),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF394957),
                           ),
                         ),
                       ),
@@ -476,7 +551,12 @@ class UserSettingsDialogs {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Divider(height: 2, color: Color(0xFF5F7C94)),
+                  Divider(
+                    height: 2,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF404040)
+                        : const Color(0xFF5F7C94),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Select all tags that describe you:',

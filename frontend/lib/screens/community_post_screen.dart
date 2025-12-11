@@ -310,14 +310,21 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEF7FB),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A5A75)
+                            : const Color(0xFFEEF7FB),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFBCD9EC)),
+                        border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF4A6B85)
+                                : const Color(0xFFBCD9EC)),
                       ),
                       child: Text(
                         post.category,
                         style: GoogleFonts.lato(
-                          color: const Color(0xFF7496B3),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF7496B3),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -450,10 +457,15 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         minLines: 1,
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
+                        style: Theme.of(context).brightness == Brightness.dark
+                            ? const TextStyle(color: Colors.black)
+                            : null,
                         decoration: InputDecoration(
                           hintText: "Write a comment....",
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFFE8E8E8)
+                              : Colors.white,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,

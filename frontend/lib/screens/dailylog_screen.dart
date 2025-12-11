@@ -447,12 +447,15 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       ),
                       todayDecoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark 
-                            ? const Color(0xFF3A5A75)
+                            ? const Color(0xFF2A5A75)
                             : const Color(0xFFBCD9EC),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Theme.of(context).brightness == Brightness.dark 
-                            ? const Color(0xFF4A6B85)
-                            : const Color(0xFF7496B3)),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? const Color(0xFF5F8FA8)
+                              : const Color(0xFF7496B3),
+                          width: 2,
+                        ),
                       ),
                     ),
                     headerStyle: HeaderStyle(
