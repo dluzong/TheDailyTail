@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../posts_provider.dart';
+import '../organization_provider.dart';
 
 class OrgScreen extends StatefulWidget {
   final Map<String, dynamic> org;
@@ -31,8 +32,8 @@ class _OrgScreenState extends State<OrgScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Leave Org'),
-        content: const Text('Are you sure you want to leave this org?'),
+        title: const Text('Leave Organization'),
+        content: const Text('Are you sure you want to leave this organization?'),
         actions: [
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.black),
@@ -58,18 +59,27 @@ class _OrgScreenState extends State<OrgScreen> {
     );
 
     if (confirm == true) {
+      final orgId = widget.org['organization_id'] as String;
+      final provider = context.read<OrganizationProvider>();
+      
       setState(() => _joined = false);
-      if (widget.onJoinChanged != null) widget.onJoinChanged!(_joined);
-      Navigator.of(context).pop();
+      await provider.leaveOrg(orgId);
+      
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
-  void _onJoinPressed() {
+  Future<void> _onJoinPressed() async {
     if (_joined) {
       _confirmLeave();
     } else {
+      final orgId = widget.org['organization_id'] as String;
+      final provider = context.read<OrganizationProvider>();
+      
       setState(() => _joined = true);
-      if (widget.onJoinChanged != null) widget.onJoinChanged!(_joined);
+      await provider.joinOrg(orgId);
     }
   }
 

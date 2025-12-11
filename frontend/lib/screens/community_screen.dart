@@ -8,6 +8,7 @@ import '../organization_provider.dart';
 import '../user_provider.dart';
 import 'community_filter_popup.dart';
 import 'community_post_screen.dart';
+import 'explore_orgs_screen.dart';
 import 'org_screen.dart';
 import 'profile_screen.dart';
 
@@ -317,38 +318,63 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         }
 
         final orgs = provider.allOrgs;
+        final joinedOrgs =
+            orgs.where((org) => provider.isMember(org)).toList(growable: false);
 
-        if (orgs.isEmpty) {
+        if (joinedOrgs.isEmpty) {
           return Center(
-              child:
-                  Text("No organizations found.", style: GoogleFonts.lato()));
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("You haven't joined any organization",
+                    style: GoogleFonts.lato(fontSize: 16)),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const ExploreOrgsScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.explore),
+                  label: const Text('Explore organizations'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7496B3),
+                    foregroundColor: Colors.white,
+                  ),
+                )
+              ],
+            ),
+          );
         }
 
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: orgs.length,
+          itemCount: joinedOrgs.length,
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
-            final org = orgs[index];
+            final org = joinedOrgs[index];
             final membersCount = (org['member_id'] as List?)?.length ?? 0;
             final isMember = provider.isMember(org);
 
             return InkWell(
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => OrgScreen(
-                    org: org,
-                    initiallyJoined: isMember,
-                    onJoinChanged: (joined) async {
-                      final orgId = org['organization_id'];
-                      if (joined) {
-                        await provider.joinOrg(orgId);
-                      } else {
-                        await provider.leaveOrg(orgId);
-                      }
-                    },
-                  ),
-                ));
+                Navigator.of(context)
+                    .push(MaterialPageRoute(
+                      builder: (_) => OrgScreen(
+                        org: org,
+                        initiallyJoined: isMember,
+                        onJoinChanged: (joined) async {
+                          final orgId = org['organization_id'];
+                          if (joined) {
+                            await provider.joinOrg(orgId);
+                          } else {
+                            await provider.leaveOrg(orgId);
+                          }
+                        },
+                      ),
+                    ))
+                    .then((_) => provider.fetchOrganizations());
               },
               child: Card(
                 elevation: 2,
@@ -651,29 +677,47 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             Positioned(
               right: 16,
               bottom: 16,
-              child: Builder(builder: (context) {
-                final tabController = DefaultTabController.of(context);
-                return AnimatedBuilder(
-                  animation: tabController,
-                  builder: (context, _) {
-                    // Index 2 is Organizations Tab
-                    if (tabController.index == 2) {
-                      return FloatingActionButton.extended(
-                        onPressed: () {},
+              child: Consumer<OrganizationProvider>(
+                builder: (context, orgProvider, _) {
+                  final tabController = DefaultTabController.of(context);
+                  return AnimatedBuilder(
+                    animation: tabController,
+                    builder: (context, _) {
+                      // Index 2 is Organizations Tab
+                      final joinedOrgs = orgProvider.allOrgs
+                          .where((org) => orgProvider.isMember(org))
+                          .toList();
+                      final hasJoinedOrgs = joinedOrgs.isNotEmpty;
+
+                      if (tabController.index == 2) {
+                        if (hasJoinedOrgs) {
+                          return FloatingActionButton.extended(
+                            onPressed: () {
+                              final provider =
+                                  context.read<OrganizationProvider>();
+                              provider.fetchOrganizations();
+                              Navigator.of(context)
+                                  .push(MaterialPageRoute(
+                                      builder: (_) => const ExploreOrgsScreen()))
+                                  .then((_) => provider.fetchOrganizations());
+                            },
+                            backgroundColor: const Color(0xFF7496B3),
+                            label: Text('Explore',
+                                style: GoogleFonts.lato(color: Colors.white)),
+                            icon: const Icon(Icons.explore, color: Colors.white),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }
+                      return FloatingActionButton(
+                        onPressed: _showNewPostModal,
                         backgroundColor: const Color(0xFF7496B3),
-                        label: Text('Explore',
-                            style: GoogleFonts.lato(color: Colors.white)),
-                        icon: const Icon(Icons.explore, color: Colors.white),
+                        child: const Icon(Icons.add, color: Colors.white),
                       );
-                    }
-                    return FloatingActionButton(
-                      onPressed: _showNewPostModal,
-                      backgroundColor: const Color(0xFF7496B3),
-                      child: const Icon(Icons.add, color: Colors.white),
-                    );
-                  },
-                );
-              }),
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),

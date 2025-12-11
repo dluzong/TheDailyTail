@@ -47,21 +47,58 @@ class OrganizationProvider extends ChangeNotifier {
 
   Future<void> joinOrg(String orgId) async {
     try {
-      // calls supabase/postgress function to join org
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('User not authenticated');
+
+      // Find the org in the list and optimistically add user to member_id
+      final orgIndex = _allOrgs.indexWhere((org) => org['organization_id'] == orgId);
+      if (orgIndex != -1) {
+        final org = _allOrgs[orgIndex];
+        final currentMembers = List<String>.from(org['member_id'] ?? []);
+        if (!currentMembers.contains(userId)) {
+          currentMembers.add(userId);
+          _allOrgs[orgIndex]['member_id'] = currentMembers;
+          notifyListeners(); // Notify immediately for UI update
+        }
+      }
+
+      // Call Supabase RPC
       await _supabase.rpc('join_organization', params: {'org_id': orgId});
-      await fetchOrganizations(); // Refresh list to update UI button
+      
+      // Refresh to ensure consistency with backend
+      await fetchOrganizations();
     } catch (e) {
       debugPrint('Error joining org: $e');
+      // Refetch on error to restore correct state
+      await fetchOrganizations();
       rethrow;
     }
   }
 
   Future<void> leaveOrg(String orgId) async {
     try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('User not authenticated');
+
+      // Find the org in the list and optimistically remove user from member_id
+      final orgIndex = _allOrgs.indexWhere((org) => org['organization_id'] == orgId);
+      if (orgIndex != -1) {
+        final org = _allOrgs[orgIndex];
+        final currentMembers = List<String>.from(org['member_id'] ?? []);
+        currentMembers.removeWhere((id) => id == userId);
+        _allOrgs[orgIndex]['member_id'] = currentMembers;
+        notifyListeners(); // Notify immediately for UI update
+      }
+
+      // Call Supabase RPC
       await _supabase.rpc('leave_organization', params: {'org_id': orgId});
+      
+      // Refresh to ensure consistency with backend
       await fetchOrganizations();
     } catch (e) {
       debugPrint('Error leaving org: $e');
+      // Refetch on error to restore correct state
+      await fetchOrganizations();
       rethrow;
     }
   }
