@@ -134,13 +134,22 @@ class _OrgScreenState extends State<OrgScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFEEF7FB),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF3A5A75)
+                    : const Color(0xFFEEF7FB),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFBCD9EC)),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF4A6B85)
+                      : const Color(0xFFBCD9EC),
+                ),
               ),
               child: Text('$memberCount members',
                   style: GoogleFonts.lato(
-                      color: const Color(0xFF7496B3), fontSize: 12)),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF7496B3),
+                      fontSize: 12)),
             ),
           ],
         ),
@@ -173,15 +182,27 @@ class _OrgScreenState extends State<OrgScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 220, 220, 232),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF2A2A2A)
+                            : const Color.fromARGB(255, 220, 220, 232),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const TextField(
+                      child: TextField(
                         decoration: InputDecoration(
                           hintText: 'Search...',
-                          prefixIcon: Icon(Icons.search),
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF666666)
+                                : Colors.grey[400],
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF666666)
+                                : Colors.grey[400],
+                          ),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
                         ),
                       ),

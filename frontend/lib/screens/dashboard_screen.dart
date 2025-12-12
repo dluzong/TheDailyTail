@@ -230,7 +230,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: 120,
               height: 150,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ClipRRect(

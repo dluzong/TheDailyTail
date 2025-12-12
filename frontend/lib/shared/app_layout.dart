@@ -91,13 +91,20 @@ class _AppLayoutState extends State<AppLayout> {
         bottom: false,
         child: Column(
           children: [
-            Container(height: 50, color: outerBlue),
+            Container(
+              height: 50,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF3A5A75)
+                  : outerBlue,
+            ),
 
             // Top bar
             Container(
               height: 60,
               width: double.infinity,
-              color: innerBlue,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF4A6B85)
+                  : innerBlue,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Stack(
                 alignment: Alignment.center,
@@ -116,7 +123,9 @@ class _AppLayoutState extends State<AppLayout> {
                       style: GoogleFonts.inknutAntiqua(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
                       ),
                     ),
                   ),
@@ -131,7 +140,9 @@ class _AppLayoutState extends State<AppLayout> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Colors.white,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black
+                                    : Colors.white,
                                 width: 2,
                               ),
                             ),
@@ -174,7 +185,13 @@ class _AppLayoutState extends State<AppLayout> {
                     alignment: Alignment.bottomCenter,
                     child: CustomPaint(
                       size: Size(MediaQuery.of(context).size.width, adjustedInnerHeight),
-                      painter: _BottomNavPainter(innerBlue, floatingButtonSize, adjustedInnerHeight),
+                      painter: _BottomNavPainter(
+                        Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A5A75)
+                            : innerBlue,
+                        floatingButtonSize,
+                        adjustedInnerHeight,
+                      ),
                       child: SizedBox(
                         height: adjustedInnerHeight,
                         child: Row(
@@ -204,9 +221,14 @@ class _AppLayoutState extends State<AppLayout> {
                         width: floatingButtonSize,
                         height: floatingButtonSize,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           shape: BoxShape.circle,
-                          border: Border.all(color: outerBlue, width: 4),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF3A5A75)
+                                : outerBlue,
+                            width: 4,
+                          ),
                           boxShadow: const [
                             BoxShadow(
                               color: Colors.black26,
@@ -217,7 +239,9 @@ class _AppLayoutState extends State<AppLayout> {
                         ),
                         child: Icon(
                           Icons.home,
-                          color: outerBlue,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF3A5A75)
+                              : outerBlue,
                           size: 36,
                         ),
                       ),
@@ -245,14 +269,18 @@ class _AppLayoutState extends State<AppLayout> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 28),
+          Icon(
+            icon,
+            color: Theme.of(context).scaffoldBackgroundColor,
+            size: 28,
+          ),
           const SizedBox(height: 4),
           if (isActive)
             Container(
               width: 6,
               height: 6,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
                 shape: BoxShape.circle,
               ),
             ),

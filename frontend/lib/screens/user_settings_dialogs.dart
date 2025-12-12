@@ -143,9 +143,6 @@ class UserSettingsDialogs {
                         if (formKey.currentState!.validate()) {
                           onMarkDirty();
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Changes saved successfully.')),
-                          );
                         }
                       },
                       child: Text(
@@ -275,7 +272,8 @@ class UserSettingsDialogs {
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to pick image: $e')),
+                              SnackBar(
+                                  content: Text('Failed to pick image: $e')),
                             );
                           }
                         }
@@ -285,15 +283,15 @@ class UserSettingsDialogs {
                         backgroundColor: const Color(0xFF7496B3),
                         backgroundImage: currentDialogPath != null
                             ? (currentDialogPath!.startsWith('http')
-                              // If it is a web URL (old image)
-                              ? NetworkImage(currentDialogPath!)
-                              // If it is a local path (new image)
-                              : FileImage(File(currentDialogPath!)))
-                              as ImageProvider
-                          : null,
+                                    // If it is a web URL (old image)
+                                    ? NetworkImage(currentDialogPath!)
+                                    // If it is a local path (new image)
+                                    : FileImage(File(currentDialogPath!)))
+                                as ImageProvider
+                            : null,
                         child: currentDialogPath == null
                             ? const Icon(Icons.camera_alt,
-                            size: 42, color: Colors.white)
+                                size: 42, color: Colors.white)
                             : null,
                       ),
                     ),
@@ -433,7 +431,8 @@ class UserSettingsDialogs {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7496B3), width: 2),
+                      borderSide:
+                          const BorderSide(color: Color(0xFF7496B3), width: 2),
                     ),
                     contentPadding: const EdgeInsets.all(16),
                   ),
@@ -461,9 +460,6 @@ class UserSettingsDialogs {
                       onPressed: () {
                         onMarkDirty();
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Changes saved successfully.')),
-                        );
                       },
                       child: Text(
                         'Save',
@@ -491,6 +487,9 @@ class UserSettingsDialogs {
     required Function(List<String> tags) onTagsChanged,
     required VoidCallback onMarkDirty,
   }) {
+    // Local state for tag selection within this dialog
+    List<String> localSelectedTags = List.from(selectedTags);
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -521,127 +520,135 @@ class UserSettingsDialogs {
               ],
             ),
             child: StatefulBuilder(
-              builder: (context, setDialogState) => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.close,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF7FA8C7)
-                                : const Color(0xFF7496B3)),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Your Tags',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inknutAntiqua(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : const Color(0xFF394957),
+              builder: (context, setDialogState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.close,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF7FA8C7)
+                                  : const Color(0xFF7496B3)),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Your Tags',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inknutAntiqua(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF394957),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Divider(
-                    height: 2,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF404040)
-                        : const Color(0xFF5F7C94),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Select all tags that describe you:',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.lato(
-                      fontSize: 16,
-                      color: const Color(0xFF394957),
+                        const SizedBox(width: 48),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: availableTags.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final tag = entry.value;
-                      final selected = selectedTags.contains(tag);
-                      
-                      // Dramatic different shades of blue for each tag
-                      final tagColors = [
-                        const Color(0xFF2C5F7F), // owner - deep navy blue
-                        const Color(0xFF5A8DB3), // organizer - medium blue
-                        const Color.fromARGB(255, 118, 178, 230), // foster - light sky blue
-                        const Color.fromARGB(255, 156, 201, 234), // visitor - pale blue
-                      ];
-                      
-                      return FilterChip(
-                        label: Text(
-                          tag[0].toUpperCase() + tag.substring(1),
-                          style: TextStyle(
-                            color: selected ? tagColors[index] : Colors.white,
-                            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    const SizedBox(height: 4),
+                    Divider(
+                      height: 2,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF404040)
+                          : const Color(0xFF5F7C94),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Select all tags that describe you:',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.lato(
+                        fontSize: 16,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF394957),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: availableTags.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final tag = entry.value;
+                        final selected = localSelectedTags.contains(tag);
+
+                        // Dramatic different shades of blue for each tag
+                        final tagColors = [
+                          const Color(0xFF2C5F7F), // owner - deep navy blue
+                          const Color(0xFF5A8DB3), // organizer - medium blue
+                          const Color.fromARGB(
+                              255, 118, 178, 230), // foster - light sky blue
+                          const Color.fromARGB(
+                              255, 156, 201, 234), // visitor - pale blue
+                        ];
+
+                        return FilterChip(
+                          label: Text(
+                            tag[0].toUpperCase() + tag.substring(1),
+                            style: TextStyle(
+                              color: selected ? tagColors[index] : Colors.white,
+                              fontWeight:
+                                  selected ? FontWeight.w600 : FontWeight.w500,
+                            ),
                           ),
-                        ),
-                        selected: selected,
-                        onSelected: (value) {
-                          setDialogState(() {
-                            List<String> newTags;
-                            if (value) {
-                              newTags = {...selectedTags, tag}.toList();
-                            } else {
-                              newTags = selectedTags.where((t) => t != tag).toList();
-                            }
-                            onTagsChanged(newTags);
+                          selected: selected,
+                          onSelected: (value) {
+                            setDialogState(() {
+                              if (value) {
+                                localSelectedTags =
+                                    {...localSelectedTags, tag}.toList();
+                              } else {
+                                localSelectedTags = localSelectedTags
+                                    .where((t) => t != tag)
+                                    .toList();
+                              }
+                            });
+                          },
+                          selectedColor:
+                              tagColors[index].withValues(alpha: 0.2),
+                          checkmarkColor: tagColors[index],
+                          backgroundColor: tagColors[index],
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: SizedBox(
+                        width: 160,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7F9CB3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            // Only apply changes when Save is clicked
+                            onTagsChanged(localSelectedTags);
                             onMarkDirty();
-                          });
-                        },
-                        selectedColor: tagColors[index].withValues(alpha: 0.2),
-                        checkmarkColor: tagColors[index],
-                        backgroundColor: tagColors[index],
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: SizedBox(
-                      width: 160,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7F9CB3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Your Tags have been updated.')),
-                          );
-                        },
-                        child: Text(
-                          'Save',
-                          style: GoogleFonts.inknutAntiqua(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            'Save',
+                            style: GoogleFonts.inknutAntiqua(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
+                    const SizedBox(height: 8),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -748,24 +755,18 @@ class UserSettingsDialogs {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.edit, color: Color(0xFF7496B3)),
+                              icon: const Icon(Icons.edit,
+                                  color: Color(0xFF7496B3)),
                               onPressed: () {
                                 Navigator.pop(context);
                                 onEditPet(index);
                               },
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Color.fromARGB(255, 241, 78, 66)),
+                              icon: const Icon(Icons.delete,
+                                  color: Color.fromARGB(255, 241, 78, 66)),
                               onPressed: () {
                                 onRemovePet(index);
-                                Navigator.pop(context);
-                                showPetsDialog(
-                                  context: context,
-                                  pets: pets,
-                                  onAddNewPet: onAddNewPet,
-                                  onEditPet: onEditPet,
-                                  onRemovePet: onRemovePet,
-                                );
                               },
                             ),
                           ],
@@ -850,7 +851,8 @@ class UserSettingsDialogs {
                       width: 120,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                          side: BorderSide(
+                              color: Colors.grey.shade400, width: 1.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),

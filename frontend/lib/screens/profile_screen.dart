@@ -36,36 +36,45 @@ class _ProfileScreenState extends State<ProfileScreen>
     _tabController?.addListener(() {
       if (mounted) setState(() {});
     });
-    if (!_isOwnProfile) {
+    final isOwn = widget.otherUsername == null;
+    debugPrint(
+        'ProfileScreen opened: otherUsername=${widget.otherUsername}, _isOwnProfile=$isOwn');
+    if (!isOwn) {
       _loadOtherUserData();
     }
   }
 
-  // TODO: Replace this with a real fetch from Supabase 'users' table by username
-  void _loadOtherUserData() {
-    _otherUserData = {
-      'username': widget.otherUsername,
-      'firstName': widget.otherUsername!.split(' ')[0],
-      'lastName': widget.otherUsername!.split(' ').length > 1
-          ? widget.otherUsername!.split(' ')[1]
-          : '',
-      'role': 'Pet Owner',
-      'bio':
-          'Pet lover and enthusiast. Love sharing moments with my furry friends!',
-      'totalPosts': 12,
-      'totalFollowers': 45,
-      'totalFollowing': 32,
-      'pets': [
-        // Mock data for other users stays until we add "fetchUserProfile" logic
-        {
-          'name': 'Max',
-          'breed': 'Golden Retriever',
-          'age': 3,
-          'weight': 65.0,
-          'imageUrl': '',
-        },
-      ],
-    };
+  // Fetch other user's profile from UserProvider
+  Future<void> _loadOtherUserData() async {
+    if (widget.otherUsername == null) return;
+
+    try {
+      final userProvider = context.read<UserProvider>();
+      final profile =
+          await userProvider.fetchPublicProfile(widget.otherUsername!);
+
+      if (profile != null && mounted) {
+        // Fetch other user's pets by getting user's ID and querying from userProvider
+        // Since fetchOtherUserPets may not be available, we'll get the pets through a different approach
+        // For now, we'll just show empty pets for other users
+
+        setState(() {
+          _otherUserData = {
+            'username': profile.username,
+            'name': profile.name,
+            'bio': profile.bio,
+            'photoUrl': profile.photoUrl,
+            'roles': profile.roles,
+            'totalFollowers': profile.followers.length,
+            'totalFollowing': profile.following.length,
+            'pets': [],
+            'totalPosts': 0,
+          };
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading other user data: $e');
+    }
   }
 
   @override
@@ -135,6 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 petId: 'mock_$index',
                 userId: 'mock_user',
                 name: petMap['name'],
+                species: 'Dog', // default species
                 breed: petMap['breed'],
                 age: petMap['age'],
                 weight: petMap['weight'],
@@ -211,7 +221,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     final size = MediaQuery.of(context).size;
     return Consumer<PostsProvider>(
       builder: (context, postsProvider, _) {
-        final targetAuthorName = _isOwnProfile ? 'You' : widget.otherUsername;
+        final currentUsername =
+            context.read<UserProvider>().user?.username ?? '';
+        final targetAuthorName =
+            _isOwnProfile ? currentUsername : (widget.otherUsername ?? '');
 
         // Filter posts where author name matches.
         // Note: Ideally, we should filter by userId, but for now matching Name logic from CommunityScreen
@@ -258,7 +271,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       style: GoogleFonts.lato(
                         fontSize: size.width * 0.045,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF394957),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF394957),
                       ),
                     ),
                     SizedBox(height: size.height * 0.01),
@@ -268,7 +283,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.lato(
                         fontSize: size.width * 0.038,
-                        color: const Color(0xFF394957),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF394957),
                       ),
                     ),
                     SizedBox(height: size.height * 0.015),
@@ -279,14 +296,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                           vertical: size.height * 0.007,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF3A5A75)
+                              : const Color(0xFFEEF7FB),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF4A6B85)
+                                : const Color(0xFFBCD9EC),
+                          ),
                         ),
                         child: Text(
                           post.category,
                           style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF7496B3),
                             fontWeight: FontWeight.w600,
                             fontSize: size.width * 0.03,
                           ),
@@ -311,7 +336,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               Text(
                                 '${post.likesCount}',
                                 style: GoogleFonts.lato(
-                                  color: const Color(0xFF394957),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF394957),
                                   fontSize: size.width * 0.035,
                                 ),
                               ),
@@ -331,14 +358,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                           },
                           child: Row(
                             children: [
-                              Icon(Icons.comment_outlined,
+                              Icon(
+                                  Icons.comment_outlined,
                                   size: size.width * 0.045,
-                                  color: const Color(0xFF7496B3)),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF7496B3),
+                              ),
                               SizedBox(width: size.width * 0.01),
                               Text(
                                 '${post.commentCount}',
                                 style: GoogleFonts.lato(
-                                  color: const Color(0xFF394957),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF394957),
                                   fontSize: size.width * 0.035,
                                 ),
                               ),
@@ -394,19 +427,26 @@ class _ProfileScreenState extends State<ProfileScreen>
           (rolesList == null || rolesList.isEmpty) ? ['Visitor'] : rolesList;
 
       final postsProvider = context.watch<PostsProvider>();
-      totalPosts =
-          postsProvider.posts.where((post) => post.authorName == 'You').length;
+      final currentUsername = username;
+      totalPosts = postsProvider.posts
+          .where((post) => post.authorName == currentUsername)
+          .length;
 
       totalFollowers = appUser?.followers.length ?? 0;
       totalFollowing = appUser?.following.length ?? 0;
     } else {
-      name =
-          '${_otherUserData?['firstName'] ?? ''} ${_otherUserData?['lastName'] ?? ''}'
-              .trim();
+      name = _otherUserData?['name'] ?? '';
       username = _otherUserData?['username'] ?? '';
       profileImageUrl = _otherUserData?['photoUrl'];
-      roles = [_otherUserData?['role'] ?? 'User'];
-      totalPosts = (_otherUserData?['totalPosts'] as int?) ?? 0;
+      final rolesList = _otherUserData?['roles'] as List<dynamic>?;
+      roles = (rolesList == null || rolesList.isEmpty)
+          ? ['Visitor']
+          : rolesList.map((r) => r.toString()).toList();
+      final postsProvider = context.watch<PostsProvider>();
+      final otherUsername = widget.otherUsername ?? '';
+      totalPosts = postsProvider.posts
+          .where((post) => post.authorName == otherUsername)
+          .length;
       totalFollowers = (_otherUserData?['totalFollowers'] as int?) ?? 0;
       totalFollowing = (_otherUserData?['totalFollowing'] as int?) ?? 0;
     }
@@ -424,21 +464,35 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: avatarSize / 2,
-                        backgroundColor: const Color(0xFF7496B3),
-                        // If URL exists and is not empty, load image. Otherwise null.
-                        backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
-                            ? NetworkImage(profileImageUrl!)
-                            : null,
-                        // Only show the Icon child if we DON'T have an image
-                        child: (profileImageUrl == null || profileImageUrl!.isEmpty)
-                            ? Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: avatarSize * 0.5,
-                        )
-                            : null,
+                      Container(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: avatarSize / 2,
+                          backgroundColor: const Color(0xFF7496B3),
+                          // If URL exists and is not empty, load image. Otherwise null.
+                          backgroundImage: (profileImageUrl != null &&
+                                  profileImageUrl!.isNotEmpty)
+                              ? NetworkImage(profileImageUrl!)
+                              : null,
+                          // Only show the Icon child if we DON'T have an image
+                          child: (profileImageUrl == null ||
+                                  profileImageUrl!.isEmpty)
+                              ? Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: avatarSize * 0.5,
+                                )
+                              : null,
+                        ),
                       ),
                       Expanded(
                         child: Padding(
@@ -458,66 +512,81 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 username,
                                 style: GoogleFonts.inknutAntiqua(
                                   fontSize: 16 * textScale,
-                                  color: Colors.black,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade300
+                                      : Colors.black,
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                alignment: WrapAlignment.center,
-                                children: roles.map((role) {
-                                  // Color mapping for each role
-                                  Color tagColor;
-                                  switch (role.toLowerCase()) {
-                                    case 'owner':
-                                      tagColor = Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF1F4A5F)
-                                          : const Color(0xFF2C5F7F);
-                                      break;
-                                    case 'organizer':
-                                      tagColor = Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF3A5A75)
-                                          : const Color(0xFF5A8DB3);
-                                      break;
-                                    case 'foster':
-                                      tagColor = Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF5F8FA8)
-                                          : const Color.fromARGB(255, 118, 178, 230);
-                                      break;
-                                    case 'visitor':
-                                      tagColor = Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF2A4A65)
-                                          : const Color.fromARGB(255, 156, 201, 234);
-                                      break;
-                                    default:
-                                      tagColor = Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF4A6B85)
-                                          : const Color(0xFF7496B3);
-                                  }
+                              SizedBox(
+                                height: 28,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: roles.map((role) {
+                                      // Color mapping for each role with dark mode support
+                                      Color tagColor;
+                                      switch (role.toLowerCase()) {
+                                        case 'owner':
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF1F4A5F)
+                                              : const Color(0xFF2C5F7F);
+                                          break;
+                                        case 'organizer':
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF3A5A75)
+                                              : const Color(0xFF5A8DB3);
+                                          break;
+                                        case 'foster':
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF5F8FA8)
+                                              : const Color.fromARGB(255, 118, 178, 230);
+                                          break;
+                                        case 'visitor':
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF2A4A65)
+                                              : const Color.fromARGB(255, 156, 201, 234);
+                                          break;
+                                        default:
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF4A6B85)
+                                              : const Color(0xFF7496B3);
+                                      }
 
-                                  return Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: size.width * 0.04,
-                                      vertical: size.height * 0.005,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: tagColor,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      role.isNotEmpty
-                                          ? role[0].toUpperCase() +
-                                              role.substring(1).toLowerCase()
-                                          : role,
-                                      style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 12 * textScale,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 6),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: size.width * 0.04,
+                                            vertical: size.height * 0.005,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: tagColor,
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              role.isNotEmpty
+                                                  ? role[0].toUpperCase() +
+                                                      role
+                                                          .substring(1)
+                                                          .toLowerCase()
+                                                  : role,
+                                              style: GoogleFonts.inknutAntiqua(
+                                                fontSize: 12 * textScale,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -549,7 +618,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             Container(
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+                  bottom: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF3A3A3A)
+                        : Colors.grey[300]!,
+                    width: 1,
+                  ),
                 ),
               ),
               child: TabBar(
@@ -607,17 +681,34 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: IconButton(
               icon: Icon(
                 Icons.settings,
-                size: size.width * 0.07,
+                size: size.width * 0.08,
                 color: const Color(0xFF7496B3),
               ),
               tooltip: 'User Settings',
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const user_settings.UserSettingsPage(
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        AppLayout(
                       currentIndex: 4,
-                      onTabSelected: _noop,
+                      onTabSelected: (_) {},
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(1.0, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeInOutCubic,
+                        )),
+                        child: const user_settings.UserSettingsPage(
+                          currentIndex: 4,
+                          onTabSelected: _noop,
+                        ),
+                      ),
                     ),
+                    transitionDuration: const Duration(milliseconds: 300),
+                    reverseTransitionDuration:
+                        const Duration(milliseconds: 300),
                   ),
                 );
               },
@@ -630,7 +721,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             bottom: size.height * 0.02,
             child: FloatingActionButton.extended(
               heroTag: 'view_all_pets_fab',
-              backgroundColor: const Color(0xFF7496B3),
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF4A6B85)
+                  : const Color(0xFF7496B3),
               foregroundColor: Colors.white,
               icon: const Icon(Icons.view_list),
               label: Text(
@@ -645,11 +738,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                   final petProv = context.read<pet_provider.PetProvider>();
                   final userProv = context.read<UserProvider>();
                   displayPets = petProv.pets
-                      .map((p) => pet_list.Pet(name: p.name, imageUrl: p.imageUrl))
+                      .map((p) =>
+                          pet_list.Pet(name: p.name, imageUrl: p.imageUrl))
                       .toList();
                   name = userProv.user?.name ?? 'Your name';
                 } else {
-                  final otherPets = (_otherUserData?['pets'] as List<dynamic>?) ?? [];
+                  final otherPets =
+                      (_otherUserData?['pets'] as List<dynamic>?) ?? [];
                   displayPets = otherPets
                       .map((e) => pet_list.Pet(
                             name: e['name']?.toString() ?? 'Pet',
@@ -759,9 +854,15 @@ class _ProfileScreenState extends State<ProfileScreen>
             constraints: const BoxConstraints(maxWidth: 340, maxHeight: 400),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E1E1E)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF3A3A3A)
+                    : Colors.grey.shade300,
+              ),
               boxShadow: const [
                 BoxShadow(
                     color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
@@ -784,7 +885,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -882,9 +985,15 @@ class _ProfileScreenState extends State<ProfileScreen>
             constraints: const BoxConstraints(maxWidth: 340, maxHeight: 400),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E1E1E)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF3A3A3A)
+                    : Colors.grey.shade300,
+              ),
               boxShadow: const [
                 BoxShadow(
                     color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
@@ -907,7 +1016,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),

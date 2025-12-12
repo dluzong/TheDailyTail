@@ -225,8 +225,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   height: 70,
                                   decoration: BoxDecoration(
                                     color: selected
-                                        ? const Color(0xFF7AA9C8)
-                                        : const Color(0xFFEDF7FF),
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                            ? const Color(0xFF4A6B85)
+                                            : const Color(0xFF7AA9C8))
+                                        : (Theme.of(context).brightness == Brightness.dark
+                                            ? const Color(0xFF2A2A2A)
+                                            : const Color(0xFFEDF7FF)),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   padding: const EdgeInsets.all(8),
@@ -240,7 +244,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           fontWeight: FontWeight.bold,
                                           color: selected
                                               ? Colors.white
-                                              : Colors.black87,
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.white70
+                                                  : Colors.black87),
                                         ),
                                       ),
                                       Text(
@@ -249,7 +255,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           fontSize: 12,
                                           color: selected
                                               ? Colors.white
-                                              : Colors.black87,
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.white70
+                                                  : Colors.black87),
                                         ),
                                       ),
                                     ],
@@ -313,7 +321,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           'Total meals: ${meals.length}',
                                           style: GoogleFonts.inknutAntiqua(
                                             fontSize: 14,
-                                            color: Colors.black87,
+                                            color: Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white70
+                                                : Colors.black87,
                                           ),
                                         ),
                                 ),

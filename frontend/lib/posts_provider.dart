@@ -46,18 +46,25 @@ class Post {
     // Parse Comments count from joined table
     final commentsData = map['comments'] as List<dynamic>?;
     final int commentCount = commentsData != null && commentsData.isNotEmpty
-        ? (commentsData[0]['count'] as int? ?? 0)
+        ? (commentsData[0] is Map ? (commentsData[0]['count'] as int? ?? 0) : 0)
         : 0;
 
+    // Safely parse string fields - handle case where they might be lists
+    String _parseStringField(dynamic field) {
+      if (field is String) return field;
+      if (field is List) return field.isNotEmpty ? field[0].toString() : '';
+      return field?.toString() ?? '';
+    }
+
     return Post(
-      postId: map['post_id'],
+      postId: map['post_id'] as int? ?? 0,
       userId: map['user_id'] ?? '',
       authorName: authorData?['username'] ?? 'Unknown',
       authorPhoto: authorData?['photo_url'] ?? '',
-      title: map['title'] ?? '',
-      content: map['content'] ?? '',
-      category: map['category'] ?? 'General',
-      createdTs: timeago.format(DateTime.parse(map['created_ts'])),
+      title: _parseStringField(map['title']),
+      content: _parseStringField(map['content']),
+      category: _parseStringField(map['category'] ?? 'General'),
+      createdTs: timeago.format(DateTime.parse(_parseStringField(map['created_ts']))),
       isLiked: liked,
       likesCount: likesList.length,
       commentCount: commentCount,

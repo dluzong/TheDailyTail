@@ -24,6 +24,31 @@ class _AddEventPageState extends State<AddEventPage> {
     'Other': const Color(0xFFFBBF24),
   };
 
+  final Map<String, Map<String, Color>> colorSchemes = {
+    'Appointments': {
+      'light': const Color(0xFF34D399), // teal
+      'dark': const Color(0xFF059669), // muted teal for dark mode
+    },
+    'Vaccinations': {
+      'light': const Color(0xFF8B5CF6), // purple
+      'dark': const Color(0xFF6D28D9), // muted purple for dark mode
+    },
+    'Events': {
+      'light': const Color(0xFF60A5FA), // blue
+      'dark': const Color(0xFF2563EB), // muted blue for dark mode
+    },
+    'Other': {
+      'light': const Color(0xFFFBBF24), // yellow/gold
+      'dark': const Color(0xFFD97706), // muted yellow for dark mode
+    },
+  };
+
+  Map<String, Color> getTabColors(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return colorSchemes.map((key, value) =>
+        MapEntry(key, isDarkMode ? value['dark']! : value['light']!));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -85,16 +110,20 @@ class _AddEventPageState extends State<AddEventPage> {
     }
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecoration(
       labelText: label,
+      labelStyle: TextStyle(
+        color: isDark ? Colors.white70 : Colors.black87,
+        fontSize: 12,
+      ),
       filled: true,
-      fillColor: Colors.grey.shade200, // darker background for text fields
+      fillColor: isDark ? const Color(0xFF3A3A3A) : Colors.grey.shade200,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
-      labelStyle: GoogleFonts.inknutAntiqua(fontSize: 12),
     );
   }
 
@@ -106,7 +135,9 @@ class _AddEventPageState extends State<AddEventPage> {
           Colors.black.withValues(alpha: 0.4), // semi-transparent overlay
       appBar: AppBar(
         title: const Text('Add Event'),
-        backgroundColor: const Color(0xFF7496B3),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF4A6B85)
+            : const Color(0xFF7496B3),
       ),
       body: Center(
         child: Card(
@@ -123,7 +154,10 @@ class _AddEventPageState extends State<AddEventPage> {
                 children: [
                   // --- Title ---
                   TextFormField(
-                    decoration: _inputDecoration('Title'),
+                    style: Theme.of(context).brightness == Brightness.dark 
+                      ? const TextStyle(color: Colors.white) 
+                      : null,
+                    decoration: _inputDecoration('Title', context),
                     onSaved: (val) => _title = val ?? '',
                     validator: (val) =>
                         val == null || val.isEmpty ? 'Enter a title' : null,
@@ -132,7 +166,10 @@ class _AddEventPageState extends State<AddEventPage> {
 
                   // --- Description ---
                   TextFormField(
-                    decoration: _inputDecoration('Description'),
+                    style: Theme.of(context).brightness == Brightness.dark 
+                      ? const TextStyle(color: Colors.white) 
+                      : null,
+                    decoration: _inputDecoration('Description', context),
                     onSaved: (val) => _desc = val ?? '',
                   ),
                   const SizedBox(height: 20),
@@ -151,7 +188,9 @@ class _AddEventPageState extends State<AddEventPage> {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7496B3),
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7496B3),
                         ),
                         onPressed: _pickDate,
                         child: const Text(
@@ -169,14 +208,18 @@ class _AddEventPageState extends State<AddEventPage> {
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 10,
-                    children: tabColors.keys.map((category) {
+                    children: getTabColors(context).keys.map((category) {
                       final isSelected = _selectedCategory == category;
+                      final tabColors = getTabColors(context);
                       return GestureDetector(
                         onTap: () =>
                             setState(() => _selectedCategory = category),
@@ -188,7 +231,9 @@ class _AddEventPageState extends State<AddEventPage> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? tabColors[category]
-                                : Colors.grey.shade200,
+                                : (Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF2A2A2A)
+                                    : Colors.grey.shade200),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               if (isSelected)
@@ -204,7 +249,7 @@ class _AddEventPageState extends State<AddEventPage> {
                             category,
                             style: GoogleFonts.inknutAntiqua(
                               fontSize: 10,
-                              color: isSelected ? Colors.white : Colors.black87,
+                              color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                             ),
                           ),
                         ),
@@ -216,7 +261,9 @@ class _AddEventPageState extends State<AddEventPage> {
                   // --- Save Event Button ---
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7496B3),
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF4A6B85)
+                          : const Color(0xFF7496B3),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 40, vertical: 14),
                       shape: RoundedRectangleBorder(

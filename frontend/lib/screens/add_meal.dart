@@ -157,7 +157,7 @@ class _AddMealState extends State<AddMeal> {
                           color: isSelected
                             ? const Color(0xFF7AA9C8).withValues(alpha: 0.28)
                             : (Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFFF6F6F6)
+                                ? const Color(0xFF2A2A2A)
                                 : const Color(0xFFE8E8E8)),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
@@ -175,7 +175,7 @@ class _AddMealState extends State<AddMeal> {
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.black
+                                    ? Colors.white
                                     : null,
                               ),
                             ),
@@ -184,7 +184,7 @@ class _AddMealState extends State<AddMeal> {
                               style: GoogleFonts.inknutAntiqua(
                                 fontSize: 14,
                                 color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.black
+                                    ? Colors.white
                                     : null,
                               ),
                             ),
@@ -206,6 +206,9 @@ class _AddMealState extends State<AddMeal> {
               style: GoogleFonts.inknutAntiqua(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
               ),
             ),
             const SizedBox(height: 10),
@@ -215,7 +218,7 @@ class _AddMealState extends State<AddMeal> {
                 Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark 
-                      ? Colors.white 
+                      ? const Color(0xFF3A3A3A)
                       : const Color(0xFFE0E0E0),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -223,7 +226,7 @@ class _AddMealState extends State<AddMeal> {
                   child: TextField(
                     controller: nameController,
                     style: Theme.of(context).brightness == Brightness.dark 
-                      ? const TextStyle(color: Colors.black) 
+                      ? const TextStyle(color: Colors.white) 
                       : null,
                     onChanged: (v) {
                       setState(() {
@@ -243,7 +246,7 @@ class _AddMealState extends State<AddMeal> {
                 Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark 
-                      ? Colors.white 
+                      ? const Color(0xFF3A3A3A)
                       : const Color(0xFFE0E0E0),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -251,7 +254,7 @@ class _AddMealState extends State<AddMeal> {
                   child: TextField(
                     controller: amountController,
                     style: Theme.of(context).brightness == Brightness.dark 
-                      ? const TextStyle(color: Colors.black) 
+                      ? const TextStyle(color: Colors.white) 
                       : null,
                     onChanged: (v) {
                       selectedAmount = v;
@@ -286,18 +289,29 @@ class _AddMealState extends State<AddMeal> {
                     },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Color(0xFF7AA9C8), width: 2),
+                      side: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A5A75)
+                            : const Color(0xFF7AA9C8),
+                        width: 2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(Icons.favorite_border,
-                        color: Color(0xFF7AA9C8)),
+                    icon: Icon(
+                      Icons.favorite_border,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF3A5A75)
+                          : const Color(0xFF7AA9C8),
+                    ),
                     label: Text(
                       "Save List",
                       style: GoogleFonts.inknutAntiqua(
                         fontSize: 16,
-                        color: const Color(0xFF7AA9C8),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A5A75)
+                            : const Color(0xFF7AA9C8),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -315,7 +329,9 @@ class _AddMealState extends State<AddMeal> {
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7AA9C8),
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF3A5A75)
+                          : const Color(0xFF7AA9C8),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(

@@ -470,7 +470,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                     calendarBuilders: CalendarBuilders(
                       markerBuilder: (context, day, events) {
                         if (events.isEmpty) return const SizedBox();
-                        final tabColors = getTabColors(context);
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: events.take(4).map((event) {

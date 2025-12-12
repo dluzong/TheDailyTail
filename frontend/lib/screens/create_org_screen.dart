@@ -68,24 +68,35 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF4A6B85)
+            : Colors.white,
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : const Color(0xFF7496B3),
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Create Organization',
           style: GoogleFonts.lato(
-            color: const Color(0xFF5F7C94),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : const Color(0xFF5F7C94),
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
+      body: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SingleChildScrollView(
+          child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +110,9 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
                 style: GoogleFonts.lato(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
                 ),
               ),
               const SizedBox(height: 8),
@@ -126,7 +139,9 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
                 style: GoogleFonts.lato(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
                 ),
               ),
               const SizedBox(height: 8),
@@ -175,7 +190,9 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _createOrganization,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7496B3),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7496B3),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -207,6 +224,6 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 }

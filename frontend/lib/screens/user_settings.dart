@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../shared/app_layout.dart';
 import 'add_pet_screen.dart';
 import 'edit_pet_popup.dart';
 import 'user_settings_dialogs.dart';
@@ -11,7 +10,6 @@ import 'launch_screen.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
 import 'dart:io';
-
 
 class UserSettingsPage extends StatefulWidget {
   final int currentIndex;
@@ -28,7 +26,6 @@ class UserSettingsPage extends StatefulWidget {
 }
 
 class _UserSettingsPageState extends State<UserSettingsPage> {
-  final _formKey = GlobalKey<FormState>();
   // We can access Supabase directly for auth actions like signOut
   final _supabase = Supabase.instance.client;
 
@@ -102,68 +99,24 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     super.dispose();
   }
 
-  void _markDirty() {
-    if (!_isDirty) setState(() => _isDirty = true);
-  }
-
-  void _saveSettings() {
-    if (!_formKey.currentState!.validate()) return;
-
-    _username = _usernameController.text.trim();
-    _name = _nameController.text.trim();
-    _bio = _bioController.text.trim();
-
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    userProvider
-        .updateUserProfile(
-      username: _username,
-      name: _name,
-      roles: _selectedTags,
-      photoUrl: _profilePicturePath,
-      bio: _bio,
-    )
-        .then((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Settings have been saved!'),
-            backgroundColor: Color(0xFF72C9B6), // Success Green
-          ),
-        );
-        setState(() => _isDirty = false);
-        Navigator.of(context).pop(); // Go back to profile
-      }
-    }).catchError((e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save settings: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    });
-  }
-
   /// Uploads the local file to Supabase Storage and returns the Public URL
   Future<String?> _uploadProfileImage(File imageFile) async {
     try {
       final userId = _supabase.auth.currentUser!.id;
       // Create a unique file path: user_id/timestamp.jpg
       final fileExt = imageFile.path.split('.').last;
-      final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final fileName =
+          '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
       // Upload to the 'avatars' bucket
       await _supabase.storage.from('avatars').upload(
-        fileName,
-        imageFile,
-        fileOptions: const FileOptions(upsert: true),
-      );
+            fileName,
+            imageFile,
+            fileOptions: const FileOptions(upsert: true),
+          );
 
       // Get the Public URL
-      final imageUrl =
-      _supabase.storage.from('avatars').getPublicUrl(fileName);
+      final imageUrl = _supabase.storage.from('avatars').getPublicUrl(fileName);
 
       return imageUrl;
     } catch (e) {
@@ -212,15 +165,17 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     String? finalPhotoUrl = _profilePicturePath;
 
     // If the path exists and DOES NOT start with http, it's a local file on the phone
-    if (_profilePicturePath != null && !_profilePicturePath!.startsWith('http')) {
-
+    if (_profilePicturePath != null &&
+        !_profilePicturePath!.startsWith('http')) {
       // 1. CAPTURE THE OLD URL (if it exists)
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final String oldPhotoUrl = userProvider.user?.photoUrl ?? '';
 
       // Show a loading snackbar because upload takes time
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+        const SnackBar(
+            content: Text('Uploading image...'),
+            duration: Duration(seconds: 1)),
       );
 
       final file = File(_profilePicturePath!);
@@ -232,8 +187,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
                 content: Text('Profile NOT saved. Image upload failed.'),
-                backgroundColor: Colors.red
-            ),
+                backgroundColor: Colors.red),
           );
         }
         return; // <--- Exit the function immediately
@@ -261,22 +215,18 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
       if (mounted) {
         setState(() => _isDirty = false);
-        // Optional success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6)),
-        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error saving: $e'), backgroundColor: Colors.red),
         );
       }
     }
   }
 
   Future<void> _addNewPet() async {
-    // 1. Get new pet details from the AddPetScreen
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(builder: (context) => const AddPetScreen()),
     );
@@ -284,11 +234,11 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     if (result == null) return;
 
     try {
-      // 2. Create a Pet object (ID will be generated by DB, userId by Provider/DB)
       final newPet = pet_provider.Pet(
         petId: result['id'] as String? ?? '',
         userId: result['userId'] as String? ?? '',
         name: result['name'] as String? ?? '',
+        species: result['type'] as String? ?? 'Dog', // Map 'type' to 'species'
         breed: result['breed'] as String? ?? '',
         age: (result['age'] is int)
             ? result['age'] as int
@@ -301,8 +251,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         status: result['status'] as String? ?? 'owned',
       );
 
-      // 3. Use the Provider to save to DB
-      // Note: Ensure your PetProvider has the addPet method we defined!
       await context.read<pet_provider.PetProvider>().addPet(newPet);
 
       if (mounted) {
@@ -321,23 +269,20 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   Future<void> _editPetInfo(pet_provider.Pet originalPet) async {
-    print("DEBUG: Original Pet ID: ${originalPet.petId}"); // Check your console
+    debugPrint(
+        "DEBUG: Original Pet ID: ${originalPet.petId}"); // Check your console
 
-    // 1. Show the Edit Popup and wait for result
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => EditPetPopup(pet: originalPet),
     );
 
-    // If user canceled, do nothing
     if (result == null) return;
 
     try {
       String finalImageUrl = result['imageUrl'] ?? originalPet.imageUrl;
 
-      // 2. CHECK: Is this a new local file? (Not http... and not empty)
       if (finalImageUrl.isNotEmpty && !finalImageUrl.startsWith('http')) {
-        // It's a local file path. Upload it!
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Uploading pet image...')),
@@ -355,11 +300,11 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         }
       }
 
-      // 3. Create a new Pet object with the updated info
       final updatedPet = pet_provider.Pet(
         petId: originalPet.petId,
         userId: originalPet.userId,
         name: result['name'] ?? originalPet.name,
+        species: originalPet.species, // Preserve existing species
         breed: result['breed'] ?? originalPet.breed,
         age: result['age'] ?? originalPet.age,
         weight: result['weight'] ?? originalPet.weight,
@@ -368,9 +313,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         savedMedications: originalPet.savedMedications,
         status: originalPet.status,
       );
-      print("DEBUG: Sending Update for ID: ${updatedPet.petId}"); // Check this too
+      debugPrint(
+          "DEBUG: Sending Update for ID: ${updatedPet.petId}"); // Check this too
 
-      // 4. Call the provider to save to DB
+
       await context.read<pet_provider.PetProvider>().updatePet(updatedPet);
 
       if (mounted) {
@@ -392,12 +338,13 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
   Future<void> _removePet(String petId) async {
     try {
-      // Direct DB delete for now, then refresh provider
-      await _supabase.from('pets').delete().eq('pet_id', petId);
+      debugPrint("Removing pet: $petId");
+
+      await context.read<pet_provider.PetProvider>().deletePet(petId);
+
+      debugPrint("Pet deleted via provider");
 
       if (mounted) {
-        // Refresh the list in the provider
-        await context.read<pet_provider.PetProvider>().fetchPets();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Pet removed")),
         );
@@ -413,50 +360,17 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   Future<bool> _onWillPop() async {
-    if (!_isDirty) return true;
-
-    final action = await showDialog<String?>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsaved changes'),
-        content: const Text('You have unsaved changes. Save before leaving?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop('cancel'),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop('discard'),
-            child: const Text('Discard'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7496B3)),
-            onPressed: () => Navigator.of(context).pop('save'),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (action == 'save') {
-      _saveSettings();
-      return false; // _saveSettings pops automatically on success
-    }
-
-    if (action == 'discard') return true;
-
-    return false;
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
-      currentIndex: 0,
-      onTabSelected: widget.onTabSelected,
-      child: WillPopScope(
-        onWillPop: _onWillPop,
-        child: SingleChildScrollView(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        resizeToAvoidBottomInset: true,
+        body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -637,7 +551,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   void _showAccountInfoDialog() {
     UserSettingsDialogs.showAccountInfoDialog(
       context: context,
-      formKey: GlobalKey<FormState>(), // Use a fresh key for the dialog validation
+      formKey:
+          GlobalKey<FormState>(), // Use a fresh key for the dialog validation
       nameController: _nameController,
       usernameController: _usernameController,
       onMarkDirty: _saveDataOnly, // <--- CHANGE THIS: Pass the save function
@@ -685,10 +600,20 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       context: context,
       pets: _pets,
       onAddNewPet: () async {
+        Navigator.pop(context); // Close dialog to navigate
         await _addNewPet();
+        if (mounted) {
+          _showPetsDialog(); // Re-open dialog to show updated list
+        }
       },
       onEditPet: (index) => _editPetInfo(_pets[index]),
-      onRemovePet: (index) => _removePet(_pets[index].petId),
+      onRemovePet: (index) async {
+        Navigator.pop(context); // Close dialog
+        await _removePet(_pets[index].petId);
+        if (mounted) {
+          _showPetsDialog(); // Re-open dialog to show updated list
+        }
+      },
     );
   }
 
