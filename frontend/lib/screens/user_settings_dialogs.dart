@@ -17,28 +17,31 @@ class UserSettingsDialogs {
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.92,
+              constraints: const BoxConstraints(maxWidth: 460),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
+                  )
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
@@ -135,6 +138,8 @@ class UserSettingsDialogs {
                 ),
                 const SizedBox(height: 8),
               ],
+            ),
+              ),
             ),
           ),
         ),
@@ -304,28 +309,31 @@ class UserSettingsDialogs {
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.92,
+              constraints: const BoxConstraints(maxWidth: 460),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
+                  )
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
@@ -409,6 +417,8 @@ class UserSettingsDialogs {
                 ),
                 const SizedBox(height: 8),
               ],
+            ),
+              ),
             ),
           ),
         ),
@@ -498,7 +508,7 @@ class UserSettingsDialogs {
                         final isSelected = tempSelectedTags.contains(tag);
                         final Color baseColor =
                             tagColors[tag] ?? const Color(0xFF7496B3);
-                        final Color offColor = baseColor.withOpacity(0.12);
+                        final Color offColor = baseColor.withValues(alpha: 0.12);
                         return FilterChip(
                           label: Text(
                             tag[0].toUpperCase() + tag.substring(1), // Capitalize
@@ -511,7 +521,7 @@ class UserSettingsDialogs {
                           selectedColor: baseColor,
                           checkmarkColor: Colors.white,
                           backgroundColor: offColor,
-                          side: BorderSide(color: baseColor.withOpacity(0.6)),
+                          side: BorderSide(color: baseColor.withValues(alpha: 0.6)),
                           onSelected: (bool selected) {
                             setState(() {
                               if (selected) {
