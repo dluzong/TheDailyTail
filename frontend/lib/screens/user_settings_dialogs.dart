@@ -425,6 +425,13 @@ class UserSettingsDialogs {
     required Function(List<String>) onTagsChanged,
     required VoidCallback onMarkDirty,
   }) {
+    const Map<String, Color> tagColors = {
+      'owner': Color(0xFF2C5F7F), // deep navy blue
+      'organizer': Color(0xFF5A8DB3), // medium blue
+      'foster': Color(0xFF76B2E6), // light sky blue
+      'visitor': Color(0xFF9CC9EA), // pale blue
+    };
+
     // Create a local copy so we don't modify the parent state until "Save" is clicked
     List<String> tempSelectedTags = List.from(selectedTags);
 
@@ -489,18 +496,22 @@ class UserSettingsDialogs {
                       alignment: WrapAlignment.center,
                       children: availableTags.map((tag) {
                         final isSelected = tempSelectedTags.contains(tag);
+                        final Color baseColor =
+                            tagColors[tag] ?? const Color(0xFF7496B3);
+                        final Color offColor = baseColor.withOpacity(0.12);
                         return FilterChip(
                           label: Text(
                             tag[0].toUpperCase() + tag.substring(1), // Capitalize
                             style: GoogleFonts.lato(
-                              color: isSelected ? Colors.white : const Color(0xFF394957),
+                              color: isSelected ? Colors.white : baseColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           selected: isSelected,
-                          selectedColor: const Color(0xFF7F9CB3),
+                          selectedColor: baseColor,
                           checkmarkColor: Colors.white,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: offColor,
+                          side: BorderSide(color: baseColor.withOpacity(0.6)),
                           onSelected: (bool selected) {
                             setState(() {
                               if (selected) {

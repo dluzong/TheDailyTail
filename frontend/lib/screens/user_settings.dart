@@ -250,7 +250,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         setState(() => _isDirty = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6), duration: Duration(seconds: 2)),
+          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6), duration: Duration(seconds: 1)),
         );
 
         // 4. HANDLE NAVIGATION (Logic from _saveSettings)
