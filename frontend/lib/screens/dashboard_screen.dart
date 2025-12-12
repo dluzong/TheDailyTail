@@ -131,30 +131,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 24),
 
-            // Dashboard title with theme toggle
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Dashboard',
-                    style: GoogleFonts.lato(
-                        fontSize: 24, fontWeight: FontWeight.bold)),
-                Consumer<ThemeProvider>(
-                  builder: (context, themeProvider, _) {
-                    return IconButton(
-                      icon: Icon(
-                        themeProvider.isDarkMode
-                            ? Icons.light_mode
-                            : Icons.dark_mode,
-                        size: 24,
-                      ),
-                      onPressed: () {
-                        themeProvider.toggleTheme();
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
+            // Dashboard title
+            Text('Dashboard',
+                style: GoogleFonts.lato(
+                    fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             const Divider(thickness: 2),
             const SizedBox(height: 16),

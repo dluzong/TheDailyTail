@@ -9,6 +9,7 @@ import 'user_settings_dialogs.dart';
 import 'launch_screen.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
+import '../theme_provider.dart';
 import 'dart:io';
 
 
@@ -545,6 +546,53 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
                 icon: Icons.pets,
                 title: 'My Pets',
                 onTap: () => _showPetsDialog(),
+              ),
+              const SizedBox(height: 8),
+              Consumer<ThemeProvider>(
+                builder: (context, themeProvider, _) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF2A2A2A)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A3A3A)
+                            : const Color(0xFFBCD9EC),
+                      ),
+                    ),
+                    child: ListTile(
+                      leading: Icon(
+                        themeProvider.isDarkMode
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7FA8C7)
+                            : const Color(0xFF7496B3),
+                        size: 32,
+                      ),
+                      title: Text(
+                        themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
+                        style: GoogleFonts.lato(
+                          fontSize: 18,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
+                        ),
+                      ),
+                      trailing: Switch(
+                        value: themeProvider.isDarkMode,
+                        onChanged: (_) => themeProvider.toggleTheme(),
+                        activeColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7496B3),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 16),
