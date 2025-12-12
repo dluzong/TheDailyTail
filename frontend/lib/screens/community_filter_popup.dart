@@ -61,7 +61,10 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.grey.shade300),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))],
+            boxShadow: const [
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -78,12 +81,17 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                     child: Text(
                       'Filter',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inknutAntiqua(fontSize: 22, fontWeight: FontWeight.w600, color: const Color(0xFF394957)),
+                      style: GoogleFonts.inknutAntiqua(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF394957)),
                     ),
                   ),
                   TextButton(
                     onPressed: _resetFilters,
-                    child: Text('Reset', style: GoogleFonts.inknutAntiqua(color: const Color(0xFF7496B3))),
+                    child: Text('Reset',
+                        style: GoogleFonts.inknutAntiqua(
+                            color: const Color(0xFF7496B3))),
                   ),
                 ],
               ),
@@ -92,7 +100,11 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
               const SizedBox(height: 20),
 
               // Sort By Filtering
-              Text('Sort By', style: GoogleFonts.inknutAntiqua(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF394957))),
+              Text('Sort By',
+                  style: GoogleFonts.inknutAntiqua(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF394957))),
               const SizedBox(height: 4),
               RadioGroup<String>(
                 options: const [
@@ -105,7 +117,11 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
               const SizedBox(height: 20),
 
               // Category Filtering
-              Text('Category', style: GoogleFonts.inknutAntiqua(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF394957))),
+              Text('Category',
+                  style: GoogleFonts.inknutAntiqua(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF394957))),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 6,
@@ -118,11 +134,22 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       duration: const Duration(milliseconds: 160),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
-                        color: selected ? const Color(0xFFEEF7FB) : Colors.white,
+                        color:
+                            selected ? const Color(0xFFEEF7FB) : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: selected
-                            ? [const BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(4, 6))]
-                            : [const BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(2, 6))],
+                            ? [
+                                const BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(4, 6))
+                              ]
+                            : [
+                                const BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 8,
+                                    offset: Offset(2, 6))
+                              ],
                         border: Border.all(color: Colors.grey.shade200),
                       ),
                       child: Row(
@@ -134,7 +161,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                             activeColor: const Color(0xFF7496B3),
                             checkColor: Colors.white,
                           ),
-                          Text(c, style: GoogleFonts.inknutAntiqua(color: const Color(0xFF394957))),
+                          Text(c,
+                              style: GoogleFonts.inknutAntiqua(
+                                  color: const Color(0xFF394957))),
                         ],
                       ),
                     ),
@@ -150,7 +179,8 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7F9CB3),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     onPressed: () {
@@ -159,7 +189,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                         'categories': _selectedCategories.toList(),
                       });
                     },
-                    child: Text('Save', style: GoogleFonts.inknutAntiqua(color: Colors.white, fontWeight: FontWeight.w600)),
+                    child: Text('Save',
+                        style: GoogleFonts.inknutAntiqua(
+                            color: Colors.white, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),
@@ -174,7 +206,8 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
 // vertical list of radio buttons (only allow to select one button at a time)
 class RadioGroup<T> extends StatelessWidget {
-  final List<Map<String, String>> options; // each map contains 'value' and 'label'
+  final List<Map<String, String>>
+      options; // each map contains 'value' and 'label'
   final T groupValue;
   final ValueChanged<T?> onChanged;
 
@@ -196,17 +229,21 @@ class RadioGroup<T> extends StatelessWidget {
         return InkWell(
           onTap: () => onChanged(val as T?),
           borderRadius: BorderRadius.circular(8),
-                child: Padding(
+          child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6.0),
             child: Row(
               children: [
                 Icon(
-                  selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
                   color: selected ? const Color(0xFF7496B3) : Colors.grey,
                   size: 30,
                 ),
                 const SizedBox(width: 10),
-                Text(label, style: GoogleFonts.inknutAntiqua(color: const Color(0xFF394957))),
+                Text(label,
+                    style: GoogleFonts.inknutAntiqua(
+                        color: const Color(0xFF394957))),
               ],
             ),
           ),

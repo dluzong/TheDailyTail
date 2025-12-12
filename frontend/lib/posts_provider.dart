@@ -51,7 +51,8 @@ class Post {
 
     // Parse Categories (Array of Strings)
     final List<dynamic> rawCategories = map['category'] ?? [];
-    final List<String> categoriesList = rawCategories.map((e) => e.toString()).toList();
+    final List<String> categoriesList =
+        rawCategories.map((e) => e.toString()).toList();
     if (categoriesList.isEmpty) {
       categoriesList.add('General');
     }
@@ -228,7 +229,8 @@ class PostsProvider extends ChangeNotifier {
 
   // --- CREATE POST ---
 
-  Future<void> createPost(String title, String content, List<String> categories) async {
+  Future<void> createPost(
+      String title, String content, List<String> categories) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
