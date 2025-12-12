@@ -157,7 +157,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             textAlign: TextAlign.center,
             style: GoogleFonts.lato(
               fontSize: size.width * 0.038,
-              color: const Color(0xFF394957),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : const Color(0xFF394957),
             ),
           ),
         ],
@@ -285,7 +287,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               'No posts yet.',
               style: GoogleFonts.lato(
                 fontSize: size.width * 0.04,
-                color: const Color(0xFF394957),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : const Color(0xFF394957),
               ),
             ),
           );
@@ -316,7 +320,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       style: GoogleFonts.lato(
                         fontSize: size.width * 0.045,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF394957),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF394957),
                       ),
                     ),
                     SizedBox(height: size.height * 0.01),
@@ -326,7 +332,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.lato(
                         fontSize: size.width * 0.038,
-                        color: const Color(0xFF394957),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF394957),
                       ),
                     ),
                     SizedBox(height: size.height * 0.015),
@@ -341,15 +349,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                               vertical: size.height * 0.007,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEEF7FB),
+                              color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF3A5A75)
+                              : const Color(0xFFEEF7FB),
                               borderRadius: BorderRadius.circular(20),
                               border:
-                                  Border.all(color: const Color(0xFFBCD9EC)),
+                                  Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF4A6B85)
+                                : const Color(0xFFBCD9EC),
+                          ),
                             ),
                             child: Text(
                               cat,
                               style: GoogleFonts.lato(
-                                color: const Color(0xFF7496B3),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF7496B3),
                                 fontWeight: FontWeight.w600,
                                 fontSize: size.width * 0.03,
                               ),
@@ -376,7 +392,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               Text(
                                 '${post.likesCount}',
                                 style: GoogleFonts.lato(
-                                  color: const Color(0xFF394957),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF394957),
                                   fontSize: size.width * 0.035,
                                 ),
                               ),
@@ -396,14 +414,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                           },
                           child: Row(
                             children: [
-                              Icon(Icons.comment_outlined,
+                              Icon(
+                                  Icons.comment_outlined,
                                   size: size.width * 0.045,
-                                  color: const Color(0xFF7496B3)),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF7496B3),
+                              ),
                               SizedBox(width: size.width * 0.01),
                               Text(
                                 '${post.commentCount}',
                                 style: GoogleFonts.lato(
-                                  color: const Color(0xFF394957),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF394957),
                                   fontSize: size.width * 0.035,
                                 ),
                               ),
@@ -440,7 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     final size = MediaQuery.of(context).size;
-    final textScale = MediaQuery.of(context).textScaleFactor;
+    final textScale = MediaQuery.of(context).textScaler.scale(1.0);
 
     // Get user data based on profile type
     String name;
@@ -544,7 +568,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 username,
                                 style: GoogleFonts.inknutAntiqua(
                                   fontSize: 16 * textScale,
-                                  color: Colors.black,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade300
+                                      : Colors.black,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -555,28 +581,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   child: ListView(
                                     scrollDirection: Axis.horizontal,
                                     children: roles.map((role) {
-                                      // Color mapping for each role
+                                      // Color mapping for each role with dark mode support
                                       Color tagColor;
                                       switch (role.toLowerCase()) {
                                         case 'owner':
-                                          tagColor = const Color(
-                                              0xFF2C5F7F); // deep navy blue
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF1F4A5F)
+                                              : const Color(0xFF2C5F7F);
                                           break;
                                         case 'organizer':
-                                          tagColor = const Color(
-                                              0xFF5A8DB3); // medium blue
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF3A5A75)
+                                              : const Color(0xFF5A8DB3);
                                           break;
                                         case 'foster':
-                                          tagColor = const Color.fromARGB(255,
-                                              118, 178, 230); // light sky blue
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF5F8FA8)
+                                              : const Color.fromARGB(255, 118, 178, 230);
                                           break;
                                         case 'visitor':
-                                          tagColor = const Color.fromARGB(
-                                              255, 156, 201, 234); // pale blue
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF2A4A65)
+                                              : const Color.fromARGB(255, 156, 201, 234);
                                           break;
                                         default:
-                                          tagColor = const Color(
-                                              0xFF7496B3); // default blue
+                                          tagColor = Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF4A6B85)
+                                              : const Color(0xFF7496B3);
                                       }
 
                                       return Padding(
@@ -643,7 +674,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             Container(
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+                  bottom: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF3A3A3A)
+                        : Colors.grey[300]!,
+                    width: 1,
+                  ),
                 ),
               ),
               child: TabBar(
@@ -730,7 +766,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             bottom: size.height * 0.02,
             child: FloatingActionButton.extended(
               heroTag: 'view_all_pets_fab',
-              backgroundColor: const Color(0xFF7496B3),
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF4A6B85)
+                  : const Color(0xFF7496B3),
               foregroundColor: Colors.white,
               icon: const Icon(Icons.view_list),
               label: Text(
@@ -760,7 +798,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       .toList();
                   final first = _otherUserData?['firstName']?.toString() ?? '';
                   final last = _otherUserData?['lastName']?.toString() ?? '';
-                  name = (first + ' ' + last).trim();
+                  name = '$first $last'.trim();
                   if (name.isEmpty) {
                     name = _otherUserData?['username']?.toString() ?? 'User';
                   }
@@ -783,20 +821,32 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return AppLayout(
       currentIndex: 4,
-      showBackButton: true,
+      showBackButton: !_isOwnProfile,
       onTabSelected: (_) {},
-      child: WillPopScope(
-        onWillPop: _onWillPop,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (!didPop) {
+            final shouldPop = await _onWillPop() ?? true;
+            if (shouldPop && context.mounted) {
+              Navigator.of(context).pop();
+            }
+          }
+        },
         child: widget.shouldAnimate
-            ? SlideTransition(
-                position: _slideAnimation,
-                child: Container(
-                  color: Colors.white,
+            ? Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF121212)
+                    : Colors.white,
+                child: SlideTransition(
+                  position: _slideAnimation,
                   child: content,
                 ),
               )
             : Container(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF121212)
+                    : Colors.white,
                 child: content,
               ),
       ),
@@ -816,7 +866,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             style: GoogleFonts.lato(
               fontSize: size.width * 0.04,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF394957),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : const Color(0xFF394957),
             ),
             textAlign: TextAlign.center,
           ),
@@ -824,7 +876,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             label,
             style: GoogleFonts.lato(
               fontSize: size.width * 0.035,
-              color: Colors.grey[600],
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : Colors.grey[600],
             ),
             textAlign: TextAlign.center,
           ),
@@ -868,9 +922,15 @@ class _ProfileScreenState extends State<ProfileScreen>
             constraints: const BoxConstraints(maxWidth: 340, maxHeight: 400),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E1E1E)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF3A3A3A)
+                    : Colors.grey.shade300,
+              ),
               boxShadow: const [
                 BoxShadow(
                     color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
@@ -893,7 +953,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -991,9 +1053,15 @@ class _ProfileScreenState extends State<ProfileScreen>
             constraints: const BoxConstraints(maxWidth: 340, maxHeight: 400),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E1E1E)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF3A3A3A)
+                    : Colors.grey.shade300,
+              ),
               boxShadow: const [
                 BoxShadow(
                     color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
@@ -1016,7 +1084,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -1087,5 +1157,3 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 }
-
-void _noop(int _) {}

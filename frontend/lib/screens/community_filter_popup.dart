@@ -58,9 +58,14 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
           constraints: const BoxConstraints(maxWidth: 460),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2A2A2A)
+                : Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF404040)
+                    : Colors.grey.shade300),
             boxShadow: const [
               BoxShadow(
                   color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
@@ -82,9 +87,14 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       'Filter',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inknutAntiqua(
+                          
                           fontSize: 22,
+                         
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957)),
+                         
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957)),
                     ),
                   ),
                   TextButton(
@@ -101,10 +111,16 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Sort By Filtering
               Text('Sort By',
+                 
                   style: GoogleFonts.inknutAntiqua(
+                      
                       fontSize: 16,
+                     
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF394957))),
+                     
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF394957))),
               const SizedBox(height: 4),
               RadioGroup<String>(
                 options: const [
@@ -118,10 +134,16 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Category Filtering
               Text('Category',
+                 
                   style: GoogleFonts.inknutAntiqua(
+                      
                       fontSize: 16,
+                     
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF394957))),
+                     
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF394957))),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 6,
@@ -135,7 +157,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
                         color:
-                            selected ? const Color(0xFFEEF7FB) : Colors.white,
+                            Theme.of(context).brightness == Brightness.dark
+                            ? (selected ? const Color(0xFF4A6B85) : const Color(0xFF2A4A65))
+                            : (selected ? const Color(0xFFEEF7FB) : Colors.white),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: selected
                             ? [
@@ -150,7 +174,11 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                                     blurRadius: 8,
                                     offset: Offset(2, 6))
                               ],
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF404040)
+                              : Colors.grey.shade200,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -163,7 +191,10 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                           ),
                           Text(c,
                               style: GoogleFonts.inknutAntiqua(
-                                  color: const Color(0xFF394957))),
+                              
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF394957))),
                         ],
                       ),
                     ),
@@ -178,7 +209,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                   width: 160,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7F9CB3),
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF4A6B85)
+                          : const Color(0xFF7F9CB3),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -242,8 +275,12 @@ class RadioGroup<T> extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(label,
+                   
                     style: GoogleFonts.inknutAntiqua(
-                        color: const Color(0xFF394957))),
+                        
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF394957))),
               ],
             ),
           ),

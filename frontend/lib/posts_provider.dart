@@ -60,13 +60,13 @@ class Post {
     // Parse Comments count from joined table
     final commentsData = map['comments'] as List<dynamic>?;
     final int commentCount = commentsData != null && commentsData.isNotEmpty
-        ? (commentsData[0]['count'] as int? ?? 0)
+        ? (commentsData[0] is Map ? (commentsData[0]['count'] as int? ?? 0) : 0)
         : 0;
 
     final createdRaw = _asString(map['created_ts'], DateTime.now().toIso8601String());
 
     return Post(
-      postId: map['post_id'],
+      postId: map['post_id'] as int? ?? 0,
       userId: _asString(map['user_id'], ''),
       authorName: _asString(authorData?['username'], 'Unknown'),
       authorPhoto: _asString(authorData?['photo_url'], ''),

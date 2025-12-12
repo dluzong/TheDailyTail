@@ -96,9 +96,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     const titleColor = Color(0xFF5F7C94);
     const buttonBlue = Color(0xFF8DB6D9);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white,
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Colors.white,
       body: Column(
         children: [
           Container(height: 30, color: topBottomBarColor),
@@ -349,6 +355,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
           Container(height: 30, color: topBottomBarColor),
         ],
+      ),
       ),
     );
   }

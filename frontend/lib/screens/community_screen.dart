@@ -141,7 +141,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               'No posts found. :(',
               style: GoogleFonts.inknutAntiqua(
                 fontSize: 16,
-                color: const Color(0xFF394957),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : const Color(0xFF394957),
               ),
             ),
           );
@@ -293,15 +295,21 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEEF7FB),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF3A5A75)
+                                  : const Color(0xFFEEF7FB),
                               borderRadius: BorderRadius.circular(20),
-                              border:
-                                  Border.all(color: const Color(0xFFBCD9EC)),
+                              border: Border.all(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? const Color(0xFF4A6B85)
+                                      : const Color(0xFFBCD9EC)),
                             ),
                             child: Text(
                               cat,
                               style: GoogleFonts.lato(
-                                color: const Color(0xFF7496B3),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : const Color(0xFF7496B3),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -412,9 +420,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.add_circle,
-                    color: Color(0xFF7496B3),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF4A6B85)
+                        : const Color(0xFF7496B3),
                     size: 28,
                   ),
                   onPressed: () {
@@ -588,7 +598,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     icon: const Icon(Icons.explore, size: 18),
                     label: const Text('Explore'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7496B3),
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF4A6B85)
+                          : const Color(0xFF7496B3),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -623,7 +635,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         icon: const Icon(Icons.explore),
                         label: const Text('Explore organizations'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7496B3),
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7496B3),
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -742,8 +756,10 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.95,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF121212)
+                : Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
           ),
           padding: EdgeInsets.only(
@@ -759,8 +775,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.close,
-                      color: Color(0xFF7496B3), size: 28),
+                  icon: Icon(Icons.close,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF7496B3),
+                      size: 28),
                   onPressed: () => Navigator.pop(context),
                 ),
                 ElevatedButton(
@@ -786,10 +805,14 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           );
                     }
 
-                    if (mounted) Navigator.pop(context);
+                    if (mounted) {
+                      Navigator.pop(context);
+                    }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7496B3),
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF4A6B85)
+                        : const Color(0xFF7496B3),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20)),
                   ),
@@ -801,14 +824,20 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 ),
               ],
             ),
-            const Divider(),
+            Divider(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF404040)
+                  : Colors.grey.shade300,
+            ),
             const SizedBox(height: 10),
             // Category Selection
             Text(
               'Select Categories:',
               style: GoogleFonts.lato(
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF394957),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF394957),
               ),
             ),
             const SizedBox(height: 8),
@@ -829,12 +858,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       }
                     });
                   },
-                  selectedColor: const Color(0xFFEEF7FB),
+                  selectedColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3A5A75)
+                      : const Color(0xFFEEF7FB),
                   checkmarkColor: const Color(0xFF7496B3),
                   labelStyle: TextStyle(
                     color: isSelected
                         ? const Color(0xFF7496B3)
-                        : const Color(0xFF394957),
+                        : (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF394957)),
                     fontWeight:
                         isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -844,9 +877,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+              ),
+              decoration: InputDecoration(
                 hintText: 'Post Title',
-                border: OutlineInputBorder(),
+                hintStyle: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade600
+                      : Colors.grey,
+                ),
+                filled: true,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1E1E1E)
+                    : Colors.white,
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF404040)
+                        : Colors.grey.shade300,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -858,9 +911,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   maxLines: null,
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                  decoration: InputDecoration(
                     hintText: 'Write your post here...',
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade600
+                          : Colors.grey,
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF1E1E1E)
+                        : Colors.white,
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF404040)
+                            : Colors.grey.shade300,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -932,11 +1005,13 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     return AppLayout(
       currentIndex: 2,
       onTabSelected: (index) {},
-      child: DefaultTabController(
-        length: 3,
-        child: Stack(
-          children: [
-            Column(
+      child: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: DefaultTabController(
+          length: 3,
+          child: Stack(
+            children: [
+              Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
@@ -957,18 +1032,35 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 220, 220, 232),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF2A2A2A)
+                                    : const Color.fromARGB(255, 220, 220, 232),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: TextField(
                                 controller: _searchController,
                                 onChanged: (value) =>
                                     setState(() => _searchTerm = value),
-                                decoration: const InputDecoration(
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                                decoration: InputDecoration(
                                   hintText: 'Search...',
-                                  prefixIcon: Icon(Icons.search),
+                                  hintStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF888888)
+                                        : const Color(0xFF888888),
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.search,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF888888)
+                                        : const Color(0xFF888888),
+                                  ),
                                   border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
+                                  contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 12,
                                   ),
@@ -984,14 +1076,21 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             return Container(
                               decoration: BoxDecoration(
                                 color: hasActiveFilters
-                                    ? const Color(0xFF7496B3)
-                                    : const Color.fromARGB(255, 220, 220, 232),
+                                    ? (Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF4A6B85)
+                                        : const Color(0xFF7496B3))
+                                    : (Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF2A2A2A)
+                                        : const Color.fromARGB(255, 220, 220, 232)),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: IconButton(
                                 icon: Icon(Icons.filter_list,
-                                    color:
-                                        hasActiveFilters ? Colors.white : null),
+                                    color: hasActiveFilters
+                                        ? Colors.white
+                                        : (Theme.of(context).brightness == Brightness.dark
+                                            ? const Color(0xFF888888)
+                                            : const Color(0xFF888888))),
                                 onPressed: _openCommunityFilterPopup,
                               ),
                             );
@@ -1044,11 +1143,19 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       if (tabController.index != 2) {
                         return FloatingActionButton(
                           onPressed: _showNewPostModal,
-                          backgroundColor: const Color(0xFF7496B3),
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7496B3),
                           child: const Icon(Icons.add, color: Colors.white),
                         );
                       }
-                      return const SizedBox.shrink();
+                      return FloatingActionButton(
+                        onPressed: _showNewPostModal,
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7496B3),
+                        child: const Icon(Icons.add, color: Colors.white),
+                      );
                     },
                   );
                 },
@@ -1057,6 +1164,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 }

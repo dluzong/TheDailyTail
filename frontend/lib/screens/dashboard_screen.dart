@@ -5,6 +5,7 @@ import '../pet_provider.dart';
 import '../user_provider.dart';
 import '../shared/app_layout.dart';
 import '../log_provider.dart';
+import '../theme_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -92,10 +93,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return AppLayout(
       currentIndex: 1,
       onTabSelected: (index) {},
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Dropdown
             Row(
@@ -148,7 +151,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   // helper to build main content area
@@ -207,7 +210,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: 120,
               height: 150,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ClipRRect(

@@ -140,8 +140,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       currentIndex: 0,
       onTabSelected: (_) {},
       child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Stack(
           children: [
             SafeArea(
@@ -164,10 +163,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                             ),
                           );
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.only(left: 8.0, right: 12.0),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0, right: 12.0),
                           child: Icon(Icons.arrow_back,
-                              size: 26, color: Colors.black87),
+                              size: 26, 
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black),
                         ),
                       ),
                       Expanded(
@@ -223,8 +225,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   height: 70,
                                   decoration: BoxDecoration(
                                     color: selected
-                                        ? const Color(0xFF7AA9C8)
-                                        : const Color(0xFFEDF7FF),
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                            ? const Color(0xFF4A6B85)
+                                            : const Color(0xFF7AA9C8))
+                                        : (Theme.of(context).brightness == Brightness.dark
+                                            ? const Color(0xFF2A2A2A)
+                                            : const Color(0xFFEDF7FF)),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   padding: const EdgeInsets.all(8),
@@ -238,7 +244,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           fontWeight: FontWeight.bold,
                                           color: selected
                                               ? Colors.white
-                                              : Colors.black87,
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.white70
+                                                  : Colors.black87),
                                         ),
                                       ),
                                       Text(
@@ -247,7 +255,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           fontSize: 12,
                                           color: selected
                                               ? Colors.white
-                                              : Colors.black87,
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.white70
+                                                  : Colors.black87),
                                         ),
                                       ),
                                     ],
@@ -300,7 +310,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                               'Tap the + button to add one.',
                                               style: GoogleFonts.inknutAntiqua(
                                                 fontSize: 14,
-                                                color: Colors.black54,
+                                                color: Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.white70
+                                                    : Colors.black54,
                                               ),
                                             ),
                                           ],
@@ -309,7 +321,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           'Total meals: ${meals.length}',
                                           style: GoogleFonts.inknutAntiqua(
                                             fontSize: 14,
-                                            color: Colors.black87,
+                                            color: Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white70
+                                                : Colors.black87,
                                           ),
                                         ),
                                 ),
@@ -329,24 +343,40 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   context: context,
                                   builder: (context) {
                                     return AlertDialog(
-                                      backgroundColor: const Color(0xFFEDF7FF),
+                                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF1E1E1E)
+                                          : const Color(0xFF7496B3),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                       title: Text(
                                         'Delete meal?',
                                         style: GoogleFonts.inknutAntiqua(
-                                            fontWeight: FontWeight.bold),
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white
+                                              : Colors.white,
+                                        ),
                                       ),
                                       content: Text(
                                         "Remove '${log.details['name'] ?? 'meal'}' from this day?",
-                                        style: GoogleFonts.inknutAntiqua(),
+                                        style: GoogleFonts.inknutAntiqua(
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white70
+                                              : Colors.white,
+                                        ),
                                       ),
                                       actions: [
                                         TextButton(
                                           onPressed: () =>
                                               Navigator.pop(context, false),
-                                          child: const Text(
+                                          child: Text(
                                             'Cancel',
                                             style: TextStyle(
-                                                color: Colors.black87),
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.grey.shade300
+                                                  : Colors.black87,
+                                            ),
                                           ),
                                         ),
                                         TextButton(
@@ -392,7 +422,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                       horizontal: 16, vertical: 8),
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEDF7FF),
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF4A6B85)
+                                        : const Color(0xFFD9E8F5),
                                     borderRadius: BorderRadius.circular(14),
                                     boxShadow: [
                                       BoxShadow(
@@ -429,7 +461,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         'Logged at: ${DateFormat('h:mm a').format(log.loggedAt ?? log.date)}',
                                         style: GoogleFonts.inknutAntiqua(
                                           fontSize: 12,
-                                          color: Colors.black54,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white70
+                                              : Colors.grey,
                                         ),
                                       ),
                                     ],
@@ -452,7 +486,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               bottom: 16 + MediaQuery.of(context).padding.bottom,
               child: FloatingActionButton(
                 onPressed: _openMealPopup,
-                backgroundColor: const Color(0xFF7AA9C8),
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF4A6B85)
+                    : const Color(0xFF7AA9C8),
                 child: const Icon(Icons.add, color: Colors.white),
               ),
             ),

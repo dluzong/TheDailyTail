@@ -64,7 +64,11 @@ class _AddMealState extends State<AddMeal> {
                 ),
 
                 const SizedBox(height: 10),
-                Divider(color: Colors.black.withValues(alpha: 0.2)),
+                Divider(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade700
+                      : Colors.black.withValues(alpha: 0.2),
+                ),
                 const SizedBox(height: 10),
 
                 Text(
@@ -171,7 +175,7 @@ class _AddMealState extends State<AddMeal> {
                                   : (Theme.of(context).brightness ==
                                           Brightness.dark
                                       ? const Color(0xFF2A2A2A)
-                                      : const Color(0xFFE8E8E8)),
+                                      : const Color(0xFFDCDCDC)),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isSelected
@@ -201,7 +205,7 @@ class _AddMealState extends State<AddMeal> {
                                     color: Theme.of(context).brightness ==
                                             Brightness.dark
                                         ? Colors.white
-                                        : null,
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -214,7 +218,12 @@ class _AddMealState extends State<AddMeal> {
                 ),
 
                 const SizedBox(height: 10),
-                const Divider(color: Colors.black26, thickness: 1),
+                Divider(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade700
+                      : Colors.black.withValues(alpha: 0.2),
+                  thickness: 1,
+                ),
                 const SizedBox(height: 10),
 
                 Text(
@@ -235,7 +244,7 @@ class _AddMealState extends State<AddMeal> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF3A3A3A)
-                            : const Color(0xFFE0E0E0),
+                            : const Color(0xFFDCDCDC),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -250,9 +259,12 @@ class _AddMealState extends State<AddMeal> {
                             if (v.isNotEmpty) highlightedIndex = null;
                           });
                         },
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
                           hintText: "Food Name",
+                          hintStyle: Theme.of(context).brightness == Brightness.dark
+                              ? const TextStyle(color: Colors.grey)
+                              : const TextStyle(color: Colors.grey),
                         ),
                       ),
                     ),
@@ -263,7 +275,7 @@ class _AddMealState extends State<AddMeal> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF3A3A3A)
-                            : const Color(0xFFE0E0E0),
+                            : const Color(0xFFDCDCDC),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -278,9 +290,12 @@ class _AddMealState extends State<AddMeal> {
                             setState(() => highlightedIndex = null);
                           }
                         },
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
                           hintText: "Amount (Optional)",
+                          hintStyle: Theme.of(context).brightness == Brightness.dark
+                              ? const TextStyle(color: Colors.grey)
+                              : const TextStyle(color: Colors.grey),
                         ),
                       ),
                     ),

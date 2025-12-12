@@ -45,13 +45,12 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint('fetchUser after Google sign-in failed: $e');
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -76,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user == null) {
         // SDK doesn't expose `res.error` here — show a generic messages.
         debugPrint('User == null');
+        if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Login failed')));
         return;
@@ -85,6 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await context.read<UserProvider>().fetchUser();
       } catch (e) {
         debugPrint('fetchUser failed: $e');
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load user: $e')),
         );
@@ -110,7 +111,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      child: Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Column(
@@ -139,12 +146,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 25),
                         buildDogIcon(),
                         const SizedBox(height: 35),
-                        buildAppTextField(hint: "Email", controller: _email),
+                        buildAppTextField(hint: "Email", controller: _email, context: context),
                         const SizedBox(height: 15),
                         buildAppTextField(
                           hint: "Password",
                           obscure: _obscurePassword,
                           controller: _password,
+                          context: context,
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -189,6 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           buildBorderBar(),
         ],
+      ),
       ),
     );
   }
