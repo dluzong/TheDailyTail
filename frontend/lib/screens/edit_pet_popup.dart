@@ -189,6 +189,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
                 buildAppTextField(
                   hint: 'Pet Name',
                   controller: nameController,
+                  context: context,
                 ),
                 const SizedBox(height: 16),
                 Center(
@@ -205,6 +206,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
                 buildAppTextField(
                   hint: 'Breed',
                   controller: breedController,
+                  context: context,
                 ),
                 const SizedBox(height: 16),
                 Center(
@@ -221,6 +223,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
                 buildAppTextField(
                   hint: 'Age',
                   controller: ageController,
+                  context: context,
                 ),
                 const SizedBox(height: 16),
                 Center(
@@ -237,6 +240,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
                 buildAppTextField(
                   hint: 'Weight',
                   controller: weightController,
+                  context: context,
                 ),
                 const SizedBox(height: 24),
                 Center(

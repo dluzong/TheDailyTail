@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CommunityFilterPopup extends StatefulWidget {
-  final String initialCategory;
   final List<String> categories;
   final String initialSort;
   final List<String> initialSelectedCategories;
 
   const CommunityFilterPopup({
     super.key,
-    required this.initialCategory,
     required this.categories,
     this.initialSort = 'recent',
     this.initialSelectedCategories = const [],
@@ -68,7 +66,10 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                 color: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF404040)
                     : Colors.grey.shade300),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))],
+            boxShadow: const [
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 12, offset: Offset(0, 6))
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -86,8 +87,11 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       'Filter',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inknutAntiqua(
+                          
                           fontSize: 22,
+                         
                           fontWeight: FontWeight.w600,
+                         
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white
                               : const Color(0xFF394957)),
@@ -95,7 +99,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                   ),
                   TextButton(
                     onPressed: _resetFilters,
-                    child: Text('Reset', style: GoogleFonts.inknutAntiqua(color: const Color(0xFF7496B3))),
+                    child: Text('Reset',
+                        style: GoogleFonts.inknutAntiqua(
+                            color: const Color(0xFF7496B3))),
                   ),
                 ],
               ),
@@ -105,9 +111,13 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Sort By Filtering
               Text('Sort By',
+                 
                   style: GoogleFonts.inknutAntiqua(
+                      
                       fontSize: 16,
+                     
                       fontWeight: FontWeight.w600,
+                     
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
                           : const Color(0xFF394957))),
@@ -124,9 +134,13 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Category Filtering
               Text('Category',
+                 
                   style: GoogleFonts.inknutAntiqua(
+                      
                       fontSize: 16,
+                     
                       fontWeight: FontWeight.w600,
+                     
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
                           : const Color(0xFF394957))),
@@ -142,13 +156,24 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       duration: const Duration(milliseconds: 160),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
                             ? (selected ? const Color(0xFF4A6B85) : const Color(0xFF2A4A65))
                             : (selected ? const Color(0xFFEEF7FB) : Colors.white),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: selected
-                            ? [const BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(4, 6))]
-                            : [const BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(2, 6))],
+                            ? [
+                                const BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(4, 6))
+                              ]
+                            : [
+                                const BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 8,
+                                    offset: Offset(2, 6))
+                              ],
                         border: Border.all(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF404040)
@@ -164,8 +189,10 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                             activeColor: const Color(0xFF7496B3),
                             checkColor: Colors.white,
                           ),
-                          Text(c, style: GoogleFonts.inknutAntiqua(
-                              color: Theme.of(context).brightness == Brightness.dark
+                          Text(c,
+                              style: GoogleFonts.inknutAntiqua(
+                              
+                                  color: Theme.of(context).brightness == Brightness.dark
                                   ? Colors.white
                                   : const Color(0xFF394957))),
                         ],
@@ -185,7 +212,8 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       backgroundColor: Theme.of(context).brightness == Brightness.dark
                           ? const Color(0xFF4A6B85)
                           : const Color(0xFF7F9CB3),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     onPressed: () {
@@ -194,7 +222,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                         'categories': _selectedCategories.toList(),
                       });
                     },
-                    child: Text('Save', style: GoogleFonts.inknutAntiqua(color: Colors.white, fontWeight: FontWeight.w600)),
+                    child: Text('Save',
+                        style: GoogleFonts.inknutAntiqua(
+                            color: Colors.white, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),
@@ -209,7 +239,8 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
 // vertical list of radio buttons (only allow to select one button at a time)
 class RadioGroup<T> extends StatelessWidget {
-  final List<Map<String, String>> options; // each map contains 'value' and 'label'
+  final List<Map<String, String>>
+      options; // each map contains 'value' and 'label'
   final T groupValue;
   final ValueChanged<T?> onChanged;
 
@@ -231,18 +262,22 @@ class RadioGroup<T> extends StatelessWidget {
         return InkWell(
           onTap: () => onChanged(val as T?),
           borderRadius: BorderRadius.circular(8),
-                child: Padding(
+          child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6.0),
             child: Row(
               children: [
                 Icon(
-                  selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
                   color: selected ? const Color(0xFF7496B3) : Colors.grey,
                   size: 30,
                 ),
                 const SizedBox(width: 10),
                 Text(label,
+                   
                     style: GoogleFonts.inknutAntiqua(
+                        
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.white
                             : const Color(0xFF394957))),

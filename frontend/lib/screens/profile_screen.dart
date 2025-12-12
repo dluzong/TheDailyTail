@@ -3,19 +3,22 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../shared/app_layout.dart';
 import 'user_settings.dart' as user_settings;
+import 'dashboard_screen.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
 import '../posts_provider.dart';
 import 'pet_list.dart' as pet_list;
 import 'all_pets_screen.dart';
-import 'community_post_screen.dart'; // Added for navigation to post details
+import 'community_post_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? otherUsername; // null means viewing own profile
+  final bool shouldAnimate; // whether to use slide-in animation
 
   const ProfileScreen({
     super.key,
     this.otherUsername,
+    this.shouldAnimate = true,
   });
 
   @override
@@ -23,9 +26,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TabController? _tabController;
   Map<String, dynamic>? _otherUserData;
+  late AnimationController _slideController;
+  late Animation<Offset> _slideAnimation;
 
   bool get _isOwnProfile => widget.otherUsername == null;
 
@@ -36,11 +41,34 @@ class _ProfileScreenState extends State<ProfileScreen>
     _tabController?.addListener(() {
       if (mounted) setState(() {});
     });
+    
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeInOut));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.shouldAnimate) {
+        _slideController.forward(from: 0.0);
+      }
+    });
+    
     final isOwn = widget.otherUsername == null;
     debugPrint(
         'ProfileScreen opened: otherUsername=${widget.otherUsername}, _isOwnProfile=$isOwn');
     if (!isOwn) {
       _loadOtherUserData();
+    } else {
+      // Fetch pets for own profile after first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<pet_provider.PetProvider>().fetchPets();
+        }
+      });
     }
   }
 
@@ -80,7 +108,30 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void dispose() {
     _tabController?.dispose();
+    _slideController.dispose();
     super.dispose();
+  }
+
+  Future<bool> _onWillPop() async {
+    await _slideController.reverse();
+
+    if (!mounted) return false;
+
+    final navigator = Navigator.of(context);
+
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      navigator.pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const DashboardScreen(),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
+    }
+
+    return false;
   }
 
   Widget _buildAboutTab() {
@@ -119,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildPetsTab() {
     final size = MediaQuery.of(context).size;
 
-    // A. Viewing another user's profile (Mock Data for now)
+    // When viewing another user's profile
     if (!_isOwnProfile) {
       final pets = _otherUserData?['pets'] as List<dynamic>? ?? [];
 
@@ -172,7 +223,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     }
 
-    // B. Viewing OWN profile (Real Data)
     return Consumer<pet_provider.PetProvider>(
       builder: (context, petProv, _) {
         if (petProv.isLoading) {
@@ -226,8 +276,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         final targetAuthorName =
             _isOwnProfile ? currentUsername : (widget.otherUsername ?? '');
 
-        // Filter posts where author name matches.
-        // Note: Ideally, we should filter by userId, but for now matching Name logic from CommunityScreen
+        // Only show posts where author name matches
         final userPosts = postsProvider.posts
             .where((post) => post.authorName == targetAuthorName)
             .toList();
@@ -289,33 +338,40 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     SizedBox(height: size.height * 0.015),
-                    if (post.category.isNotEmpty)
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.03,
-                          vertical: size.height * 0.007,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
+                    if (post.categories.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: post.categories.map((cat) {
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: size.width * 0.03,
+                              vertical: size.height * 0.007,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF3A5A75)
                               : const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
+                              borderRadius: BorderRadius.circular(20),
+                              border:
+                                  Border.all(
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? const Color(0xFF4A6B85)
                                 : const Color(0xFFBCD9EC),
                           ),
-                        ),
-                        child: Text(
-                          post.category,
-                          style: GoogleFonts.lato(
-                            color: Theme.of(context).brightness == Brightness.dark
+                            ),
+                            child: Text(
+                              cat,
+                              style: GoogleFonts.lato(
+                                color: Theme.of(context).brightness == Brightness.dark
                                 ? Colors.white
                                 : const Color(0xFF7496B3),
-                            fontWeight: FontWeight.w600,
-                            fontSize: size.width * 0.03,
-                          ),
-                        ),
+                                fontWeight: FontWeight.w600,
+                                fontSize: size.width * 0.03,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     SizedBox(height: size.height * 0.015),
                     Row(
@@ -408,7 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     final size = MediaQuery.of(context).size;
-    final textScale = MediaQuery.of(context).textScaleFactor;
+    final textScale = MediaQuery.of(context).textScaler.scale(1.0);
 
     // Get user data based on profile type
     String name;
@@ -470,7 +526,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black26,
-                              blurRadius: 8,
+                              blurRadius: 6,
                               offset: Offset(0, 4),
                             ),
                           ],
@@ -480,12 +536,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                           backgroundColor: const Color(0xFF7496B3),
                           // If URL exists and is not empty, load image. Otherwise null.
                           backgroundImage: (profileImageUrl != null &&
-                                  profileImageUrl!.isNotEmpty)
-                              ? NetworkImage(profileImageUrl!)
+                                  profileImageUrl.isNotEmpty)
+                              ? NetworkImage(profileImageUrl)
                               : null,
                           // Only show the Icon child if we DON'T have an image
                           child: (profileImageUrl == null ||
-                                  profileImageUrl!.isEmpty)
+                                  profileImageUrl.isEmpty)
                               ? Icon(
                                   Icons.person,
                                   color: Colors.white,
@@ -689,26 +745,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Navigator.of(context).push(
                   PageRouteBuilder(
                     pageBuilder: (context, animation, secondaryAnimation) =>
-                        AppLayout(
-                      currentIndex: 4,
-                      onTabSelected: (_) {},
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(1.0, 0.0),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeInOutCubic,
-                        )),
-                        child: const user_settings.UserSettingsPage(
-                          currentIndex: 4,
-                          onTabSelected: _noop,
-                        ),
-                      ),
-                    ),
-                    transitionDuration: const Duration(milliseconds: 300),
-                    reverseTransitionDuration:
-                        const Duration(milliseconds: 300),
+                        const user_settings.UserSettingsScreen(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOut;
+                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                      var offsetAnimation = animation.drive(tween);
+                      return SlideTransition(position: offsetAnimation, child: child);
+                    },
                   ),
                 );
               },
@@ -753,7 +798,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       .toList();
                   final first = _otherUserData?['firstName']?.toString() ?? '';
                   final last = _otherUserData?['lastName']?.toString() ?? '';
-                  name = (first + ' ' + last).trim();
+                  name = '$first $last'.trim();
                   if (name.isEmpty) {
                     name = _otherUserData?['username']?.toString() ?? 'User';
                   }
@@ -776,11 +821,34 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return AppLayout(
       currentIndex: 4,
-      onTabSelected: (_) {},
       showBackButton: !_isOwnProfile,
-      child: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: content,
+      onTabSelected: (_) {},
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (!didPop) {
+            final shouldPop = await _onWillPop() ?? true;
+            if (shouldPop && context.mounted) {
+              Navigator.of(context).pop();
+            }
+          }
+        },
+        child: widget.shouldAnimate
+            ? Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF121212)
+                    : Colors.white,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: content,
+                ),
+              )
+            : Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF121212)
+                    : Colors.white,
+                child: content,
+              ),
       ),
     );
   }
@@ -1089,5 +1157,3 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 }
-
-void _noop(int _) {}

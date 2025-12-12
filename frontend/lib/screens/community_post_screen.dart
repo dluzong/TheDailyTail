@@ -94,7 +94,6 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
         'content': text,
         'likes': [], // Init empty array
         'created_ts': DateTime.now().toIso8601String(),
-
       });
 
       commentCtrl.clear();
@@ -105,8 +104,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
       // 2. Refresh Comments List
       await _fetchComments();
 
-      // 3. (Optional) Refresh Posts to update comment count on the feed
-      // postsProvider.fetchPosts();
+      // 3. Update local post state to reflect new comment count
+      postsProvider.incrementCommentCount(widget.postIndex);
     } catch (e) {
       debugPrint('Error adding comment: $e');
       if (mounted) {
@@ -142,8 +141,9 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     try {
       await _supabase.from('comments').delete().eq('comment_id', commentId);
       await _fetchComments();
-      
+
       if (mounted) {
+        context.read<PostsProvider>().decrementCommentCount(widget.postIndex);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Comment deleted')),
         );
@@ -290,7 +290,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     const SizedBox(width: 10),
                     GestureDetector(
                       onTap: () {
-                        final currentUserUsername = context.read<UserProvider>().user?.username;
+                        final currentUserUsername =
+                            context.read<UserProvider>().user?.username;
                         if (post.authorName == currentUserUsername) {
                           // Navigate to own profile
                           Navigator.push(
@@ -315,7 +316,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         post.authorName,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: post.authorName != context.read<UserProvider>().user?.username
+                          color: post.authorName !=
+                                  context.read<UserProvider>().user?.username
                               ? const Color(0xFF7496B3)
                               : (Theme.of(context).brightness == Brightness.dark
                                   ? Colors.white
@@ -340,7 +342,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 const SizedBox(height: 8),
                 Text(post.content),
                 const SizedBox(height: 12),
-                if (post.category.isNotEmpty)
+                if (post.categories.isNotEmpty)
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Container(
@@ -351,19 +353,31 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                             ? const Color(0xFF3A5A75)
                             : const Color(0xFFEEF7FB),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF4A6B85)
-                                : const Color(0xFFBCD9EC)),
                       ),
-                      child: Text(
-                        post.category,
-                        style: GoogleFonts.lato(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : const Color(0xFF7496B3),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: post.categories.map((cat) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF2A4A65)
+                                  : const Color(0xFFEEF7FB),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              cat,
+                              style: GoogleFonts.lato(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : const Color(0xFF7496B3),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
                   ),
@@ -403,7 +417,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     final photoUrl = user['photo_url'];
                     final commentUserId = c['user_id'];
                     final commentId = c['comment_id'];
-                    final currentUserId = context.read<UserProvider>().user?.userId;
+                    final currentUserId =
+                        context.read<UserProvider>().user?.userId;
                     final isOwnComment = currentUserId == commentUserId;
 
                     return Padding(
@@ -428,12 +443,16 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: () {
-                                    final currentUserUsername = context.read<UserProvider>().user?.username;
+                                    final currentUserUsername = context
+                                        .read<UserProvider>()
+                                        .user
+                                        ?.username;
                                     if (username == currentUserUsername) {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => const ProfileScreen(),
+                                          builder: (context) =>
+                                              const ProfileScreen(),
                                         ),
                                       );
                                     } else {

@@ -166,7 +166,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Pet Name', controller: _nameController)),
+                    hint: 'Pet Name', controller: _nameController, context: context)),
 
             const SizedBox(height: 12),
 
@@ -230,7 +230,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Breed', controller: _breedController)),
+                    hint: 'Breed', controller: _breedController, context: context)),
 
             const SizedBox(height: 12),
 
@@ -251,7 +251,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Born (mm/dd/yy)', controller: _bornController)),
+                    hint: 'Born (mm/dd/yy)', controller: _bornController, context: context)),
 
             const SizedBox(height: 12),
 
@@ -312,7 +312,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Weight (lbs)', controller: _weightController)),
+                    hint: 'Weight (lbs)', controller: _weightController, context: context)),
 
             const SizedBox(height: 24),
             // Add pet button

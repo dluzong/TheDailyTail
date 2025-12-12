@@ -74,12 +74,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _signUp() async {
     // Basic validation
     if (_password.text != _confirmPassword.text) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Passwords do not match')),
       );
       return; // Exit early
     }
     if (_email.text.isEmpty || !_email.text.contains('@')) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email')),
       );
@@ -118,6 +120,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               (res as dynamic).errorMessage;
           if (maybeErr != null) message = maybeErr.toString();
         } catch (_) {}
+        if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
         return; // Exit early
@@ -136,6 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       }
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Signed up')));
       // Navigate to OnboardingScreen after successful signup
@@ -198,18 +202,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     buildDogIcon(),
                     const SizedBox(height: 35),
                     buildAppTextField(
-                        hint: "First Name", controller: _firstName),
+                        hint: "First Name", controller: _firstName, context: context),
                     const SizedBox(height: 15),
-                    buildAppTextField(hint: "Last Name", controller: _lastName),
+                    buildAppTextField(hint: "Last Name", controller: _lastName, context: context),
                     const SizedBox(height: 15),
-                    buildAppTextField(hint: "Username", controller: _username),
+                    buildAppTextField(hint: "Username", controller: _username, context: context),
                     const SizedBox(height: 15),
-                    buildAppTextField(hint: "Email", controller: _email),
+                    buildAppTextField(hint: "Email", controller: _email, context: context),
                     const SizedBox(height: 15),
                     buildAppTextField(
                       hint: "Password",
                       controller: _password,
                       obscure: _obscurePassword,
+                      context: context,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -229,6 +234,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       hint: "Confirm Password",
                       controller: _confirmPassword,
                       obscure: _obscureConfirmPassword,
+                      context: context,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirmPassword

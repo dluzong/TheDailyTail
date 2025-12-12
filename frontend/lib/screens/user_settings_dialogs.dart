@@ -17,34 +17,37 @@ class UserSettingsDialogs {
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.92,
+              constraints: const BoxConstraints(maxWidth: 460),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
                   ? const Color(0xFF2A2A2A)
                   : Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF404040)
                     : Colors.grey.shade300,
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
+                  )
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
@@ -102,6 +105,7 @@ class UserSettingsDialogs {
                         buildAppTextField(
                           hint: 'Enter your full name',
                           controller: nameController,
+                          context: context,
                         ),
                         const SizedBox(height: 16),
                         Padding(
@@ -120,6 +124,7 @@ class UserSettingsDialogs {
                         buildAppTextField(
                           hint: 'Enter your username',
                           controller: usernameController,
+                          context: context,
                         ),
                       ],
                     ),
@@ -157,6 +162,8 @@ class UserSettingsDialogs {
                 ),
                 const SizedBox(height: 8),
               ],
+            ),
+              ),
             ),
           ),
         ),
@@ -344,34 +351,37 @@ class UserSettingsDialogs {
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.92,
+              constraints: const BoxConstraints(maxWidth: 460),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
                   ? const Color(0xFF2A2A2A)
                   : Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF404040)
                     : Colors.grey.shade300,
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
+                  )
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
@@ -474,57 +484,69 @@ class UserSettingsDialogs {
                 const SizedBox(height: 8),
               ],
             ),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
+  // In user_settings_dialogs.dart
+
   static void showTagsDialog({
     required BuildContext context,
     required List<String> availableTags,
     required List<String> selectedTags,
-    required Function(List<String> tags) onTagsChanged,
+    required Function(List<String>) onTagsChanged,
     required VoidCallback onMarkDirty,
   }) {
-    // Local state for tag selection within this dialog
-    List<String> localSelectedTags = List.from(selectedTags);
+    const Map<String, Color> tagColors = {
+      'owner': Color(0xFF2C5F7F), // deep navy blue
+      'organizer': Color(0xFF5A8DB3), // medium blue
+      'foster': Color(0xFF76B2E6), // light sky blue
+      'visitor': Color(0xFF9CC9EA), // pale blue
+    };
+
+    // Create a local copy so we don't modify the parent state until "Save" is clicked
+    List<String> tempSelectedTags = List.from(selectedTags);
 
     showDialog(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.92,
+                constraints: const BoxConstraints(maxWidth: 460),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark
                   ? const Color(0xFF2A2A2A)
                   : Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF404040)
                     : Colors.grey.shade300,
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                )
-              ],
-            ),
-            child: StatefulBuilder(
-              builder: (context, setDialogState) {
-                return Column(
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    )
+                  ],
+                ),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Header
                     Row(
                       children: [
                         IconButton(
@@ -547,7 +569,7 @@ class UserSettingsDialogs {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 48),
+                        const SizedBox(width: 48), // Balance the close button
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -570,54 +592,43 @@ class UserSettingsDialogs {
                     ),
                     const SizedBox(height: 16),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: 8.0,
+                      runSpacing: 8.0,
                       alignment: WrapAlignment.center,
-                      children: availableTags.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final tag = entry.value;
-                        final selected = localSelectedTags.contains(tag);
-
-                        // Dramatic different shades of blue for each tag
-                        final tagColors = [
-                          const Color(0xFF2C5F7F), // owner - deep navy blue
-                          const Color(0xFF5A8DB3), // organizer - medium blue
-                          const Color.fromARGB(
-                              255, 118, 178, 230), // foster - light sky blue
-                          const Color.fromARGB(
-                              255, 156, 201, 234), // visitor - pale blue
-                        ];
-
+                      children: availableTags.map((tag) {
+                        final isSelected = tempSelectedTags.contains(tag);
+                        final Color baseColor =
+                            tagColors[tag] ?? const Color(0xFF7496B3);
+                        final Color offColor = baseColor.withValues(alpha: 0.12);
                         return FilterChip(
                           label: Text(
-                            tag[0].toUpperCase() + tag.substring(1),
-                            style: TextStyle(
-                              color: selected ? tagColors[index] : Colors.white,
-                              fontWeight:
-                                  selected ? FontWeight.w600 : FontWeight.w500,
+                            tag[0].toUpperCase() + tag.substring(1), // Capitalize
+                            style: GoogleFonts.lato(
+                              color: isSelected ? Colors.white : baseColor,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          selected: selected,
-                          onSelected: (value) {
-                            setDialogState(() {
-                              if (value) {
-                                localSelectedTags =
-                                    {...localSelectedTags, tag}.toList();
+                          selected: isSelected,
+                          selectedColor: baseColor,
+                          checkmarkColor: Colors.white,
+                          backgroundColor: offColor,
+                          side: BorderSide(color: baseColor.withValues(alpha: 0.6)),
+                          onSelected: (bool selected) {
+                            setState(() {
+                              if (selected) {
+                                tempSelectedTags.add(tag);
                               } else {
-                                localSelectedTags = localSelectedTags
-                                    .where((t) => t != tag)
-                                    .toList();
+                                tempSelectedTags.remove(tag);
                               }
                             });
                           },
-                          selectedColor:
-                              tagColors[index].withValues(alpha: 0.2),
-                          checkmarkColor: tagColors[index],
-                          backgroundColor: tagColors[index],
                         );
                       }).toList(),
                     ),
+
                     const SizedBox(height: 24),
+
+                    // Save Button
                     Center(
                       child: SizedBox(
                         width: 160,
@@ -630,8 +641,13 @@ class UserSettingsDialogs {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () {
-                            // Only apply changes when Save is clicked
-                            onTagsChanged(localSelectedTags);
+                            // Validate: Ensure at least one tag is selected if required
+                            if (tempSelectedTags.isEmpty) {
+                              // Default to visitor if they try to save empty
+                              tempSelectedTags.add('visitor');
+                            }
+
+                            onTagsChanged(tempSelectedTags);
                             onMarkDirty();
                             Navigator.pop(context);
                           },
@@ -647,14 +663,15 @@ class UserSettingsDialogs {
                     ),
                     const SizedBox(height: 8),
                   ],
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+
 
   static void showPetsDialog({
     required BuildContext context,

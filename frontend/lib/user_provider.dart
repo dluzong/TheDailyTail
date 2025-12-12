@@ -336,7 +336,6 @@ class UserProvider extends ChangeNotifier {
     required String name,
     String? bio,
     List<String>? roles,
-    // TODO: Implement photo upload functionality
     String? photoUrl,
   }) async {
     final session = _supabase.auth.currentSession;
@@ -346,10 +345,16 @@ class UserProvider extends ChangeNotifier {
     }
 
     try {
-      await _supabase.from('users').update({
+      final Map<String, dynamic> updates = {
         'username': username,
         'name': name,
-      }).eq('user_id', session.user.id);
+      };
+      
+      if (bio != null) updates['bio'] = bio;
+      if (roles != null) updates['role'] = roles;
+      if (photoUrl != null) updates['photo_url'] = photoUrl;
+
+      await _supabase.from('users').update(updates).eq('user_id', session.user.id);
 
       await fetchUser(force: true);
     } catch (e) {
