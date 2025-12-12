@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Column(
         children: [
@@ -124,57 +124,65 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    buildAppTitle(),
-                    const SizedBox(height: 25),
-                    buildDogIcon(),
-                    const SizedBox(height: 35),
-                    buildAppTextField(hint: "Email", controller: _email),
-                    const SizedBox(height: 15),
-                    buildAppTextField(
-                      hint: "Password",
-                      obscure: _obscurePassword,
-                      controller: _password,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: const Color(0xFF7496B3),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 25),
-                    ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              _signIn();
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        buildAppTitle(),
+                        const SizedBox(height: 25),
+                        buildDogIcon(),
+                        const SizedBox(height: 35),
+                        buildAppTextField(hint: "Email", controller: _email),
+                        const SizedBox(height: 15),
+                        buildAppTextField(
+                          hint: "Password",
+                          obscure: _obscurePassword,
+                          controller: _password,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: const Color(0xFF7496B3),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
                             },
-                      child: Text(_isLoading ? 'Logging in...' : 'Log In'),
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+                        ElevatedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  _signIn();
+                                },
+                          child: Text(_isLoading ? 'Logging in...' : 'Log In'),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        OutlinedButton.icon(
+                          onPressed: _isLoading ? null : signInWithGoogle,
+                          icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
+                          label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
+                            style: const TextStyle(color: Color(0xFF7496B3))),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF7496B3)),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : signInWithGoogle,
-                      icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-                      label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
-                        style: const TextStyle(color: Color(0xFF7496B3))),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF7496B3)),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
