@@ -48,7 +48,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     super.initState();
     _loadSavedFilters();
 
-    // Initial Data Fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PostsProvider>().fetchPosts();
       context.read<OrganizationProvider>().fetchOrganizations();
@@ -181,26 +180,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              final currentUsername =
-                                  context.read<UserProvider>().user?.username;
-                              final isOwnPost = currentUsername != null &&
-                                  post.authorName == currentUsername;
-
-                              debugPrint(
-                                  'DEBUG: Clicked post - currentUsername="$currentUsername", authorName="${post.authorName}", isOwnPost=$isOwnPost');
-
-                              if (isOwnPost) {
-                                debugPrint(
-                                    'DEBUG: Navigating to own profile (no otherUsername)');
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const ProfileScreen(),
-                                  ),
-                                );
-                              } else {
-                                debugPrint(
-                                    'DEBUG: Navigating to other profile with otherUsername="${post.authorName}"');
+                              if (post.authorName != 'You') {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -232,6 +212,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             ),
                           ),
                         ),
+                        // Show menu if this post belongs to the current user
+                        if ((Provider.of<UserProvider>(context, listen: false).user?.userId == post.userId) ||
+                            post.authorName == 'You')
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showNewPostModal(post: post);
+                              } else if (value == 'delete') {
+                                _confirmDeletePost(post.postId);
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Edit post'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Delete post'),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -289,7 +292,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        // LIKE BUTTON
                         GestureDetector(
                           onTap: () {
                             provider.toggleLike(providerIndex);
@@ -308,7 +310,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           ),
                         ),
                         const SizedBox(width: 24),
-                        // COMMENT BUTTON
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -356,7 +357,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 userProvider.user?.isAdminOf(org['organization_id']) ?? false)
             .toList();
 
-        // Filter joined orgs (where user is member but not admin)
         var joinedOrgs = orgs
             .where((org) =>
                 userProvider.user?.isMemberOf(org['organization_id']) ?? false)
@@ -381,7 +381,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // MY ORGANIZATIONS SECTION
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -548,7 +547,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             const Divider(),
             const SizedBox(height: 16),
 
-            // JOINED ORGANIZATIONS SECTION
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -706,12 +704,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     );
   }
 
-  void _showNewPostModal({int? editIndex}) {
-    // TODO: Edit logic requires implementing an 'updatePost' method in provider
-
-    _titleController.clear();
-    _contentController.clear();
-    _newPostCategories = ['General'];
+  void _showNewPostModal({Post? post}) {
+    if (post != null) {
+      _titleController.text = post.title;
+      _contentController.text = post.content;
+      _selectedCategory = post.category;
+    } else {
+      _titleController.clear();
+      _contentController.clear();
+      _selectedCategory = 'General';
+    }
 
     showModalBottomSheet(
       context: context,
@@ -733,38 +735,48 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close,
-                        color: Color(0xFF7496B3), size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (_contentController.text.isEmpty) return;
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close,
+                      color: Color(0xFF7496B3), size: 28),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_contentController.text.isEmpty) return;
 
+                    if (post != null) {
+                      await context.read<PostsProvider>().updatePost(
+                            post.postId,
+                            _titleController.text.isEmpty
+                                ? 'Untitled'
+                                : _titleController.text,
+                            _contentController.text,
+                            _selectedCategory,
+                          );
+                    } else {
                       await context.read<PostsProvider>().createPost(
                             _titleController.text.isEmpty
                                 ? 'Untitled'
                                 : _titleController.text,
                             _contentController.text,
-                            _newPostCategories,
+                            _selectedCategory,
                           );
+                    }
 
-                      if (mounted) Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7496B3),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
-                    ),
-                    child: Text(
-                      'Create Post',
-                      style: GoogleFonts.lato(
-                          color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
+                    if (mounted) Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7496B3),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: Text(
+                    post != null ? 'Update Post' : 'Create Post',
+                    style: GoogleFonts.lato(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -777,6 +789,22 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF394957),
                 ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 10),
+            DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedCategory,
+                isExpanded: true,
+                items: _categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    setModalState(() => _selectedCategory = v);
+                  }
+                },
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -808,12 +836,20 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: 'Post Title',
-                  border: OutlineInputBorder(),
+            ),
+            const SizedBox(height: 10),
+            Flexible(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 42),
+                child: TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    hintText: 'Write your post here...',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -832,6 +868,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -862,6 +899,33 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         await _persistFilters();
       }
     }();
+  }
+
+  void _confirmDeletePost(int postId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete post'),
+        content: const Text('Are you sure you want to delete your post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB94A48),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              await context.read<PostsProvider>().deletePost(postId);
+              if (mounted) Navigator.pop(context, true);
+            },
+            child: const Text('Yes, delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -978,7 +1042,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   return AnimatedBuilder(
                     animation: tabController,
                     builder: (context, _) {
-                      // Only show FAB on Feed and Friends tabs (not Organizations)
                       if (tabController.index != 2) {
                         return FloatingActionButton(
                           onPressed: _showNewPostModal,
