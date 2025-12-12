@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/user_settings.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../screens/dailylog_screen.dart';
@@ -52,6 +53,9 @@ class _AppLayoutState extends State<AppLayout> {
       case 4:
         destination = const ProfileScreen();
         break;
+      case 5:
+        destination = const UserSettingsScreen();
+        break;
     }
 
     if (destination != null) {
@@ -71,6 +75,14 @@ class _AppLayoutState extends State<AppLayout> {
       widget.onTabSelected(4);
       _navigateToIndex(4);
       setState(() => currentIndex = 4);
+    }
+  }
+
+  void _openSettings() {
+    if (currentIndex != 5) {
+      widget.onTabSelected(5);
+      _navigateToIndex(5);
+      setState(() => currentIndex = 5);
     }
   }
 
@@ -106,7 +118,14 @@ class _AppLayoutState extends State<AppLayout> {
                       left: 0,
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () async {
+                          final didPop = await Navigator.of(context).maybePop();
+                          if (!didPop) {
+                            // If nothing to pop, go to Dashboard
+                            widget.onTabSelected(1);
+                            _navigateToIndex(1);
+                          }
+                        },
                       ),
                     ),
                   Center(
@@ -181,7 +200,7 @@ class _AppLayoutState extends State<AppLayout> {
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             _buildNavIcon(icon: Icons.book, index: 0),
-                            SizedBox(width: floatingButtonSize), // space for floating button
+                            const SizedBox(width: floatingButtonSize), // space for floating button
                             _buildNavIcon(icon: Icons.group, index: 2),
                           ],
                         ),

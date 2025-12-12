@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../shared/app_layout.dart';
 import 'user_settings.dart' as user_settings;
+import 'dashboard_screen.dart';
 import '../user_provider.dart';
 import '../pet_provider.dart' as pet_provider;
 import '../posts_provider.dart';
@@ -23,9 +24,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TabController? _tabController;
   Map<String, dynamic>? _otherUserData;
+  late AnimationController _slideController;
+  late Animation<Offset> _slideAnimation;
 
   bool get _isOwnProfile => widget.otherUsername == null;
 
@@ -36,6 +39,22 @@ class _ProfileScreenState extends State<ProfileScreen>
     _tabController?.addListener(() {
       if (mounted) setState(() {});
     });
+    
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeInOut));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _slideController.forward(from: 0.0);
+      }
+    });
+    
     final isOwn = widget.otherUsername == null;
     debugPrint('ProfileScreen opened: otherUsername=${widget.otherUsername}, _isOwnProfile=$isOwn');
     if (!isOwn) {
@@ -78,7 +97,33 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void dispose() {
     _tabController?.dispose();
+    _slideController.dispose();
     super.dispose();
+  }
+
+  Future<bool> _onWillPop() async {
+    // Reverse the slide animation when back is pressed
+    await _slideController.reverse();
+
+    if (!mounted) return false;
+
+    final navigator = Navigator.of(context);
+
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      // Fallback to dashboard when there's nothing to pop
+      navigator.pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const DashboardScreen(),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
+    }
+
+    // We handled navigation ourselves
+    return false;
   }
 
   Widget _buildAboutTab() {
@@ -443,7 +488,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black26,
-                              blurRadius: 8,
+                              blurRadius: 6,
                               offset: Offset(0, 4),
                             ),
                           ],
@@ -643,26 +688,16 @@ class _ProfileScreenState extends State<ProfileScreen>
               onPressed: () {
                 Navigator.of(context).push(
                   PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) => 
-                        AppLayout(
-                          currentIndex: 4,
-                          onTabSelected: (_) {},
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(1.0, 0.0),
-                              end: Offset.zero,
-                            ).animate(CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeInOutCubic,
-                            )),
-                            child: const user_settings.UserSettingsPage(
-                              currentIndex: 4,
-                              onTabSelected: _noop,
-                            ),
-                          ),
-                        ),
-                    transitionDuration: const Duration(milliseconds: 300),
-                    reverseTransitionDuration: const Duration(milliseconds: 300),
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        const user_settings.UserSettingsScreen(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOut;
+                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                      var offsetAnimation = animation.drive(tween);
+                      return SlideTransition(position: offsetAnimation, child: child);
+                    },
                   ),
                 );
               },
@@ -726,9 +761,18 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return AppLayout(
       currentIndex: 4,
-      onTabSelected: (_) {},
       showBackButton: true,
-      child: content,
+      onTabSelected: (_) {},
+      child: WillPopScope(
+        onWillPop: _onWillPop,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Container(
+            color: Colors.white,
+            child: content,
+          ),
+        ),
+      ),
     );
   }
 

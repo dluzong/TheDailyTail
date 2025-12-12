@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../shared/app_layout.dart';
 import 'add_pet_screen.dart';
 import 'edit_pet_popup.dart';
 import 'user_settings_dialogs.dart';
@@ -13,24 +12,21 @@ import '../pet_provider.dart' as pet_provider;
 import 'dart:io';
 
 
-class UserSettingsPage extends StatefulWidget {
-  final int currentIndex;
-  final ValueChanged<int> onTabSelected;
-
-  const UserSettingsPage({
-    super.key,
-    required this.currentIndex,
-    required this.onTabSelected,
-  });
+class UserSettingsScreen extends StatefulWidget {
+  const UserSettingsScreen({super.key});
 
   @override
-  _UserSettingsPageState createState() => _UserSettingsPageState();
+  _UserSettingsScreenState createState() => _UserSettingsScreenState();
 }
 
-class _UserSettingsPageState extends State<UserSettingsPage> {
+class _UserSettingsScreenState extends State<UserSettingsScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   // We can access Supabase directly for auth actions like signOut
   final _supabase = Supabase.instance.client;
+  
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   String _name = '';
   String _username = '';
@@ -60,6 +56,19 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     _nameController = TextEditingController();
     _usernameController = TextEditingController();
     _bioController = TextEditingController();
+    
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+    );
+    Future.microtask(() {
+      if (mounted) {
+        _fadeController.forward();
+      }
+    });
   }
 
   @override
@@ -99,45 +108,28 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     _nameController.dispose();
     _usernameController.dispose();
     _bioController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
-  void _markDirty() {
-    if (!_isDirty) setState(() => _isDirty = true);
-  }
+  Future<bool> isUsernameAvailable(String username) async {
+    final currentUser = Provider.of<UserProvider>(context, listen: false).user;
+    if (currentUser?.username == username) {
+      return true; // The username is the user's own, so it's "available"
+    }
 
-  void _saveSettings() {
-    if (!_formKey.currentState!.validate()) return;
-
-    _username = _usernameController.text.trim();
-    _name = _nameController.text.trim();
-    _bio = _bioController.text.trim();
-
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    userProvider
-        .updateUserProfile(
-      username: _username,
-      name: _name,
-      roles: _selectedTags,
-      photoUrl: _profilePicturePath,
-      bio: _bio,
-    )
-        .then((_) {
-      if (mounted) {
-        setState(() => _isDirty = false);
-        Navigator.of(context).pop(); // Go back to profile
-      }
-    }).catchError((e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save settings: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    });
+    // Check if the username exists for any other user
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('user_id')
+          .eq('username', username)
+          .maybeSingle();
+      return response == null; // True if available (no user found), false if taken
+    } catch (e) {
+      debugPrint('Error checking username availability: $e');
+      return false; // Fail safely, preventing a user from taking a username that might exist
+    }
   }
 
   /// Uploads the local file to Supabase Storage and returns the Public URL
@@ -173,8 +165,6 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
   Future<void> _deleteOldImage(String oldUrl) async {
     try {
-      // oldUrl looks like: https://[project].supabase.co/storage/v1/object/public/avatars/[user_id]/[timestamp].jpg
-
       // 1. Parse the URL to find the path relative to the bucket
       final uri = Uri.parse(oldUrl);
       final pathSegments = uri.pathSegments;
@@ -197,64 +187,76 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     }
   }
 
-  Future<void> _saveDataOnly() async {
+  // formerly _saveDataOnly
+  Future<void> _saveUserProfile({bool shouldPop = false}) async {
+    // 1. Validate inputs locally first
     _username = _usernameController.text.trim();
     _name = _nameController.text.trim();
     _bio = _bioController.text.trim();
 
-    // 1. HANDLE IMAGE UPLOAD
-    String? finalPhotoUrl = _profilePicturePath;
-
-    // If the path exists and DOES NOT start with http, it's a local file on the phone
-    if (_profilePicturePath != null && !_profilePicturePath!.startsWith('http')) {
-
-      // 1. CAPTURE THE OLD URL (if it exists)
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final String oldPhotoUrl = userProvider.user?.photoUrl ?? '';
-
-      // Show a loading snackbar because upload takes time
+    // Regex check
+    if (_username != _username.replaceAll(RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]'), '')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+        const SnackBar(content: Text('Username has special characters. Failed to update.')),
       );
-
-      final file = File(_profilePicturePath!);
-      final uploadedUrl = await _uploadProfileImage(file);
-
-      if (uploadedUrl == null) {
-        // If upload failed, STOP. Do not save to DB.
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Profile NOT saved. Image upload failed.'),
-                backgroundColor: Colors.red
-            ),
-          );
-        }
-        return; // <--- Exit the function immediately
-      }
-      // If success, delete old image and user new URL
-      if (oldPhotoUrl.isNotEmpty && oldPhotoUrl.startsWith('http')) {
-        await _deleteOldImage(oldPhotoUrl);
-      }
-
-      finalPhotoUrl = uploadedUrl;
-      setState(() => _profilePicturePath = finalPhotoUrl);
+      return;
     }
 
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-
     try {
-      // 2. UPDATE DATABASE WITH FINAL URL
+      // 2. HANDLE IMAGE UPLOAD)
+      String? finalPhotoUrl = _profilePicturePath;
+
+      if (_profilePicturePath != null && !_profilePicturePath!.startsWith('http')) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final String oldPhotoUrl = userProvider.user?.photoUrl ?? '';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+        );
+
+        final file = File(_profilePicturePath!);
+        final uploadedUrl = await _uploadProfileImage(file);
+
+        if (uploadedUrl == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Image upload failed.'), backgroundColor: Colors.red),
+            );
+          }
+          return;
+        }
+
+        // Delete old image if successful
+        if (oldPhotoUrl.isNotEmpty && oldPhotoUrl.startsWith('http')) {
+          await _deleteOldImage(oldPhotoUrl);
+        }
+        finalPhotoUrl = uploadedUrl;
+
+        // Update local state to the web URL
+        if(mounted) setState(() => _profilePicturePath = finalPhotoUrl);
+      }
+
+      // 3. UPDATE DATABASE
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.updateUserProfile(
         username: _username,
         name: _name,
         roles: _selectedTags,
-        photoUrl: finalPhotoUrl, // Pass the Web URL, not the local path
+        photoUrl: finalPhotoUrl,
         bio: _bio,
       );
 
       if (mounted) {
         setState(() => _isDirty = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6), duration: Duration(seconds: 2)),
+        );
+
+        // 4. HANDLE NAVIGATION (Logic from _saveSettings)
+        if (shouldPop) {
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -287,7 +289,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         imageUrl: result['imageUrl'] as String? ?? '',
         savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
         savedMedications:
-            result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
+        result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
         status: result['status'] as String? ?? 'owned',
       );
 
@@ -309,6 +311,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       }
     }
   }
+
 
   Future<void> _editPetInfo(pet_provider.Pet originalPet) async {
     print("DEBUG: Original Pet ID: ${originalPet.petId}"); // Check your console
@@ -403,44 +406,87 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   Future<bool> _onWillPop() async {
-    return true;
+    if (!_isDirty) return true;
+
+    final action = await showDialog<String?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved changes'),
+        content: const Text('You have unsaved changes. Save before leaving?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('discard'),
+            child: const Text('Discard'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7496B3)),
+            onPressed: () => Navigator.of(context).pop('save'),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (action == 'save') {
+      await _saveUserProfile(shouldPop: true);
+      return false; // _saveSettings pops automatically on success
+    }
+
+    if (action == 'discard') return true;
+
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
+    final Color outerBlue = const Color(0xFF7496B3);
+    final Color innerBlue = const Color(0xFF5F7C94);
+
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: true,
-        body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-              SizedBox(
-                height: 80,
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: Column(
+            children: [
+              // Outer blue bar (50px)
+              Container(height: 50, color: outerBlue),
+
+              // Inner blue bar with close button and title (60px)
+              Container(
+                height: 60,
+                width: double.infinity,
+                color: innerBlue,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Stack(
+                  alignment: Alignment.center,
                   children: [
                     Positioned(
-                      left: 10,
-                      top: 2,
-                      bottom: 0,
-                      child: IconButton(
-                        iconSize: 32.0,
-                        icon:
-                            const Icon(Icons.arrow_back, color: Colors.black87),
-                        onPressed: () => Navigator.of(context).pop(),
-                        tooltip: 'Back',
+                      left: 0,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
                       ),
                     ),
-                    // Settings header
                     Center(
-                      child: Text(
-                        'Settings',
-                        style: GoogleFonts.lato(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 32,
-                          color: Colors.black,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Text(
+                          'Settings',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -448,9 +494,17 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                 ),
               ),
 
-              const SizedBox(height: 12),
+              // Body content
+              Expanded(
+                child: Container(
+                  color: const Color(0xFFF5F9FB),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 12),
 
-              // Settings Tiles
+                        // Settings Tiles
 
               _buildSettingsTile(
                 icon: Icons.person_outline,
@@ -520,7 +574,12 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 80),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -560,10 +619,13 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   void _showAccountInfoDialog() {
     UserSettingsDialogs.showAccountInfoDialog(
       context: context,
-      formKey: GlobalKey<FormState>(), // Use a fresh key for the dialog validation
+      formKey: _formKey,
       nameController: _nameController,
       usernameController: _usernameController,
-      onMarkDirty: _saveDataOnly, // <--- CHANGE THIS: Pass the save function
+      onMarkDirty: () {
+        setState(() => _isDirty = true);
+        _saveUserProfile();
+      },
     );
   }
 
@@ -575,9 +637,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       onImagePicked: (path) {
         setState(() {
           _profilePicturePath = path;
+          _isDirty = true;
         });
       },
-      onMarkDirty: _saveDataOnly,
+      onMarkDirty: () async {
+        // Ensure state update completes before saving
+        await Future.microtask(() {});
+        if (mounted) _saveUserProfile();
+      },
     );
   }
 
@@ -585,7 +652,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     UserSettingsDialogs.showAboutDialog(
       context: context,
       bioController: _bioController,
-      onMarkDirty: _saveDataOnly,
+      onMarkDirty: () {
+        setState(() => _isDirty = true);
+        _saveUserProfile();
+      },
     );
   }
 
@@ -597,9 +667,14 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       onTagsChanged: (tags) {
         setState(() {
           _selectedTags = tags;
+          _isDirty = true;
         });
       },
-      onMarkDirty: _saveDataOnly,
+      onMarkDirty: () async {
+        // Ensure state update completes before saving
+        await Future.microtask(() {});
+        if (mounted) _saveUserProfile();
+      },
     );
   }
 
@@ -634,3 +709,4 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     }
   }
 }
+
