@@ -249,12 +249,12 @@ class PostsProvider extends ChangeNotifier {
 
   // --- UPDATE POST ---
 
-  Future<void> updatePost(int postId, String title, String content, String category) async {
+  Future<void> updatePost(int postId, String title, String content, List<String> categories) async {
     try {
       await _supabase.from('posts').update({
         'title': title,
         'content': content,
-        'category': category,
+        'category': categories,
       }).eq('post_id', postId);
 
       // Refresh to show updated post
