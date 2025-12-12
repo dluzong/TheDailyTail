@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CommunityFilterPopup extends StatefulWidget {
-  final String initialCategory;
   final List<String> categories;
   final String initialSort;
   final List<String> initialSelectedCategories;
 
   const CommunityFilterPopup({
     super.key,
-    required this.initialCategory,
     required this.categories,
     this.initialSort = 'recent',
     this.initialSelectedCategories = const [],

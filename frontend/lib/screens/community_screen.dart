@@ -25,20 +25,23 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   String _searchTerm = '';
   final List<String> _categories = [
     'General',
+    'Announcement',
     'Events',
     'Pet Updates',
     'Adoption',
-    'Tips & Advice',
+    'Tips',
     'Discussion',
-    'Questions/Concerns',
+    'Questions',
     'Other'
   ];
 
-  String _selectedCategory = 'General';
   String _filterSort = 'recent';
   List<String> _filterCategories = [];
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+
+  // For creating new post
+  List<String> _newPostCategories = ['General'];
 
   @override
   void initState() {
@@ -123,7 +126,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
         if (_filterCategories.isNotEmpty) {
           posts = posts.where((p) {
-            return _filterCategories.contains(p.category);
+            // Check if any of the post's categories match the filter
+            return p.categories.any((cat) => _filterCategories.contains(cat));
           }).toList();
         }
 
@@ -251,23 +255,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.lato(),
                     ),
-                    if (post.category.isNotEmpty) ...[
+                    if (post.categories.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
-                        ),
-                        child: Text(
-                          post.category,
-                          style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: post.categories.map((cat) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF7FB),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFBCD9EC)),
+                            ),
+                            child: Text(
+                              cat,
+                              style: GoogleFonts.lato(
+                                color: const Color(0xFF7496B3),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                     const SizedBox(height: 12),
@@ -687,105 +697,126 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
     _titleController.clear();
     _contentController.clear();
-    _selectedCategory = 'General';
+    _newPostCategories = ['General'];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.95,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          top: 20,
-          left: 20,
-          right: 20,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.close,
-                      color: Color(0xFF7496B3), size: 28),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_contentController.text.isEmpty) return;
-
-                    await context.read<PostsProvider>().createPost(
-                          _titleController.text.isEmpty
-                              ? 'Untitled'
-                              : _titleController.text,
-                          _contentController.text,
-                          _selectedCategory,
-                        );
-
-                    if (mounted) Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7496B3),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.95,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close,
+                        color: Color(0xFF7496B3), size: 28),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  child: Text(
-                    'Create Post',
-                    style: GoogleFonts.lato(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (_contentController.text.isEmpty) return;
+
+                      await context.read<PostsProvider>().createPost(
+                            _titleController.text.isEmpty
+                                ? 'Untitled'
+                                : _titleController.text,
+                            _contentController.text,
+                            _newPostCategories,
+                          );
+
+                      if (mounted) Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7496B3),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: Text(
+                      'Create Post',
+                      style: GoogleFonts.lato(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 10),
+              // Category Selection
+              Text(
+                'Select Categories:',
+                style: GoogleFonts.lato(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF394957),
                 ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 10),
-            // Category Dropdown
-            DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedCategory,
-                isExpanded: true,
-                items: _categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) {
-                    setState(() => _selectedCategory = v);
-                    // Force rebuild of modal only? No, need stateful builder if inside stateless widget.
-                    // But we are in a stateful widget method, so setState rebuilds the parent screen,
-                    // which might not rebuild the modal contents dynamically without StatefulBuilder.
-                    // Ideally use StatefulBuilder here.
-                  }
-                },
               ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                hintText: 'Post Title',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: _categories.map((category) {
+                  final isSelected = _newPostCategories.contains(category);
+                  return FilterChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setModalState(() {
+                        if (selected) {
+                          _newPostCategories.add(category);
+                        } else {
+                          _newPostCategories.remove(category);
+                        }
+                      });
+                    },
+                    selectedColor: const Color(0xFFEEF7FB),
+                    checkmarkColor: const Color(0xFF7496B3),
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? const Color(0xFF7496B3)
+                          : const Color(0xFF394957),
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
               ),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
+              const SizedBox(height: 10),
+              TextField(
+                controller: _titleController,
                 decoration: const InputDecoration(
-                  hintText: 'Write your post here...',
+                  hintText: 'Post Title',
                   border: OutlineInputBorder(),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Expanded(
+                child: TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    hintText: 'Write your post here...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -798,7 +829,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         barrierDismissible: true,
         barrierColor: Colors.black.withValues(alpha: 0.35),
         builder: (context) => CommunityFilterPopup(
-          initialCategory: _selectedCategory,
           categories: _categories,
           initialSort: _filterSort,
           initialSelectedCategories: _filterCategories,
