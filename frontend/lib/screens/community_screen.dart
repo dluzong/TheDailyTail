@@ -180,12 +180,32 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              if (post.authorName != 'You') {
+                              final currentUserId =
+                                  Provider.of<UserProvider>(context, listen: false)
+                                      .user
+                                      ?.userId;
+
+                              final isOwnPost =
+                                  currentUserId != null && post.userId == currentUserId;
+
+                              if (isOwnPost || post.authorName == 'You') {
+                                // Own profile - no otherUsername so _isOwnProfile stays true
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ProfileScreen(
+                                      shouldAnimate: false,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                // Other user's profile
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => ProfileScreen(
                                       otherUsername: post.authorName,
+                                      shouldAnimate: false,
                                     ),
                                   ),
                                 );

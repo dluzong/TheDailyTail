@@ -35,6 +35,20 @@ class Post {
   });
 
   factory Post.fromMap(Map<String, dynamic> map, String? currentUserId) {
+    String _asString(dynamic value, String fallback) {
+      if (value == null) return fallback;
+      if (value is String) return value;
+      if (value is List && value.isNotEmpty) return value.first.toString();
+      return value.toString();
+    }
+
+    List<String> _asList(dynamic value, List<String> fallback) {
+      if (value == null) return fallback;
+      if (value is List) return value.map((e) => e.toString()).toList();
+      if (value is String) return [value];
+      return fallback;
+    }
+
     final authorData = map['users'] as Map<String, dynamic>?;
 
     // Parse Likes (Array of UUIDs)
@@ -49,23 +63,17 @@ class Post {
         ? (commentsData[0]['count'] as int? ?? 0)
         : 0;
 
-    // Parse Categories (Array of Strings)
-    final List<dynamic> rawCategories = map['category'] ?? [];
-    final List<String> categoriesList =
-        rawCategories.map((e) => e.toString()).toList();
-    if (categoriesList.isEmpty) {
-      categoriesList.add('General');
-    }
+    final createdRaw = _asString(map['created_ts'], DateTime.now().toIso8601String());
 
     return Post(
       postId: map['post_id'],
-      userId: map['user_id'] ?? '',
-      authorName: authorData?['username'] ?? 'Unknown',
-      authorPhoto: authorData?['photo_url'] ?? '',
-      title: map['title'] ?? '',
-      content: map['content'] ?? '',
-      categories: categoriesList,
-      createdTs: timeago.format(DateTime.parse(map['created_ts'])),
+      userId: _asString(map['user_id'], ''),
+      authorName: _asString(authorData?['username'], 'Unknown'),
+      authorPhoto: _asString(authorData?['photo_url'], ''),
+      title: _asString(map['title'], ''),
+      content: _asString(map['content'], ''),
+      categories: _asList(map['category'], ['General']),
+      createdTs: timeago.format(DateTime.parse(createdRaw)),
       isLiked: liked,
       likesCount: likesList.length,
       commentCount: commentCount,
