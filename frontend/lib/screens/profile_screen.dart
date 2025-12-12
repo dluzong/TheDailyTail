@@ -294,7 +294,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             decoration: BoxDecoration(
                               color: const Color(0xFFEEF7FB),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFFBCD9EC)),
+                              border:
+                                  Border.all(color: const Color(0xFFBCD9EC)),
                             ),
                             child: Text(
                               cat,
