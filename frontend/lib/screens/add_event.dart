@@ -129,143 +129,161 @@ class _AddEventPageState extends State<AddEventPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor:
-          Colors.black.withValues(alpha: 0.4), // semi-transparent overlay
-      appBar: AppBar(
-        title: const Text('Add Event'),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF4A6B85)
-            : const Color(0xFF7496B3),
-      ),
-      body: Center(
-        child: Card(
-          elevation: 8,
-          margin: const EdgeInsets.all(24),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  // --- Title ---
-                  TextFormField(
-                    style: Theme.of(context).brightness == Brightness.dark 
-                      ? const TextStyle(color: Colors.white) 
-                      : null,
-                    decoration: _inputDecoration('Title', context),
-                    onSaved: (val) => _title = val ?? '',
-                    validator: (val) =>
-                        val == null || val.isEmpty ? 'Enter a title' : null,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // --- Description ---
-                  TextFormField(
-                    style: Theme.of(context).brightness == Brightness.dark 
-                      ? const TextStyle(color: Colors.white) 
-                      : null,
-                    decoration: _inputDecoration('Description', context),
-                    onSaved: (val) => _desc = val ?? '',
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- Date Selector ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _selectedDate == null
-                              ? 'No date selected'
-                              : 'Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}',
-                          style: GoogleFonts.inknutAntiqua(fontSize: 12),
-                        ),
+    return Dialog(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- Header with Title and Back Arrow ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Add Event',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
                       ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF4A6B85)
-                              : const Color(0xFF7496B3),
-                        ),
-                        onPressed: _pickDate,
-                        child: const Text(
-                          'Select Date',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- Category Tabs ---
-                  Text(
-                    'Category',
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
                     ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // --- Title ---
+                TextFormField(
+                  style: Theme.of(context).brightness == Brightness.dark 
+                    ? const TextStyle(color: Colors.white) 
+                    : null,
+                  decoration: _inputDecoration('Title', context),
+                  onSaved: (val) => _title = val ?? '',
+                  validator: (val) =>
+                      val == null || val.isEmpty ? 'Enter a title' : null,
+                ),
+                const SizedBox(height: 12),
+
+                // --- Description ---
+                TextFormField(
+                  style: Theme.of(context).brightness == Brightness.dark 
+                    ? const TextStyle(color: Colors.white) 
+                    : null,
+                  decoration: _inputDecoration('Description', context),
+                  onSaved: (val) => _desc = val ?? '',
+                ),
+                const SizedBox(height: 20),
+
+                // --- Date Selector ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _selectedDate == null
+                            ? 'No date selected'
+                            : 'Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}',
+                        style: GoogleFonts.inknutAntiqua(
+                          fontSize: 12,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : Colors.black87,
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF4A6B85)
+                            : const Color(0xFF7496B3),
+                      ),
+                      onPressed: _pickDate,
+                      child: const Text(
+                        'Select Date',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // --- Category Tabs ---
+                Text(
+                  'Category',
+                  style: GoogleFonts.inknutAntiqua(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 10,
-                    children: getTabColors(context).keys.map((category) {
-                      final isSelected = _selectedCategory == category;
-                      final tabColors = getTabColors(context);
-                      return GestureDetector(
-                        onTap: () =>
-                            setState(() => _selectedCategory = category),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? tabColors[category]
-                                : (Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF2A2A2A)
-                                    : Colors.grey.shade200),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              if (isSelected)
-                                BoxShadow(
-                                  color: tabColors[category]!
-                                      .withValues(alpha: 0.4),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                            ],
-                          ),
-                          child: Text(
-                            category,
-                            style: GoogleFonts.inknutAntiqua(
-                              fontSize: 10,
-                              color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
-                            ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 10,
+                  children: getTabColors(context).keys.map((category) {
+                    final isSelected = _selectedCategory == category;
+                    final tabColors = getTabColors(context);
+                    return GestureDetector(
+                      onTap: () =>
+                          setState(() => _selectedCategory = category),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? tabColors[category]
+                              : (Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF2A2A2A)
+                                  : Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            if (isSelected)
+                              BoxShadow(
+                                color: tabColors[category]!
+                                    .withValues(alpha: 0.4),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                          ],
+                        ),
+                        child: Text(
+                          category,
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 10,
+                            color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 30),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 30),
 
-                  // --- Save Event Button ---
-                  ElevatedButton(
+                // --- Save Event Button ---
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).brightness == Brightness.dark
                           ? const Color(0xFF4A6B85)
                           : const Color(0xFF7496B3),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
@@ -278,8 +296,8 @@ class _AddEventPageState extends State<AddEventPage> {
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

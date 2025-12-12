@@ -343,24 +343,40 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   context: context,
                                   builder: (context) {
                                     return AlertDialog(
-                                      backgroundColor: const Color(0xFF7496B3),
+                                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF1E1E1E)
+                                          : const Color(0xFF7496B3),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                       title: Text(
                                         'Delete meal?',
                                         style: GoogleFonts.inknutAntiqua(
-                                            fontWeight: FontWeight.bold),
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white
+                                              : Colors.white,
+                                        ),
                                       ),
                                       content: Text(
                                         "Remove '${log.details['name'] ?? 'meal'}' from this day?",
-                                        style: GoogleFonts.inknutAntiqua(),
+                                        style: GoogleFonts.inknutAntiqua(
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white70
+                                              : Colors.white,
+                                        ),
                                       ),
                                       actions: [
                                         TextButton(
                                           onPressed: () =>
                                               Navigator.pop(context, false),
-                                          child: const Text(
+                                          child: Text(
                                             'Cancel',
                                             style: TextStyle(
-                                                color: Colors.black87),
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.grey.shade300
+                                                  : Colors.black87,
+                                            ),
                                           ),
                                         ),
                                         TextButton(

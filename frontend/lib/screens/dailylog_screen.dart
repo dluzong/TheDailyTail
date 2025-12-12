@@ -91,12 +91,10 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
       return;
     }
 
-    final newEvent = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            AddEventPage(selectedDate: _selectedDay ?? DateTime.now()),
-      ),
+    final newEvent = await showDialog(
+      context: context,
+      builder: (context) =>
+          AddEventPage(selectedDate: _selectedDay ?? DateTime.now()),
     );
 
     if (newEvent != null) {
@@ -324,8 +322,11 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                  builder: (context) => const MealPlanScreen()),
+                              PageRouteBuilder(
+                                pageBuilder: (_, __, ___) => const MealPlanScreen(),
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
+                              ),
                             );
                           },
                         ),
@@ -338,9 +339,11 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const MedicationScreen()),
+                              PageRouteBuilder(
+                                pageBuilder: (_, __, ___) => const MedicationScreen(),
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
+                              ),
                             );
                           },
                         ),
