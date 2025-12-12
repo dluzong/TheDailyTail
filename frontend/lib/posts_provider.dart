@@ -11,7 +11,7 @@ class Post {
   final String authorPhoto;
   final String title;
   final String content;
-  final String category;
+  final List<String> categories;
   final String createdTs;
   final bool isLiked;
   final int likesCount;
@@ -26,7 +26,7 @@ class Post {
     required this.authorPhoto,
     required this.title,
     required this.content,
-    required this.category,
+    required this.categories,
     required this.createdTs,
     required this.isLiked,
     required this.likesCount,
@@ -49,6 +49,14 @@ class Post {
         ? (commentsData[0]['count'] as int? ?? 0)
         : 0;
 
+    // Parse Categories (Array of Strings)
+    final List<dynamic> rawCategories = map['category'] ?? [];
+    final List<String> categoriesList =
+        rawCategories.map((e) => e.toString()).toList();
+    if (categoriesList.isEmpty) {
+      categoriesList.add('General');
+    }
+
     return Post(
       postId: map['post_id'],
       userId: map['user_id'] ?? '',
@@ -56,7 +64,7 @@ class Post {
       authorPhoto: authorData?['photo_url'] ?? '',
       title: map['title'] ?? '',
       content: map['content'] ?? '',
-      category: map['category'] ?? 'General',
+      categories: categoriesList,
       createdTs: timeago.format(DateTime.parse(map['created_ts'])),
       isLiked: liked,
       likesCount: likesList.length,
@@ -79,7 +87,7 @@ class Post {
       authorPhoto: authorPhoto,
       title: title,
       content: content,
-      category: category,
+      categories: categories,
       createdTs: createdTs,
       isLiked: isLiked ?? this.isLiked,
       likesCount: likesCount ?? this.likesCount,
@@ -221,7 +229,8 @@ class PostsProvider extends ChangeNotifier {
 
   // --- CREATE POST ---
 
-  Future<void> createPost(String title, String content, String category) async {
+  Future<void> createPost(
+      String title, String content, List<String> categories) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
@@ -229,7 +238,7 @@ class PostsProvider extends ChangeNotifier {
       'user_id': user.id,
       'title': title,
       'content': content,
-      'category': category,
+      'category': categories,
       'likes': [],
       'comments': [],
     });

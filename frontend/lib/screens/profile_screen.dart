@@ -8,7 +8,7 @@ import '../pet_provider.dart' as pet_provider;
 import '../posts_provider.dart';
 import 'pet_list.dart' as pet_list;
 import 'all_pets_screen.dart';
-import 'community_post_screen.dart'; // Added for navigation to post details
+import 'community_post_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? otherUsername; // null means viewing own profile
@@ -281,25 +281,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     SizedBox(height: size.height * 0.015),
-                    if (post.category.isNotEmpty)
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.03,
-                          vertical: size.height * 0.007,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
-                        ),
-                        child: Text(
-                          post.category,
-                          style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
-                            fontWeight: FontWeight.w600,
-                            fontSize: size.width * 0.03,
-                          ),
-                        ),
+                    if (post.categories.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: post.categories.map((cat) {
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: size.width * 0.03,
+                              vertical: size.height * 0.007,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF7FB),
+                              borderRadius: BorderRadius.circular(20),
+                              border:
+                                  Border.all(color: const Color(0xFFBCD9EC)),
+                            ),
+                            child: Text(
+                              cat,
+                              style: GoogleFonts.lato(
+                                color: const Color(0xFF7496B3),
+                                fontWeight: FontWeight.w600,
+                                fontSize: size.width * 0.03,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     SizedBox(height: size.height * 0.015),
                     Row(
@@ -456,12 +463,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                           backgroundColor: const Color(0xFF7496B3),
                           // If URL exists and is not empty, load image. Otherwise null.
                           backgroundImage: (profileImageUrl != null &&
-                                  profileImageUrl!.isNotEmpty)
-                              ? NetworkImage(profileImageUrl!)
+                                  profileImageUrl.isNotEmpty)
+                              ? NetworkImage(profileImageUrl)
                               : null,
                           // Only show the Icon child if we DON'T have an image
                           child: (profileImageUrl == null ||
-                                  profileImageUrl!.isEmpty)
+                                  profileImageUrl.isEmpty)
                               ? Icon(
                                   Icons.person,
                                   color: Colors.white,

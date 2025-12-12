@@ -25,20 +25,23 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   String _searchTerm = '';
   final List<String> _categories = [
     'General',
+    'Announcement',
     'Events',
     'Pet Updates',
     'Adoption',
-    'Tips & Advice',
+    'Tips',
     'Discussion',
-    'Questions/Concerns',
+    'Questions',
     'Other'
   ];
 
-  String _selectedCategory = 'General';
   String _filterSort = 'recent';
   List<String> _filterCategories = [];
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+
+  // For creating new post
+  List<String> _newPostCategories = ['General'];
 
   @override
   void initState() {
@@ -122,7 +125,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
         if (_filterCategories.isNotEmpty) {
           posts = posts.where((p) {
-            return _filterCategories.contains(p.category);
+            // Check if any of the post's categories match the filter
+            return p.categories.any((cat) => _filterCategories.contains(cat));
           }).toList();
         }
 
@@ -259,23 +263,30 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.lato(),
                     ),
-                    if (post.category.isNotEmpty) ...[
+                    if (post.categories.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
-                        ),
-                        child: Text(
-                          post.category,
-                          style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: post.categories.map((cat) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF7FB),
+                              borderRadius: BorderRadius.circular(20),
+                              border:
+                                  Border.all(color: const Color(0xFFBCD9EC)),
+                            ),
+                            child: Text(
+                              cat,
+                              style: GoogleFonts.lato(
+                                color: const Color(0xFF7496B3),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                     const SizedBox(height: 12),
@@ -339,7 +350,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         }
 
         final orgs = orgProvider.allOrgs;
-        
+
+        // Filter created orgs (where user is admin)
         var createdOrgs = orgs
             .where((org) =>
                 userProvider.user?.isAdminOf(org['organization_id']) ?? false)
@@ -349,7 +361,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             .where((org) =>
                 userProvider.user?.isMemberOf(org['organization_id']) ?? false)
             .where((org) =>
-                !(userProvider.user?.isAdminOf(org['organization_id']) ?? false))
+                !(userProvider.user?.isAdminOf(org['organization_id']) ??
+                    false))
             .toList();
 
         if (_searchTerm.isNotEmpty) {
@@ -358,7 +371,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             final name = (org['name'] as String? ?? '').toLowerCase();
             return name.contains(term);
           }).toList();
-          
+
           joinedOrgs = joinedOrgs.where((org) {
             final name = (org['name'] as String? ?? '').toLowerCase();
             return name.contains(term);
@@ -379,30 +392,32 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add_circle, 
+                  icon: const Icon(
+                    Icons.add_circle,
                     color: Color(0xFF7496B3),
                     size: 28,
                   ),
                   onPressed: () {
                     Navigator.of(context)
                         .push(
-                          MaterialPageRoute(
-                            builder: (_) => const CreateOrgScreen(),
-                          ),
-                        )
+                      MaterialPageRoute(
+                        builder: (_) => const CreateOrgScreen(),
+                      ),
+                    )
                         .then((success) {
-                          if (success == true) {
-                            context
-                                .read<OrganizationProvider>()
-                                .fetchOrganizations();
-                          }
-                        });
+                      if (success == true) {
+                        // Refresh orgs after creation
+                        context
+                            .read<OrganizationProvider>()
+                            .fetchOrganizations();
+                      }
+                    });
                   },
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            
+
             if (createdOrgs.isEmpty)
               Center(
                 child: Padding(
@@ -462,14 +477,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 CircleAvatar(
                                   backgroundColor: const Color(0xFF7496B3),
                                   child: Text(
-                                    (org['name'] as String?)?.substring(0, 1) ?? 'O',
+                                    (org['name'] as String?)?.substring(0, 1) ??
+                                        'O',
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -486,7 +503,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                                 horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
                                               color: const Color(0xFFEEF7FB),
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
                                             child: Text(
                                               'Admin',
@@ -571,7 +589,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     children: [
                       Text(
                         "You haven't joined any organization",
-                        style: GoogleFonts.lato(fontSize: 14, color: Colors.grey[600]),
+                        style: GoogleFonts.lato(
+                            fontSize: 14, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
@@ -637,14 +656,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 CircleAvatar(
                                   backgroundColor: const Color(0xFF7496B3),
                                   child: Text(
-                                    (org['name'] as String?)?.substring(0, 1) ?? 'O',
+                                    (org['name'] as String?)?.substring(0, 1) ??
+                                        'O',
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         org['name'] ?? 'Unnamed Org',
@@ -757,6 +778,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     style: GoogleFonts.lato(
                         color: Colors.white, fontWeight: FontWeight.bold),
                   ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 10),
+              // Category Selection
+              Text(
+                'Select Categories:',
+                style: GoogleFonts.lato(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF394957),
                 ),
               ],
             ),
@@ -775,13 +806,35 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   }
                 },
               ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                hintText: 'Post Title',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: _categories.map((category) {
+                  final isSelected = _newPostCategories.contains(category);
+                  return FilterChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setModalState(() {
+                        if (selected) {
+                          _newPostCategories.add(category);
+                        } else {
+                          _newPostCategories.remove(category);
+                        }
+                      });
+                    },
+                    selectedColor: const Color(0xFFEEF7FB),
+                    checkmarkColor: const Color(0xFF7496B3),
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? const Color(0xFF7496B3)
+                          : const Color(0xFF394957),
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 10),
@@ -799,8 +852,21 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Expanded(
+                child: TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    hintText: 'Write your post here...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       ),
@@ -814,7 +880,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         barrierDismissible: true,
         barrierColor: Colors.black.withValues(alpha: 0.35),
         builder: (context) => CommunityFilterPopup(
-          initialCategory: _selectedCategory,
           categories: _categories,
           initialSort: _filterSort,
           initialSelectedCategories: _filterCategories,
