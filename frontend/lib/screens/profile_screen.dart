@@ -9,14 +9,16 @@ import '../pet_provider.dart' as pet_provider;
 import '../posts_provider.dart';
 import 'pet_list.dart' as pet_list;
 import 'all_pets_screen.dart';
-import 'community_post_screen.dart'; // Added for navigation to post details
+import 'community_post_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? otherUsername; // null means viewing own profile
+  final bool shouldAnimate; // whether to use slide-in animation
 
   const ProfileScreen({
     super.key,
     this.otherUsername,
+    this.shouldAnimate = true,
   });
 
   @override
@@ -50,31 +52,40 @@ class _ProfileScreenState extends State<ProfileScreen>
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeInOut));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && widget.shouldAnimate) {
         _slideController.forward(from: 0.0);
       }
     });
     
     final isOwn = widget.otherUsername == null;
-    debugPrint('ProfileScreen opened: otherUsername=${widget.otherUsername}, _isOwnProfile=$isOwn');
+    debugPrint(
+        'ProfileScreen opened: otherUsername=${widget.otherUsername}, _isOwnProfile=$isOwn');
     if (!isOwn) {
       _loadOtherUserData();
+    } else {
+      // Fetch pets for own profile after first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<pet_provider.PetProvider>().fetchPets();
+        }
+      });
     }
   }
 
   // Fetch other user's profile from UserProvider
   Future<void> _loadOtherUserData() async {
     if (widget.otherUsername == null) return;
-    
+
     try {
       final userProvider = context.read<UserProvider>();
-      final profile = await userProvider.fetchPublicProfile(widget.otherUsername!);
-      
+      final profile =
+          await userProvider.fetchPublicProfile(widget.otherUsername!);
+
       if (profile != null && mounted) {
         // Fetch other user's pets by getting user's ID and querying from userProvider
         // Since fetchOtherUserPets may not be available, we'll get the pets through a different approach
         // For now, we'll just show empty pets for other users
-        
+
         setState(() {
           _otherUserData = {
             'username': profile.username,
@@ -102,7 +113,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<bool> _onWillPop() async {
-    // Reverse the slide animation when back is pressed
     await _slideController.reverse();
 
     if (!mounted) return false;
@@ -112,7 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (navigator.canPop()) {
       navigator.pop();
     } else {
-      // Fallback to dashboard when there's nothing to pop
       navigator.pushReplacement(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => const DashboardScreen(),
@@ -122,7 +131,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     }
 
-    // We handled navigation ourselves
     return false;
   }
 
@@ -160,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildPetsTab() {
     final size = MediaQuery.of(context).size;
 
-    // A. Viewing another user's profile (Mock Data for now)
+    // When viewing another user's profile
     if (!_isOwnProfile) {
       final pets = _otherUserData?['pets'] as List<dynamic>? ?? [];
 
@@ -185,6 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 petId: 'mock_$index',
                 userId: 'mock_user',
                 name: petMap['name'],
+                species: 'Dog', // default species
                 breed: petMap['breed'],
                 age: petMap['age'],
                 weight: petMap['weight'],
@@ -212,7 +221,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     }
 
-    // B. Viewing OWN profile (Real Data)
     return Consumer<pet_provider.PetProvider>(
       builder: (context, petProv, _) {
         if (petProv.isLoading) {
@@ -261,13 +269,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     final size = MediaQuery.of(context).size;
     return Consumer<PostsProvider>(
       builder: (context, postsProvider, _) {
-        final currentUsername = context.read<UserProvider>().user?.username ?? '';
-        final targetAuthorName = _isOwnProfile
-            ? currentUsername
-            : (widget.otherUsername ?? '');
+        final currentUsername =
+            context.read<UserProvider>().user?.username ?? '';
+        final targetAuthorName =
+            _isOwnProfile ? currentUsername : (widget.otherUsername ?? '');
 
-        // Filter posts where author name matches.
-        // Note: Ideally, we should filter by userId, but for now matching Name logic from CommunityScreen
+        // Only show posts where author name matches
         final userPosts = postsProvider.posts
             .where((post) => post.authorName == targetAuthorName)
             .toList();
@@ -323,25 +330,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     SizedBox(height: size.height * 0.015),
-                    if (post.category.isNotEmpty)
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.03,
-                          vertical: size.height * 0.007,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
-                        ),
-                        child: Text(
-                          post.category,
-                          style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
-                            fontWeight: FontWeight.w600,
-                            fontSize: size.width * 0.03,
-                          ),
-                        ),
+                    if (post.categories.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: post.categories.map((cat) {
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: size.width * 0.03,
+                              vertical: size.height * 0.007,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF7FB),
+                              borderRadius: BorderRadius.circular(20),
+                              border:
+                                  Border.all(color: const Color(0xFFBCD9EC)),
+                            ),
+                            child: Text(
+                              cat,
+                              style: GoogleFonts.lato(
+                                color: const Color(0xFF7496B3),
+                                fontWeight: FontWeight.w600,
+                                fontSize: size.width * 0.03,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     SizedBox(height: size.height * 0.015),
                     Row(
@@ -444,9 +458,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       roles =
           (rolesList == null || rolesList.isEmpty) ? ['Visitor'] : rolesList;
 
-        final postsProvider = context.watch<PostsProvider>();
-        final currentUsername = username;
-        totalPosts = postsProvider.posts
+      final postsProvider = context.watch<PostsProvider>();
+      final currentUsername = username;
+      totalPosts = postsProvider.posts
           .where((post) => post.authorName == currentUsername)
           .length;
 
@@ -457,12 +471,12 @@ class _ProfileScreenState extends State<ProfileScreen>
       username = _otherUserData?['username'] ?? '';
       profileImageUrl = _otherUserData?['photoUrl'];
       final rolesList = _otherUserData?['roles'] as List<dynamic>?;
-      roles = (rolesList == null || rolesList.isEmpty) 
-          ? ['Visitor'] 
+      roles = (rolesList == null || rolesList.isEmpty)
+          ? ['Visitor']
           : rolesList.map((r) => r.toString()).toList();
-        final postsProvider = context.watch<PostsProvider>();
-        final otherUsername = widget.otherUsername ?? '';
-        totalPosts = postsProvider.posts
+      final postsProvider = context.watch<PostsProvider>();
+      final otherUsername = widget.otherUsername ?? '';
+      totalPosts = postsProvider.posts
           .where((post) => post.authorName == otherUsername)
           .length;
       totalFollowers = (_otherUserData?['totalFollowers'] as int?) ?? 0;
@@ -497,16 +511,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                           radius: avatarSize / 2,
                           backgroundColor: const Color(0xFF7496B3),
                           // If URL exists and is not empty, load image. Otherwise null.
-                          backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
-                              ? NetworkImage(profileImageUrl!)
+                          backgroundImage: (profileImageUrl != null &&
+                                  profileImageUrl.isNotEmpty)
+                              ? NetworkImage(profileImageUrl)
                               : null,
                           // Only show the Icon child if we DON'T have an image
-                          child: (profileImageUrl == null || profileImageUrl!.isEmpty)
+                          child: (profileImageUrl == null ||
+                                  profileImageUrl.isEmpty)
                               ? Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: avatarSize * 0.5,
-                          )
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: avatarSize * 0.5,
+                                )
                               : null,
                         ),
                       ),
@@ -539,57 +555,61 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   child: ListView(
                                     scrollDirection: Axis.horizontal,
                                     children: roles.map((role) {
-                                    // Color mapping for each role
-                                    Color tagColor;
-                                    switch (role.toLowerCase()) {
-                                      case 'owner':
-                                        tagColor = const Color(
-                                            0xFF2C5F7F); // deep navy blue
-                                        break;
-                                      case 'organizer':
-                                        tagColor = const Color(
-                                            0xFF5A8DB3); // medium blue
-                                        break;
-                                      case 'foster':
-                                        tagColor = const Color.fromARGB(
-                                            255, 118, 178, 230); // light sky blue
-                                        break;
-                                      case 'visitor':
-                                        tagColor = const Color.fromARGB(
-                                            255, 156, 201, 234); // pale blue
-                                        break;
-                                      default:
-                                        tagColor = const Color(
-                                            0xFF7496B3); // default blue
-                                    }
+                                      // Color mapping for each role
+                                      Color tagColor;
+                                      switch (role.toLowerCase()) {
+                                        case 'owner':
+                                          tagColor = const Color(
+                                              0xFF2C5F7F); // deep navy blue
+                                          break;
+                                        case 'organizer':
+                                          tagColor = const Color(
+                                              0xFF5A8DB3); // medium blue
+                                          break;
+                                        case 'foster':
+                                          tagColor = const Color.fromARGB(255,
+                                              118, 178, 230); // light sky blue
+                                          break;
+                                        case 'visitor':
+                                          tagColor = const Color.fromARGB(
+                                              255, 156, 201, 234); // pale blue
+                                          break;
+                                        default:
+                                          tagColor = const Color(
+                                              0xFF7496B3); // default blue
+                                      }
 
-                                    return Padding(
-                                      padding: const EdgeInsets.only(right: 6),
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: size.width * 0.04,
-                                          vertical: size.height * 0.005,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: tagColor,
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            role.isNotEmpty
-                                                ? role[0].toUpperCase() +
-                                                    role.substring(1).toLowerCase()
-                                                : role,
-                                            style: GoogleFonts.inknutAntiqua(
-                                              fontSize: 12 * textScale,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w600,
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 6),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: size.width * 0.04,
+                                            vertical: size.height * 0.005,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: tagColor,
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              role.isNotEmpty
+                                                  ? role[0].toUpperCase() +
+                                                      role
+                                                          .substring(1)
+                                                          .toLowerCase()
+                                                  : role,
+                                              style: GoogleFonts.inknutAntiqua(
+                                                fontSize: 12 * textScale,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    );
-                                  }).toList(),
+                                      );
+                                    }).toList(),
                                   ),
                                 ),
                               ),
@@ -725,11 +745,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                   final petProv = context.read<pet_provider.PetProvider>();
                   final userProv = context.read<UserProvider>();
                   displayPets = petProv.pets
-                      .map((p) => pet_list.Pet(name: p.name, imageUrl: p.imageUrl))
+                      .map((p) =>
+                          pet_list.Pet(name: p.name, imageUrl: p.imageUrl))
                       .toList();
                   name = userProv.user?.name ?? 'Your name';
                 } else {
-                  final otherPets = (_otherUserData?['pets'] as List<dynamic>?) ?? [];
+                  final otherPets =
+                      (_otherUserData?['pets'] as List<dynamic>?) ?? [];
                   displayPets = otherPets
                       .map((e) => pet_list.Pet(
                             name: e['name']?.toString() ?? 'Pet',
@@ -765,13 +787,18 @@ class _ProfileScreenState extends State<ProfileScreen>
       onTabSelected: (_) {},
       child: WillPopScope(
         onWillPop: _onWillPop,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: Container(
-            color: Colors.white,
-            child: content,
-          ),
-        ),
+        child: widget.shouldAnimate
+            ? SlideTransition(
+                position: _slideAnimation,
+                child: Container(
+                  color: Colors.white,
+                  child: content,
+                ),
+              )
+            : Container(
+                color: Colors.white,
+                child: content,
+              ),
       ),
     );
   }

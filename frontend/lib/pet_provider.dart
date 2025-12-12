@@ -6,6 +6,7 @@ class Pet {
   final String petId;
   final String userId;
   final String name;
+  final String species; // Added species
   final String breed;
   final int age;
   final double weight;
@@ -18,6 +19,7 @@ class Pet {
     required this.petId,
     required this.userId,
     required this.name,
+    required this.species, // Added species
     required this.breed,
     required this.age,
     required this.weight,
@@ -32,6 +34,7 @@ class Pet {
       petId: map['pet_id'] ?? '',
       userId: map['user_id'] ?? '',
       name: map['name'] ?? 'Unnamed',
+      species: map['species'] ?? 'Dog', // Default to Dog if missing
       breed: map['breed'] ?? 'Unknown',
       age: map['age'] ?? 0,
       weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
@@ -114,6 +117,7 @@ class PetProvider extends ChangeNotifier {
       // 1. Update Supabase
       await supabase.from('pets').update({
         'name': updatedPet.name,
+        'species': updatedPet.species,
         'breed': updatedPet.breed,
         'age': updatedPet.age,
         'weight': updatedPet.weight,
@@ -135,6 +139,27 @@ class PetProvider extends ChangeNotifier {
     }
   }
 
+  // --- DELETE PET LOGIC ---
+  Future<void> deletePet(String petId) async {
+    try {
+      // 1. Delete from Supabase
+      await _supabase.from('pets').delete().eq('pet_id', petId);
+
+      // 2. Update Local State
+      _pets.removeWhere((p) => p.petId == petId);
+
+      // If the selected pet was deleted, clear selection or select another
+      if (_selectedPetId == petId) {
+        _selectedPetId = _pets.isNotEmpty ? _pets.first.petId : null;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting pet: $e');
+      rethrow;
+    }
+  }
+
   // --- ADD PET LOGIC ---
 
   Future<void> addPet(Pet newPet) async {
@@ -147,6 +172,7 @@ class PetProvider extends ChangeNotifier {
       await _supabase.from('pets').insert({
         'user_id': user.id,
         'name': newPet.name,
+        'species': newPet.species,
         'breed': newPet.breed,
         'age': newPet.age,
         'weight': newPet.weight,

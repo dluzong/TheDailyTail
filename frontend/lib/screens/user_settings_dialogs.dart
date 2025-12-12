@@ -234,7 +234,8 @@ class UserSettingsDialogs {
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to pick image: $e')),
+                              SnackBar(
+                                  content: Text('Failed to pick image: $e')),
                             );
                           }
                         }
@@ -244,15 +245,15 @@ class UserSettingsDialogs {
                         backgroundColor: const Color(0xFF7496B3),
                         backgroundImage: currentDialogPath != null
                             ? (currentDialogPath!.startsWith('http')
-                              // If it is a web URL (old image)
-                              ? NetworkImage(currentDialogPath!)
-                              // If it is a local path (new image)
-                              : FileImage(File(currentDialogPath!)))
-                              as ImageProvider
-                          : null,
+                                    // If it is a web URL (old image)
+                                    ? NetworkImage(currentDialogPath!)
+                                    // If it is a local path (new image)
+                                    : FileImage(File(currentDialogPath!)))
+                                as ImageProvider
+                            : null,
                         child: currentDialogPath == null
                             ? const Icon(Icons.camera_alt,
-                            size: 42, color: Colors.white)
+                                size: 42, color: Colors.white)
                             : null,
                       ),
                     ),
@@ -370,7 +371,8 @@ class UserSettingsDialogs {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7496B3), width: 2),
+                      borderSide:
+                          const BorderSide(color: Color(0xFF7496B3), width: 2),
                     ),
                     contentPadding: const EdgeInsets.all(16),
                   ),
@@ -464,7 +466,7 @@ class UserSettingsDialogs {
                         ),
                         Expanded(
                           child: Text(
-                            'Select Roles',
+                            'Your Tags',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inknutAntiqua(
                               fontSize: 22,
@@ -658,24 +660,18 @@ class UserSettingsDialogs {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.edit, color: Color(0xFF7496B3)),
+                              icon: const Icon(Icons.edit,
+                                  color: Color(0xFF7496B3)),
                               onPressed: () {
                                 Navigator.pop(context);
                                 onEditPet(index);
                               },
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Color.fromARGB(255, 241, 78, 66)),
+                              icon: const Icon(Icons.delete,
+                                  color: Color.fromARGB(255, 241, 78, 66)),
                               onPressed: () {
                                 onRemovePet(index);
-                                Navigator.pop(context);
-                                showPetsDialog(
-                                  context: context,
-                                  pets: pets,
-                                  onAddNewPet: onAddNewPet,
-                                  onEditPet: onEditPet,
-                                  onRemovePet: onRemovePet,
-                                );
                               },
                             ),
                           ],
@@ -760,7 +756,8 @@ class UserSettingsDialogs {
                       width: 120,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                          side: BorderSide(
+                              color: Colors.grey.shade400, width: 1.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),

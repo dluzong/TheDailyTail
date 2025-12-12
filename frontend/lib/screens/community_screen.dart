@@ -25,27 +25,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   String _searchTerm = '';
   final List<String> _categories = [
     'General',
+    'Announcement',
     'Events',
     'Pet Updates',
     'Adoption',
-    'Tips & Advice',
+    'Tips',
     'Discussion',
-    'Questions/Concerns',
+    'Questions',
     'Other'
   ];
 
-  String _selectedCategory = 'General';
   String _filterSort = 'recent';
   List<String> _filterCategories = [];
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+
+  // For creating new post
+  List<String> _newPostCategories = ['General'];
 
   @override
   void initState() {
     super.initState();
     _loadSavedFilters();
 
-    // Initial Data Fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PostsProvider>().fetchPosts();
       context.read<OrganizationProvider>().fetchOrganizations();
@@ -123,7 +125,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
 
         if (_filterCategories.isNotEmpty) {
           posts = posts.where((p) {
-            return _filterCategories.contains(p.category);
+            // Check if any of the post's categories match the filter
+            return p.categories.any((cat) => _filterCategories.contains(cat));
           }).toList();
         }
 
@@ -177,26 +180,32 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              final currentUsername = context.read<UserProvider>().user?.username;
-                              final isOwnPost = currentUsername != null && post.authorName == currentUsername;
-                              
-                              debugPrint('DEBUG: Clicked post - currentUsername="$currentUsername", authorName="${post.authorName}", isOwnPost=$isOwnPost');
+                              final currentUserId =
+                                  Provider.of<UserProvider>(context, listen: false)
+                                      .user
+                                      ?.userId;
 
-                              if (isOwnPost) {
-                                debugPrint('DEBUG: Navigating to own profile (no otherUsername)');
+                              final isOwnPost =
+                                  currentUserId != null && post.userId == currentUserId;
+
+                              if (isOwnPost || post.authorName == 'You') {
+                                // Own profile - no otherUsername so _isOwnProfile stays true
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const ProfileScreen(),
+                                    builder: (context) => const ProfileScreen(
+                                      shouldAnimate: false,
+                                    ),
                                   ),
                                 );
                               } else {
-                                debugPrint('DEBUG: Navigating to other profile with otherUsername="${post.authorName}"');
+                                // Other user's profile
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => ProfileScreen(
                                       otherUsername: post.authorName,
+                                      shouldAnimate: false,
                                     ),
                                   ),
                                 );
@@ -223,6 +232,29 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             ),
                           ),
                         ),
+                        // Show menu if this post belongs to the current user
+                        if ((Provider.of<UserProvider>(context, listen: false).user?.userId == post.userId) ||
+                            post.authorName == 'You')
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showNewPostModal(post: post);
+                              } else if (value == 'delete') {
+                                _confirmDeletePost(post.postId);
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Edit post'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Delete post'),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -251,29 +283,35 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.lato(),
                     ),
-                    if (post.category.isNotEmpty) ...[
+                    if (post.categories.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
-                        ),
-                        child: Text(
-                          post.category,
-                          style: GoogleFonts.lato(
-                            color: const Color(0xFF7496B3),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: post.categories.map((cat) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF7FB),
+                              borderRadius: BorderRadius.circular(20),
+                              border:
+                                  Border.all(color: const Color(0xFFBCD9EC)),
+                            ),
+                            child: Text(
+                              cat,
+                              style: GoogleFonts.lato(
+                                color: const Color(0xFF7496B3),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        // LIKE BUTTON
                         GestureDetector(
                           onTap: () {
                             provider.toggleLike(providerIndex);
@@ -292,7 +330,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           ),
                         ),
                         const SizedBox(width: 24),
-                        // COMMENT BUTTON
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -333,19 +370,19 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         }
 
         final orgs = orgProvider.allOrgs;
-        
+
         // Filter created orgs (where user is admin)
         var createdOrgs = orgs
             .where((org) =>
                 userProvider.user?.isAdminOf(org['organization_id']) ?? false)
             .toList();
 
-        // Filter joined orgs (where user is member but not admin)
         var joinedOrgs = orgs
             .where((org) =>
                 userProvider.user?.isMemberOf(org['organization_id']) ?? false)
             .where((org) =>
-                !(userProvider.user?.isAdminOf(org['organization_id']) ?? false))
+                !(userProvider.user?.isAdminOf(org['organization_id']) ??
+                    false))
             .toList();
 
         if (_searchTerm.isNotEmpty) {
@@ -354,7 +391,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             final name = (org['name'] as String? ?? '').toLowerCase();
             return name.contains(term);
           }).toList();
-          
+
           joinedOrgs = joinedOrgs.where((org) {
             final name = (org['name'] as String? ?? '').toLowerCase();
             return name.contains(term);
@@ -364,7 +401,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // MY ORGANIZATIONS SECTION
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -376,31 +412,32 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add_circle, 
+                  icon: const Icon(
+                    Icons.add_circle,
                     color: Color(0xFF7496B3),
                     size: 28,
                   ),
                   onPressed: () {
                     Navigator.of(context)
                         .push(
-                          MaterialPageRoute(
-                            builder: (_) => const CreateOrgScreen(),
-                          ),
-                        )
+                      MaterialPageRoute(
+                        builder: (_) => const CreateOrgScreen(),
+                      ),
+                    )
                         .then((success) {
-                          if (success == true) {
-                            // Refresh orgs after creation
-                            context
-                                .read<OrganizationProvider>()
-                                .fetchOrganizations();
-                          }
-                        });
+                      if (success == true) {
+                        // Refresh orgs after creation
+                        context
+                            .read<OrganizationProvider>()
+                            .fetchOrganizations();
+                      }
+                    });
                   },
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            
+
             if (createdOrgs.isEmpty)
               Center(
                 child: Padding(
@@ -460,14 +497,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 CircleAvatar(
                                   backgroundColor: const Color(0xFF7496B3),
                                   child: Text(
-                                    (org['name'] as String?)?.substring(0, 1) ?? 'O',
+                                    (org['name'] as String?)?.substring(0, 1) ??
+                                        'O',
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -484,7 +523,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                                 horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
                                               color: const Color(0xFFEEF7FB),
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
                                             child: Text(
                                               'Admin',
@@ -527,7 +567,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             const Divider(),
             const SizedBox(height: 16),
 
-            // JOINED ORGANIZATIONS SECTION
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -570,7 +609,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     children: [
                       Text(
                         "You haven't joined any organization",
-                        style: GoogleFonts.lato(fontSize: 14, color: Colors.grey[600]),
+                        style: GoogleFonts.lato(
+                            fontSize: 14, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
@@ -636,14 +676,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                 CircleAvatar(
                                   backgroundColor: const Color(0xFF7496B3),
                                   child: Text(
-                                    (org['name'] as String?)?.substring(0, 1) ?? 'O',
+                                    (org['name'] as String?)?.substring(0, 1) ??
+                                        'O',
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         org['name'] ?? 'Unnamed Org',
@@ -682,32 +724,37 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     );
   }
 
-  void _showNewPostModal({int? editIndex}) {
-    // TODO: Edit logic requires implementing an 'updatePost' method in provider
-
-    _titleController.clear();
-    _contentController.clear();
-    _selectedCategory = 'General';
+  void _showNewPostModal({Post? post}) {
+    if (post != null) {
+      _titleController.text = post.title;
+      _contentController.text = post.content;
+      _newPostCategories = List<String>.from(post.categories);
+    } else {
+      _titleController.clear();
+      _contentController.clear();
+      _newPostCategories = ['General'];
+    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.95,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          top: 20,
-          left: 20,
-          right: 20,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.95,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -720,13 +767,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   onPressed: () async {
                     if (_contentController.text.isEmpty) return;
 
-                    await context.read<PostsProvider>().createPost(
-                          _titleController.text.isEmpty
-                              ? 'Untitled'
-                              : _titleController.text,
-                          _contentController.text,
-                          _selectedCategory,
-                        );
+                    if (post != null) {
+                      await context.read<PostsProvider>().updatePost(
+                            post.postId,
+                            _titleController.text.isEmpty
+                                ? 'Untitled'
+                                : _titleController.text,
+                            _contentController.text,
+                            _newPostCategories,
+                          );
+                    } else {
+                      await context.read<PostsProvider>().createPost(
+                            _titleController.text.isEmpty
+                                ? 'Untitled'
+                                : _titleController.text,
+                            _contentController.text,
+                            _newPostCategories,
+                          );
+                    }
 
                     if (mounted) Navigator.pop(context);
                   },
@@ -736,7 +794,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         borderRadius: BorderRadius.circular(20)),
                   ),
                   child: Text(
-                    'Create Post',
+                    post != null ? 'Update Post' : 'Create Post',
                     style: GoogleFonts.lato(
                         color: Colors.white, fontWeight: FontWeight.bold),
                   ),
@@ -745,24 +803,43 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             ),
             const Divider(),
             const SizedBox(height: 10),
-            // Category Dropdown
-            DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedCategory,
-                isExpanded: true,
-                items: _categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) {
-                    setState(() => _selectedCategory = v);
-                    // Force rebuild of modal only? No, need stateful builder if inside stateless widget.
-                    // But we are in a stateful widget method, so setState rebuilds the parent screen,
-                    // which might not rebuild the modal contents dynamically without StatefulBuilder.
-                    // Ideally use StatefulBuilder here.
-                  }
-                },
+            // Category Selection
+            Text(
+              'Select Categories:',
+              style: GoogleFonts.lato(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF394957),
               ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: _categories.map((category) {
+                final isSelected = _newPostCategories.contains(category);
+                return FilterChip(
+                  label: Text(category),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setModalState(() {
+                      if (selected) {
+                        _newPostCategories.add(category);
+                      } else {
+                        _newPostCategories.remove(category);
+                      }
+                    });
+                  },
+                  selectedColor: const Color(0xFFEEF7FB),
+                  checkmarkColor: const Color(0xFF7496B3),
+                  labelStyle: TextStyle(
+                    color: isSelected
+                        ? const Color(0xFF7496B3)
+                        : const Color(0xFF394957),
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -773,20 +850,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  hintText: 'Write your post here...',
-                  border: OutlineInputBorder(),
+            Flexible(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 42),
+                child: TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    hintText: 'Write your post here...',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -798,7 +879,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         barrierDismissible: true,
         barrierColor: Colors.black.withValues(alpha: 0.35),
         builder: (context) => CommunityFilterPopup(
-          initialCategory: _selectedCategory,
           categories: _categories,
           initialSort: _filterSort,
           initialSelectedCategories: _filterCategories,
@@ -818,6 +898,33 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         await _persistFilters();
       }
     }();
+  }
+
+  void _confirmDeletePost(int postId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete post'),
+        content: const Text('Are you sure you want to delete your post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB94A48),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              await context.read<PostsProvider>().deletePost(postId);
+              if (mounted) Navigator.pop(context, true);
+            },
+            child: const Text('Yes, delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -934,7 +1041,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   return AnimatedBuilder(
                     animation: tabController,
                     builder: (context, _) {
-                      // Only show FAB on Feed and Friends tabs (not Organizations)
                       if (tabController.index != 2) {
                         return FloatingActionButton(
                           onPressed: _showNewPostModal,

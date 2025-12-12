@@ -11,7 +11,7 @@ class Post {
   final String authorPhoto;
   final String title;
   final String content;
-  final String category;
+  final List<String> categories;
   final String createdTs;
   final bool isLiked;
   final int likesCount;
@@ -26,7 +26,7 @@ class Post {
     required this.authorPhoto,
     required this.title,
     required this.content,
-    required this.category,
+    required this.categories,
     required this.createdTs,
     required this.isLiked,
     required this.likesCount,
@@ -40,6 +40,13 @@ class Post {
       if (value is String) return value;
       if (value is List && value.isNotEmpty) return value.first.toString();
       return value.toString();
+    }
+
+    List<String> _asList(dynamic value, List<String> fallback) {
+      if (value == null) return fallback;
+      if (value is List) return value.map((e) => e.toString()).toList();
+      if (value is String) return [value];
+      return fallback;
     }
 
     final authorData = map['users'] as Map<String, dynamic>?;
@@ -65,7 +72,7 @@ class Post {
       authorPhoto: _asString(authorData?['photo_url'], ''),
       title: _asString(map['title'], ''),
       content: _asString(map['content'], ''),
-      category: _asString(map['category'], 'General'),
+      categories: _asList(map['category'], ['General']),
       createdTs: timeago.format(DateTime.parse(createdRaw)),
       isLiked: liked,
       likesCount: likesList.length,
@@ -79,6 +86,7 @@ class Post {
     bool? isLiked,
     int? likesCount,
     List<String>? likesArray,
+    int? commentCount,
   }) {
     return Post(
       postId: postId,
@@ -87,11 +95,11 @@ class Post {
       authorPhoto: authorPhoto,
       title: title,
       content: content,
-      category: category,
+      categories: categories,
       createdTs: createdTs,
       isLiked: isLiked ?? this.isLiked,
       likesCount: likesCount ?? this.likesCount,
-      commentCount: commentCount,
+      commentCount: commentCount ?? this.commentCount,
       likesArray: likesArray ?? this.likesArray,
     );
   }
@@ -209,9 +217,28 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
+  // --- COMMENT LOGIC ---
+
+  void incrementCommentCount(int index) {
+    if (index < 0 || index >= _posts.length) return;
+    final post = _posts[index];
+    _posts[index] = post.copyWith(commentCount: post.commentCount + 1);
+    notifyListeners();
+  }
+
+  void decrementCommentCount(int index) {
+    if (index < 0 || index >= _posts.length) return;
+    final post = _posts[index];
+    if (post.commentCount > 0) {
+      _posts[index] = post.copyWith(commentCount: post.commentCount - 1);
+      notifyListeners();
+    }
+  }
+
   // --- CREATE POST ---
 
-  Future<void> createPost(String title, String content, String category) async {
+  Future<void> createPost(
+      String title, String content, List<String> categories) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
@@ -219,13 +246,45 @@ class PostsProvider extends ChangeNotifier {
       'user_id': user.id,
       'title': title,
       'content': content,
-      'category': category,
+      'category': categories,
       'likes': [],
       'comments': [],
-      
     });
 
     // Refresh to show the new post at the top
     await fetchPosts();
+  }
+
+  // --- UPDATE POST ---
+
+  Future<void> updatePost(int postId, String title, String content, List<String> categories) async {
+    try {
+      await _supabase.from('posts').update({
+        'title': title,
+        'content': content,
+        'category': categories,
+      }).eq('post_id', postId);
+
+      // Refresh to show updated post
+      await fetchPosts();
+    } catch (e) {
+      debugPrint('Error updating post: $e');
+      rethrow;
+    }
+  }
+
+  // --- DELETE POST ---
+
+  Future<void> deletePost(int postId) async {
+    try {
+      await _supabase.from('posts').delete().eq('post_id', postId);
+
+      // Remove from local list immediately
+      _posts.removeWhere((post) => post.postId == postId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting post: $e');
+      rethrow;
+    }
   }
 }
