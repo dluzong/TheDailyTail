@@ -105,20 +105,20 @@ class _AppLayoutState extends State<AppLayout> {
           children: [
             Container(
               height: 50,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF3A5A75)
-                  : outerBlue,
+              // color: Theme.of(context).brightness == Brightness.dark
+              //     ? const Color(0xFF3A5A75)
+              //     : outerBlue,
             ),
 
             // Top bar
-            Container(
-              height: 60,
-              width: double.infinity,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF4A6B85)
-                  : innerBlue,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Stack(
+            // Container(
+            //   height: 100,
+            //   width: double.infinity,
+            //   color: Theme.of(context).brightness == Brightness.dark
+            //       ? const Color(0xFF4A6B85)
+            //       : innerBlue,
+            //   padding: const EdgeInsets.symmetric(horizontal: 16),
+              Stack(
                 alignment: Alignment.center,
                 children: [
                   if (widget.showBackButton)
@@ -137,14 +137,20 @@ class _AppLayoutState extends State<AppLayout> {
                       ),
                     ),
                   Center(
-                    child: Text(
-                      "The Daily Tail",
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 15), // Add top padding
+                      child: ClipRect(
+                        child: Align(
+                          alignment: Alignment.topCenter, // Crop from bottom
+                          heightFactor: 0.8, // Show only top 70% of image (adjust 0.5-1.0)
+                          child: Image.asset(
+                            Theme.of(context).brightness == Brightness.dark
+                              ? 'assets/dailytail-logotype-white.png'
+                              : 'assets/dailytail-logotype-blue.png',
+                            height: 80,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -155,25 +161,28 @@ class _AppLayoutState extends State<AppLayout> {
                         final photoUrl = userProvider.user?.photoUrl;
                         return GestureDetector(
                           onTap: _openProfile,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.black
-                                    : Colors.white,
-                                width: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(15.0), // Add padding around avatar
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.black
+                                      : Colors.white,
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 22,
-                              backgroundColor: const Color(0xFF7496B3),
-                              backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                                  ? NetworkImage(photoUrl)
-                                  : null,
-                              child: (photoUrl == null || photoUrl.isEmpty)
-                                  ? const Icon(Icons.person, color: Colors.white)
-                                  : null,
+                              child: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: const Color(0xFF7496B3),
+                                backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                                    ? NetworkImage(photoUrl)
+                                    : null,
+                                child: (photoUrl == null || photoUrl.isEmpty)
+                                    ? const Icon(Icons.person, color: Colors.white)
+                                    : null,
+                              ),
                             ),
                           ),
                         );
@@ -182,7 +191,7 @@ class _AppLayoutState extends State<AppLayout> {
                   ),
                 ],
               ),
-            ),
+            // ),
 
             Expanded(
               child: Container(

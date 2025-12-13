@@ -199,7 +199,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   children: [
                     buildAppTitle(),
                     const SizedBox(height: 25),
-                    buildDogIcon(),
+                    // buildDogIcon(),
                     const SizedBox(height: 35),
                     buildAppTextField(
                         hint: "First Name", controller: _firstName, context: context),
