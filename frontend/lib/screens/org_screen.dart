@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../posts_provider.dart';
+import '../organization_provider.dart';
 
 class OrgScreen extends StatefulWidget {
   final Map<String, dynamic> org;
@@ -31,8 +32,9 @@ class _OrgScreenState extends State<OrgScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Leave Org'),
-        content: const Text('Are you sure you want to leave this org?'),
+        title: const Text('Leave Organization'),
+        content:
+            const Text('Are you sure you want to leave this organization?'),
         actions: [
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.black),
@@ -59,17 +61,30 @@ class _OrgScreenState extends State<OrgScreen> {
 
     if (confirm == true) {
       setState(() => _joined = false);
-      if (widget.onJoinChanged != null) widget.onJoinChanged!(_joined);
-      Navigator.of(context).pop();
+
+      if (widget.onJoinChanged != null) {
+        widget.onJoinChanged!(false);
+      } else {
+        final orgId = widget.org['organization_id'] as String;
+        final provider = context.read<OrganizationProvider>();
+        await provider.leaveOrg(orgId);
+      }
     }
   }
 
-  void _onJoinPressed() {
+  Future<void> _onJoinPressed() async {
     if (_joined) {
       _confirmLeave();
     } else {
       setState(() => _joined = true);
-      if (widget.onJoinChanged != null) widget.onJoinChanged!(_joined);
+
+      if (widget.onJoinChanged != null) {
+        widget.onJoinChanged!(true);
+      } else {
+        final orgId = widget.org['organization_id'] as String;
+        final provider = context.read<OrganizationProvider>();
+        await provider.joinOrg(orgId);
+      }
     }
   }
 
@@ -87,7 +102,14 @@ class _OrgScreenState extends State<OrgScreen> {
 
     // Map keys to DB columns
     final orgName = widget.org['name'] ?? 'Unnamed Org';
-    final memberCount = (widget.org['member_id'] as List?)?.length ?? 0;
+
+    int memberCount = 0;
+    if (widget.org['organization_members'] is List &&
+        (widget.org['organization_members'] as List).isNotEmpty) {
+      memberCount =
+          (widget.org['organization_members'][0]['count'] as int?) ?? 0;
+    }
+
     final description = widget.org['description'] ?? 'No description provided.';
 
     return Scaffold(
@@ -156,7 +178,7 @@ class _OrgScreenState extends State<OrgScreen> {
                       ),
                       child: const TextField(
                         decoration: InputDecoration(
-                          hintText: 'Search posts...',
+                          hintText: 'Search...',
                           prefixIcon: Icon(Icons.search),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(

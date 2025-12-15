@@ -205,26 +205,21 @@ class UserProvider extends ChangeNotifier {
 
     if (!force && _lastFetchTime != null) {
       final difference = DateTime.now().difference(_lastFetchTime!);
-      if (difference.inSeconds < 2) {
-        debugPrint('WARNING: Fetch skipped: Debounced (too soon).');
-        return;
-      }
+      if (difference.inSeconds < 2) return;
     }
 
     final session = _supabase.auth.currentSession;
     if (session == null) {
-      if (_user != null) clearUser();
+      if (_user != null) {
+        clearUser();
+      }
       return;
     }
 
     _isFetching = true;
 
     try {
-      // Fetches:
-      // 1. Basic Info
-      // 2. Organization Memberships (via organization_members)
-      // 3. Following (via follows!follower_id)
-      // 4. Followers (via follows!followee_id)
+      // Fetches user profile + follows + followers + org memberships
       final response = await _supabase.from('users').select('''
             user_id, 
             username, 
@@ -238,7 +233,6 @@ class UserProvider extends ChangeNotifier {
           ''').eq('user_id', session.user.id).maybeSingle();
 
       if (response == null) {
-        debugPrint('WARNING: No user data found in database');
         _user = null;
       } else {
         final newUser = AppUser.fromMap(response);
@@ -277,7 +271,9 @@ class UserProvider extends ChangeNotifier {
             followers:follows!followee_id(follower_id)
           ''').eq('username', username).maybeSingle();
 
-      if (response == null) return null;
+      if (response == null) {
+        return null;
+      }
       return AppUser.fromMap(response);
     } catch (e) {
       debugPrint('Error fetching public profile: $e');
@@ -288,7 +284,9 @@ class UserProvider extends ChangeNotifier {
   // Fetch basic details for a list of user IDs (for follower/following lists)
   Future<List<Map<String, dynamic>>> fetchUsersByIds(
       List<String> userIds) async {
-    if (userIds.isEmpty) return [];
+    if (userIds.isEmpty) {
+      return [];
+    }
     try {
       final response = await _supabase
           .from('users')
@@ -363,11 +361,11 @@ class UserProvider extends ChangeNotifier {
     await prefs.remove(_cacheKey);
   }
 
-  Future<void> updateUserProfile({
-    required String username,
+  Future<void> updateUserProfile({ required String username,
     required String name,
     String? bio,
     List<String>? roles,
+    // TODO: Implement photo upload functionality
     String? photoUrl,
   }) async {
     final session = _supabase.auth.currentSession;
