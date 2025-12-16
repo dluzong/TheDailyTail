@@ -5,7 +5,7 @@ import '../pet_provider.dart';
 import '../user_provider.dart';
 import '../shared/app_layout.dart';
 import '../log_provider.dart';
-import '../theme_provider.dart';
+// import '../theme_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -37,9 +37,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (userProvider.isAuthenticated && mounted) {
       await petProvider.fetchPets();
+      if (!mounted) return;
+      final selectedId = petProvider.selectedPetId;
+      if (petProvider.pets.isNotEmpty) {
+        final targetId = selectedId ?? petProvider.pets.first.petId;
+        final pet = petProvider.pets.firstWhere((p) => p.petId == targetId,
+            orElse: () => petProvider.pets.first);
 
-      if (petProvider.pets.isNotEmpty && mounted) {
-        _selectPet(petProvider.pets.first);
+        // if logs already loaded for this pet, skip duplicate fetch
+        if (_selectedPetId != targetId) {
+          await _selectPet(pet);
+        }
       }
     }
   }
@@ -73,11 +81,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final List<Pet> pets = petProvider.pets;
     Pet? selectedPet;
-    if (_selectedPetId != null) {
+    final currentSelectedId = _selectedPetId ?? petProvider.selectedPetId;
+    if (currentSelectedId != null) {
       try {
-        selectedPet = pets.firstWhere((p) => p.petId == _selectedPetId);
+        selectedPet = pets.firstWhere((p) => p.petId == currentSelectedId);
       } catch (e) {
-        _selectedPetId = null;
+        selectedPet = null;
       }
     }
 
@@ -91,67 +100,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : <String, String>{};
 
     return AppLayout(
-      currentIndex: 1,
-      onTabSelected: (index) {},
-      child: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Dropdown
-            Row(
+        currentIndex: 1,
+        onTabSelected: (index) {},
+        child: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Pet: ', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: _selectedPetId,
-                  hint: Text(
-                    petProvider.isLoading ? 'Loading...' : 'Select a pet',
-                  ),
-                  items: pets
-                      .map((p) => DropdownMenuItem(
-                            value: p.petId,
-                            child: Text(p.name,
-                                style: GoogleFonts.lato(fontSize: 24)),
-                          ))
-                      .toList(),
-                  onChanged: (newPetId) {
-                    if (newPetId == null) return;
+                // Dashboard title
+                Text('Dashboard',
+                    style: GoogleFonts.lato(
+                        fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                const Divider(thickness: 2),
+                const SizedBox(height: 16),
 
-                    final petToSelect =
-                        pets.firstWhere((p) => p.petId == newPetId);
+                // Dropdown
+                Row(
+                  children: [
+                    const Text('Pet: ', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 10),
+                    DropdownButton<String>(
+                      value: currentSelectedId,
+                      hint: Text(
+                        petProvider.isLoading ? 'Loading...' : 'Select a pet',
+                      ),
+                      items: pets
+                          .map((p) => DropdownMenuItem(
+                                value: p.petId,
+                                child: Text(p.name,
+                                    style: GoogleFonts.lato(fontSize: 20)),
+                              ))
+                          .toList(),
+                      onChanged: (newPetId) {
+                        if (newPetId == null) return;
 
-                    _selectPet(petToSelect);
-                  },
+                        final petToSelect =
+                            pets.firstWhere((p) => p.petId == newPetId);
+
+                        _selectPet(petToSelect);
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // main content logic
+                _buildContent(
+                  context,
+                  userProvider,
+                  petProvider,
+                  hasPets,
+                  selectedPet,
+                  details,
                 ),
               ],
             ),
-
-            const SizedBox(height: 24),
-
-            // Dashboard title
-            Text('Dashboard',
-                style: GoogleFonts.lato(
-                    fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            const Divider(thickness: 2),
-            const SizedBox(height: 16),
-
-            // main content logic
-            _buildContent(
-              context,
-              userProvider,
-              petProvider,
-              hasPets,
-              selectedPet,
-              details,
-            ),
-          ],
-        ),
-      ),
-    ));
+          ),
+        ));
   }
 
   // helper to build main content area
@@ -246,11 +255,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             width: 80,
                             child: Text('${entry.key}:',
                                 style: GoogleFonts.lato(
-                                    fontWeight: FontWeight.w600))),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 18))),
                         const SizedBox(width: 8),
                         Expanded(
-                            child:
-                                Text(entry.value, style: GoogleFonts.lato())),
+                            child: Text(entry.value,
+                                style: GoogleFonts.lato(fontSize: 18))),
                       ],
                     ),
                   );

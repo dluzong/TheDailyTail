@@ -315,6 +315,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
+      barrierDismissible: true,
       builder: (context) => EditPetPopup(pet: originalPet),
     );
 

@@ -21,11 +21,19 @@ class OrgScreen extends StatefulWidget {
 
 class _OrgScreenState extends State<OrgScreen> {
   late bool _joined;
+  int _memberCount = 0;
 
   @override
   void initState() {
     super.initState();
     _joined = widget.initiallyJoined;
+    if (widget.org['organization_members'] is List &&
+        (widget.org['organization_members'] as List).isNotEmpty) {
+      _memberCount =
+          (widget.org['organization_members'][0]['count'] as int?) ?? 0;
+    } else {
+      _memberCount = 0;
+    }
   }
 
   Future<void> _confirmLeave() async {
@@ -60,7 +68,10 @@ class _OrgScreenState extends State<OrgScreen> {
     );
 
     if (confirm == true) {
-      setState(() => _joined = false);
+      setState(() {
+        _joined = false;
+        if (_memberCount > 0) _memberCount -= 1;
+      });
 
       if (widget.onJoinChanged != null) {
         widget.onJoinChanged!(false);
@@ -76,7 +87,10 @@ class _OrgScreenState extends State<OrgScreen> {
     if (_joined) {
       _confirmLeave();
     } else {
-      setState(() => _joined = true);
+      setState(() {
+        _joined = true;
+        _memberCount += 1;
+      });
 
       if (widget.onJoinChanged != null) {
         widget.onJoinChanged!(true);
@@ -103,12 +117,7 @@ class _OrgScreenState extends State<OrgScreen> {
     // Map keys to DB columns
     final orgName = widget.org['name'] ?? 'Unnamed Org';
 
-    int memberCount = 0;
-    if (widget.org['organization_members'] is List &&
-        (widget.org['organization_members'] as List).isNotEmpty) {
-      memberCount =
-          (widget.org['organization_members'][0]['count'] as int?) ?? 0;
-    }
+    final memberCount = _memberCount;
 
     final description = widget.org['description'] ?? 'No description provided.';
 
@@ -191,15 +200,17 @@ class _OrgScreenState extends State<OrgScreen> {
                         decoration: InputDecoration(
                           hintText: 'Search...',
                           hintStyle: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF666666)
-                                : Colors.grey[400],
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF666666)
+                                    : Colors.grey[400],
                           ),
                           prefixIcon: Icon(
                             Icons.search,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF666666)
-                                : Colors.grey[400],
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF666666)
+                                    : Colors.grey[400],
                           ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(

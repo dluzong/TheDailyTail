@@ -501,13 +501,6 @@ class UserSettingsDialogs {
     required Function(List<String>) onTagsChanged,
     required VoidCallback onMarkDirty,
   }) {
-    const Map<String, Color> tagColors = {
-      'owner': Color(0xFF2C5F7F), // deep navy blue
-      'organizer': Color(0xFF5A8DB3), // medium blue
-      'foster': Color(0xFF76B2E6), // light sky blue
-      'visitor': Color(0xFF9CC9EA), // pale blue
-    };
-
     // Create a local copy so we don't modify the parent state until "Save" is clicked
     List<String> tempSelectedTags = List.from(selectedTags);
 
@@ -597,8 +590,37 @@ class UserSettingsDialogs {
                       alignment: WrapAlignment.center,
                       children: availableTags.map((tag) {
                         final isSelected = tempSelectedTags.contains(tag);
-                        final Color baseColor =
-                            tagColors[tag] ?? const Color(0xFF7496B3);
+                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        
+                        // Get color matching profile_screen.dart
+                        Color baseColor;
+                        switch (tag.toLowerCase()) {
+                          case 'owner':
+                            baseColor = isDark
+                                ? const Color(0xFF1F4A5F)
+                                : const Color(0xFF2C5F7F);
+                            break;
+                          case 'organizer':
+                            baseColor = isDark
+                                ? const Color(0xFF3A5A75)
+                                : const Color(0xFF5A8DB3);
+                            break;
+                          case 'foster':
+                            baseColor = isDark
+                                ? const Color(0xFF5F8FA8)
+                                : const Color.fromARGB(255, 118, 178, 230);
+                            break;
+                          case 'visitor':
+                            baseColor = isDark
+                                ? const Color(0xFF2A4A65)
+                                : const Color.fromARGB(255, 156, 201, 234);
+                            break;
+                          default:
+                            baseColor = isDark
+                                ? const Color(0xFF4A6B85)
+                                : const Color(0xFF7496B3);
+                        }
+                        
                         final Color offColor = baseColor.withValues(alpha: 0.12);
                         return FilterChip(
                           label: Text(
@@ -692,9 +714,14 @@ class UserSettingsDialogs {
             constraints: const BoxConstraints(maxWidth: 460),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1A1A1A)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : Colors.grey.shade300),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -710,7 +737,10 @@ class UserSettingsDialogs {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                      icon: Icon(Icons.close,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
@@ -720,7 +750,9 @@ class UserSettingsDialogs {
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -728,9 +760,11 @@ class UserSettingsDialogs {
                       onPressed: () {
                         onAddNewPet();
                       },
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.add_circle,
-                        color: Color(0xFF7496B3),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7FA8C7)
+                            : const Color(0xFF7496B3),
                         size: 28,
                       ),
                       tooltip: 'Add New Pet',
@@ -738,7 +772,11 @@ class UserSettingsDialogs {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                Divider(
+                    height: 2,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF404040)
+                        : const Color(0xFF5F7C94)),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.maxFinite,
@@ -751,15 +789,23 @@ class UserSettingsDialogs {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF7FB),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF3A4A5F)
+                              : const Color(0xFFEEF7FB),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFBCD9EC)),
+                          border: Border.all(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF4A5A6F)
+                                  : const Color(0xFFBCD9EC)),
                         ),
                         child: Row(
                           children: [
-                            const CircleAvatar(
-                              backgroundColor: Color(0xFF7496B3),
-                              child: Icon(Icons.pets, color: Colors.white),
+                            CircleAvatar(
+                              backgroundColor:
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? const Color(0xFF5A7A95)
+                                      : const Color(0xFF7496B3),
+                              child: const Icon(Icons.pets, color: Colors.white),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -767,13 +813,19 @@ class UserSettingsDialogs {
                                 pet.name,
                                 style: GoogleFonts.lato(
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF394957),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF394957),
                                 ),
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.edit,
-                                  color: Color(0xFF7496B3)),
+                              icon: Icon(Icons.edit,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? const Color(0xFF7FA8C7)
+                                      : const Color(0xFF7496B3)),
                               onPressed: () {
                                 Navigator.pop(context);
                                 onEditPet(index);
@@ -814,9 +866,14 @@ class UserSettingsDialogs {
             constraints: const BoxConstraints(maxWidth: 325),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF2A2A2A)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : Colors.grey.shade300),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -842,7 +899,9 @@ class UserSettingsDialogs {
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -850,13 +909,20 @@ class UserSettingsDialogs {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                Divider(
+                  height: 2,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : const Color(0xFF5F7C94),
+                ),
                 const SizedBox(height: 20),
                 Text(
                   'Are you sure you want to log out?',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.lato(
-                    color: const Color(0xFF394957),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : const Color(0xFF394957),
                     fontSize: 16,
                   ),
                 ),
@@ -869,7 +935,10 @@ class UserSettingsDialogs {
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                              color: Colors.grey.shade400, width: 1.5),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey.shade600
+                                  : Colors.grey.shade400,
+                              width: 1.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
@@ -879,7 +948,9 @@ class UserSettingsDialogs {
                         child: Text(
                           'Cancel',
                           style: GoogleFonts.inknutAntiqua(
-                            color: const Color(0xFF394957),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF394957),
                             fontWeight: FontWeight.w600,
                           ),
                         ),

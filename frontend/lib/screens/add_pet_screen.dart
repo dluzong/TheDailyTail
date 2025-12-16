@@ -81,11 +81,15 @@ class _AddPetScreenState extends State<AddPetScreen> {
     return AppLayout(
       currentIndex: 0,
       onTabSelected: (i) {},
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+      child: Container(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF121212)
+            : Colors.white,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
             SizedBox(
               height: 56,
               child: Stack(
@@ -96,7 +100,10 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     top: 2,
                     bottom: 0,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                      icon: Icon(Icons.arrow_back,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87),
                       onPressed: () => Navigator.of(context).pop(),
                       tooltip: 'Back',
                     ),
@@ -106,7 +113,11 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     child: Text(
                       'Pet Profile',
                       style: GoogleFonts.inknutAntiqua(
-                          fontSize: 24, fontWeight: FontWeight.bold),
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black),
                     ),
                   ),
                 ],
@@ -124,7 +135,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                   style: GoogleFonts.inknutAntiqua(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3)),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF7FA8C7)
+                          : const Color(0xFF7496B3)),
                 ),
               ),
             ),
@@ -133,7 +146,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 onTap: _pickImage,
                 child: CircleAvatar(
                   radius: 48,
-                  backgroundColor: const Color(0xFF7496B3),
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF5A7A95)
+                      : const Color(0xFF7496B3),
                   backgroundImage: _imagePath != null
                       ? (_imagePath!.startsWith('assets/')
                           ? AssetImage(_imagePath!) as ImageProvider
@@ -160,7 +175,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 style: GoogleFonts.inknutAntiqua(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF7496B3)),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF7FA8C7)
+                        : const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(
@@ -181,17 +198,20 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 style: GoogleFonts.inknutAntiqua(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF7496B3)),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF7FA8C7)
+                        : const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(
               widthFactor: 0.9,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBCD9EC)),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3A3A3A)
+                      : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -200,7 +220,12 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     items: ['Dog', 'Cat', 'Other']
                         .map((s) => DropdownMenuItem(
                               value: s,
-                              child: Text(s, style: GoogleFonts.lato()),
+                              child: Text(s,
+                                  style: GoogleFonts.lato(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87)),
                             ))
                         .toList(),
                     onChanged: (val) {
@@ -224,7 +249,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 style: GoogleFonts.inknutAntiqua(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF7496B3)),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF7FA8C7)
+                        : const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(
@@ -245,7 +272,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 style: GoogleFonts.inknutAntiqua(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF7496B3)),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF7FA8C7)
+                        : const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(
@@ -266,7 +295,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 style: GoogleFonts.inknutAntiqua(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF7496B3)),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF7FA8C7)
+                        : const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(
@@ -277,17 +308,29 @@ class _AddPetScreenState extends State<AddPetScreen> {
                   DropdownMenuItem(value: 'Male', child: Text('Male')),
                   DropdownMenuItem(value: 'Female', child: Text('Female')),
                 ],
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Sex',
-                  prefixStyle: GoogleFonts.inknutAntiqua(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3)),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                  ),
                   filled: true,
-                  fillColor: Colors.grey[200],
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3A3A3A)
+                      : Colors.grey[200],
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 20,
+                  ),
                 ),
                 onChanged: (v) => setState(() => _sex = v),
               ),
@@ -306,7 +349,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 style: GoogleFonts.inknutAntiqua(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF7496B3)),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF7FA8C7)
+                        : const Color(0xFF7496B3)),
               ),
             ),
             FractionallySizedBox(
@@ -321,7 +366,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 width: 160,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8DB6D9),
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF4A6B85)
+                        : const Color(0xFF8DB6D9),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -339,6 +386,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             ),
             const SizedBox(height: 64),
           ],
+        ),
         ),
       ),
     );
