@@ -235,6 +235,73 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             ),
                           ),
                         ),
+                        // Follow button for other users
+                        Consumer<UserProvider>(
+                          builder: (context, userProvider, _) {
+                            final currentUserId = userProvider.user?.userId;
+                            final isOwnPost = currentUserId != null &&
+                                post.userId == currentUserId;
+                            final isFollowing = userProvider.user?.following
+                                    .contains(post.userId) ??
+                                false;
+
+                            if (isOwnPost || post.authorName == 'You') {
+                              return const SizedBox.shrink();
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: GestureDetector(
+                                onTap: () async {
+                                  try {
+                                    await userProvider
+                                        .toggleFollow(post.userId);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Failed to update follow status: $e'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isFollowing
+                                        ? (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF3A5A75)
+                                            : const Color(0xFFEEF7FB))
+                                        : const Color(0xFF7496B3),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: isFollowing
+                                        ? Border.all(
+                                            color: const Color(0xFF7496B3),
+                                          )
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    isFollowing ? 'Following' : 'Follow',
+                                    style: GoogleFonts.lato(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isFollowing
+                                          ? const Color(0xFF7496B3)
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                         // Show menu if this post belongs to the current user
                         if ((Provider.of<UserProvider>(context, listen: false)
                                     .user
