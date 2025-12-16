@@ -913,7 +913,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (!didPop) {
-            final shouldPop = await _onWillPop() ?? true;
+            final shouldPop = await _onWillPop();
             if (shouldPop && context.mounted) {
               Navigator.of(context).pop();
             }

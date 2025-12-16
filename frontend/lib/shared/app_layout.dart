@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/user_settings.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../screens/dailylog_screen.dart';
 import '../screens/dashboard_screen.dart';
@@ -78,13 +77,7 @@ class _AppLayoutState extends State<AppLayout> {
     }
   }
 
-  void _openSettings() {
-    if (currentIndex != 5) {
-      widget.onTabSelected(5);
-      _navigateToIndex(5);
-      setState(() => currentIndex = 5);
-    }
-  }
+  // Removed unused _openSettings to satisfy analyzer
 
   @override
   Widget build(BuildContext context) {
