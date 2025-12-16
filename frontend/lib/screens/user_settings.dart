@@ -448,19 +448,14 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final Color outerBlue = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF3A5A75)
-        : const Color(0xFF7496B3);
-    final Color innerBlue = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF4A6B85)
-        : const Color(0xFF5F7C94);
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           final shouldPop = await _onWillPop();
-          if (shouldPop && mounted) {            // ignore: use_build_context_synchronously            Navigator.of(context).pop();
+          if (shouldPop && mounted) {
+            // ignore: use_build_context_synchronously
+            Navigator.of(context).pop();
           }
         }
       },
@@ -468,52 +463,38 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         backgroundColor: Theme.of(context).brightness == Brightness.dark
             ? const Color(0xFF121212)
             : Colors.white,
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2A4A65)
+              : const Color(0xFF7496B3),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          toolbarHeight: 90,
+          title: Padding(
+            padding: const EdgeInsets.only(top: 30),
+            child: Text(
+              'Settings',
+              style: GoogleFonts.inknutAntiqua(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          leading: Padding(
+            padding: const EdgeInsets.only(top: 30),
+            child: IconButton(
+              icon: const Icon(Icons.close),
+              iconSize: 28,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          centerTitle: true,
+        ),
         resizeToAvoidBottomInset: true,
         body: SingleChildScrollView(
           child: Column(
             children: [
-              // Outer blue bar (50px)
-              Container(height: 50, color: outerBlue),
-
-              // Inner blue bar with close button and title (60px)
-              Container(
-                height: 60,
-                width: double.infinity,
-                color: innerBlue,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned(
-                      left: 10,
-                      top: 2,
-                      bottom: 0,
-                      child: IconButton(
-                        iconSize: 32.0,
-                        icon: Icon(Icons.arrow_back,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87),
-                        onPressed: () => Navigator.of(context).pop(),
-                        tooltip: 'Back',
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        'Settings',
-                        style: GoogleFonts.lato(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 32,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               // Body content
               Container(
                 color: Theme.of(context).brightness == Brightness.dark

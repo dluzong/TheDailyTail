@@ -137,6 +137,161 @@ class _ProfileScreenState extends State<ProfileScreen>
     return false;
   }
 
+  List<Widget> _buildRoleChips(
+    List<String> roles,
+    double maxWidth,
+    Size size,
+    double textScale,
+  ) {
+    if (roles.isEmpty) return [];
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textStyle = GoogleFonts.inknutAntiqua(
+      fontSize: 12 * textScale,
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+    );
+
+    const double baseSpacing = 6.0;
+    double spacing = baseSpacing;
+    double padding = size.width * 0.04;
+    const double minPadding = 8.0;
+
+    final normalized = roles.map((r) => r.toLowerCase()).toList();
+    final longLabels = normalized.map((r) => _displayRoleLabel(r, false)).toList();
+    final shortLabels = normalized.map((r) => _displayRoleLabel(r, true)).toList();
+    final useShort = List<bool>.filled(normalized.length, false);
+
+    double textWidth(String label) {
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      return painter.width;
+    }
+
+    double chipWidth(String label, double paddingValue) {
+      return textWidth(label) + paddingValue * 2;
+    }
+
+    double totalWidth(double paddingValue, double spacingValue) {
+      double total = 0;
+      for (int i = 0; i < normalized.length; i++) {
+        final label = useShort[i] ? shortLabels[i] : longLabels[i];
+        total += chipWidth(label, paddingValue);
+      }
+      if (normalized.length > 1) {
+        total += spacingValue * (normalized.length - 1);
+      }
+      return total;
+    }
+
+    double total = totalWidth(padding, spacing);
+
+    // Shorten from leftmost to right, keeping rightmost long when possible
+    int idx = 0;
+    while (total > maxWidth && idx < useShort.length) {
+      if (!useShort[idx]) {
+        useShort[idx] = true;
+        total = totalWidth(padding, spacing);
+      }
+      idx++;
+    }
+
+    // Reduce padding if still overflowing
+    if (total > maxWidth && padding > minPadding) {
+      padding = minPadding;
+      total = totalWidth(padding, spacing);
+    }
+
+    // Nudge spacing down as a final squeeze
+    if (total > maxWidth) {
+      spacing = 4.0;
+      total = totalWidth(padding, spacing);
+    }
+    if (total > maxWidth) {
+      spacing = 2.0;
+      total = totalWidth(padding, spacing);
+    }
+
+    // Final guard: force all short labels and tight spacing/padding if still too wide
+    if (total > maxWidth) {
+      for (int i = 0; i < useShort.length; i++) {
+        useShort[i] = true;
+      }
+      padding = minPadding;
+      spacing = 2.0;
+      total = totalWidth(padding, spacing);
+    }
+
+    Color roleColor(String role) {
+      switch (role) {
+        case 'owner':
+          return isDark ? const Color(0xFF1F4A5F) : const Color(0xFF2C5F7F);
+        case 'organizer':
+          return isDark ? const Color(0xFF3A5A75) : const Color(0xFF5A8DB3);
+        case 'foster':
+          return isDark ? const Color(0xFF5F8FA8) : const Color.fromARGB(255, 118, 178, 230);
+        case 'visitor':
+          return isDark ? const Color(0xFF2A4A65) : const Color.fromARGB(255, 156, 201, 234);
+        default:
+          return isDark ? const Color(0xFF4A6B85) : const Color(0xFF7496B3);
+      }
+    }
+
+    final chips = <Widget>[];
+    for (int i = 0; i < normalized.length; i++) {
+      final role = normalized[i];
+      final label = useShort[i] ? shortLabels[i] : longLabels[i];
+      chips.add(
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: padding,
+            vertical: size.height * 0.005,
+          ),
+          decoration: BoxDecoration(
+            color: roleColor(role),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: textStyle,
+            ),
+          ),
+        ),
+      );
+
+      if (i != normalized.length - 1) {
+        chips.add(SizedBox(width: spacing));
+      }
+    }
+
+    return chips;
+  }
+
+  String _displayRoleLabel(String role, bool shortForm) {
+    final lower = role.toLowerCase();
+    if (!shortForm) {
+      return lower.isNotEmpty
+          ? lower[0].toUpperCase() + lower.substring(1)
+          : role;
+    }
+
+    switch (lower) {
+      case 'owner':
+        return 'Own.';
+      case 'organizer':
+        return 'Org.';
+      case 'foster':
+        return 'Fos.';
+      case 'visitor':
+        return 'Vis.';
+      default:
+        return lower.length > 3 ? lower.substring(0, 3) + '.' : lower;
+    }
+  }
+
   Widget _buildAboutTab() {
     final size = MediaQuery.of(context).size;
     String bio;
@@ -469,7 +624,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_tabController == null) {
       const child = Center(child: CircularProgressIndicator());
       return _isOwnProfile
-          ? AppLayout(currentIndex: 4, onTabSelected: (_) {}, child: child)
+          ? AppLayout(
+              currentIndex: 4,
+              onTabSelected: (_) {},
+              showBackButton: true,
+              isProfilePage: true,
+              isOwnProfilePage: _isOwnProfile,
+              child: child,
+            )
           : Scaffold(appBar: AppBar(), body: child);
     }
 
@@ -585,87 +747,25 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              SizedBox(
-                                height: 28,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: ListView(
-                                    scrollDirection: Axis.horizontal,
-                                    children: roles.map((role) {
-                                      // Color mapping for each role with dark mode support
-                                      Color tagColor;
-                                      switch (role.toLowerCase()) {
-                                        case 'owner':
-                                          tagColor =
-                                              Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? const Color(0xFF1F4A5F)
-                                                  : const Color(0xFF2C5F7F);
-                                          break;
-                                        case 'organizer':
-                                          tagColor =
-                                              Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? const Color(0xFF3A5A75)
-                                                  : const Color(0xFF5A8DB3);
-                                          break;
-                                        case 'foster':
-                                          tagColor =
-                                              Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? const Color(0xFF5F8FA8)
-                                                  : const Color.fromARGB(
-                                                      255, 118, 178, 230);
-                                          break;
-                                        case 'visitor':
-                                          tagColor =
-                                              Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? const Color(0xFF2A4A65)
-                                                  : const Color.fromARGB(
-                                                      255, 156, 201, 234);
-                                          break;
-                                        default:
-                                          tagColor =
-                                              Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? const Color(0xFF4A6B85)
-                                                  : const Color(0xFF7496B3);
-                                      }
-
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 6),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: size.width * 0.04,
-                                            vertical: size.height * 0.005,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: tagColor,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              role.isNotEmpty
-                                                  ? role[0].toUpperCase() +
-                                                      role
-                                                          .substring(1)
-                                                          .toLowerCase()
-                                                  : role,
-                                              style: GoogleFonts.inknutAntiqua(
-                                                fontSize: 12 * textScale,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  return SizedBox(
+                                    height: 28,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: _buildRoleChips(
+                                          roles,
+                                          constraints.maxWidth,
+                                          size,
+                                          textScale,
                                         ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                               // Follow button for other users' profiles (smaller, inline)
                               if (!_isOwnProfile) ...[
@@ -908,7 +1008,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return AppLayout(
       currentIndex: 4,
-      showBackButton: !_isOwnProfile,
+      showBackButton: true,
+      isProfilePage: true,
+      isOwnProfilePage: _isOwnProfile,
       onTabSelected: (_) {},
       child: PopScope(
         canPop: false,

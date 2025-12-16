@@ -12,6 +12,8 @@ class AppLayout extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
   final bool showBackButton;
+  final bool isProfilePage;
+  final bool isOwnProfilePage;
 
   const AppLayout({
     super.key,
@@ -19,6 +21,8 @@ class AppLayout extends StatefulWidget {
     required this.currentIndex,
     required this.onTabSelected,
     this.showBackButton = false,
+    this.isProfilePage = false,
+    this.isOwnProfilePage = false,
   });
 
   @override
@@ -35,6 +39,17 @@ class _AppLayoutState extends State<AppLayout> {
   void initState() {
     super.initState();
     currentIndex = widget.currentIndex;
+    // Precache logo images to prevent loading delay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      precacheImage(
+        const AssetImage('assets/dailytail-logotype-white.png'),
+        context,
+      );
+      precacheImage(
+        const AssetImage('assets/dailytail-logotype-blue.png'),
+        context,
+      );
+    });
   }
 
   void _navigateToIndex(int index) {
@@ -58,6 +73,10 @@ class _AppLayoutState extends State<AppLayout> {
     }
 
     if (destination != null) {
+      if (index == 4 && widget.isProfilePage && widget.isOwnProfilePage) {
+        // Already on own profile; no-op to avoid duplicate rebuilds
+        return;
+      }
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -70,8 +89,11 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   void _openProfile() {
-    // Always navigate to own profile, even if already on profile tab
-    // (in case user is viewing someone else's profile)
+    // If already on own profile, avoid pushing another instance
+    if (currentIndex == 4 && widget.isProfilePage && widget.isOwnProfilePage) {
+      return;
+    }
+
     widget.onTabSelected(4);
     Navigator.pushReplacement(
       context,
@@ -156,6 +178,9 @@ class _AppLayoutState extends State<AppLayout> {
                               : 'assets/dailytail-logotype-blue.png',
                           height: 80,
                           fit: BoxFit.contain,
+                          gaplessPlayback: true,
+                          filterQuality: FilterQuality.medium,
+                          cacheHeight: 160,
                         ),
                       ),
                     ),

@@ -12,31 +12,40 @@ class AllPetsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2A4A65)
+            : const Color(0xFF7496B3),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        toolbarHeight: 90,
+        title: Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: Text(
+            "$name's Pets",
+            style: GoogleFonts.inknutAntiqua(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            iconSize: 28,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "$name's Pets",
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
 
               Expanded(
                 child: GridView.builder(

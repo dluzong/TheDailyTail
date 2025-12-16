@@ -31,18 +31,27 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
             : const Color(0xFF7496B3),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          'Explore Organizations',
-          style: GoogleFonts.inknutAntiqua(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        toolbarHeight: 90,
+        title: Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: Text(
+            'Explore Organizations',
+            style: GoogleFonts.inknutAntiqua(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            iconSize: 28,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
