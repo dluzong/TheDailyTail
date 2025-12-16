@@ -31,18 +31,29 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
             : const Color(0xFF7496B3),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          'Explore Organizations',
-          style: GoogleFonts.inknutAntiqua(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        toolbarHeight: 90,
+        title: Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: Text(
+            'Explore Organizations',
+            style: GoogleFonts.inknutAntiqua(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            iconSize: 28,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -202,6 +213,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -210,6 +223,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                                             color: Colors.grey,
                                             fontSize: 12,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
@@ -220,6 +235,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                               Text(
                                 org['description'] ?? '',
                                 style: GoogleFonts.lato(),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),

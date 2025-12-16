@@ -177,6 +177,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           final photo = (u['photo_url'] as String?) ?? '';
           final isFollowing = following.contains(userId);
 
+          final displayUsername = username.length > 15 ? '${username.substring(0, 15)}...' : username;
+          final displayName = name.length > 15 ? '${name.substring(0, 15)}...' : name;
+
           return Card(
             elevation: 1,
             shape: RoundedRectangleBorder(
@@ -193,11 +196,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     : null,
               ),
               title: Text(
-                username.isNotEmpty ? username : name,
+                username.isNotEmpty ? displayUsername : displayName,
                 style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               subtitle: name.isNotEmpty && username.isNotEmpty
-                  ? Text(name, style: GoogleFonts.lato(color: Colors.grey))
+                  ? Text(displayName, 
+                      style: GoogleFonts.lato(color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)
                   : null,
               onTap: () {
                 final selfId = userProvider.user?.userId;
