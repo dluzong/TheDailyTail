@@ -38,7 +38,7 @@ class Pet {
       name: map['name'] ?? 'Unnamed',
       species: map['species'] ?? 'Dog', // Default to Dog if missing
       breed: map['breed'] ?? 'Unknown',
-      birthday: map['dob'] ?? '01/01/1919', //EDIT THIS SO DEFAULT CAN BE EMPTY ?
+      birthday: map['dob'] ?? 'N/A', //EDIT THIS SO DEFAULT CAN BE EMPTY ?
       weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
       imageUrl: map['image_url'] ?? '',
       status: map['status'] ?? 'owned',
