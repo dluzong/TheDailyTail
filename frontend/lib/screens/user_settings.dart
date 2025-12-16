@@ -108,23 +108,18 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     super.dispose();
   }
 
-  Future<bool> isUsernameAvailable(String username) async {
-    final currentUser = Provider.of<UserProvider>(context, listen: false).user;
-    if (currentUser?.username == username) {
-      return true; // The username is the user's own, so it's "available"
-    }
-
-    // Check if the username exists for any other user
+  Future<bool> _isUsernameTaken(String username) async {
     try {
       final response = await _supabase
           .from('users')
-          .select('user_id')
+          .select('username')
           .eq('username', username)
           .maybeSingle();
-      return response == null; // True if available (no user found), false if taken
+      return response != null;
     } catch (e) {
-      debugPrint('Error checking username availability: $e');
-      return false; // Fail safely, preventing a user from taking a username that might exist
+      debugPrint('Error checking username: $e');
+      // Default to true to prevent accidental overwrites on error
+      return true;
     }
   }
 
@@ -190,10 +185,19 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     _name = _nameController.text.trim();
     _bio = _bioController.text.trim();
 
-    // Regex check
+
+
+    // Regex check, check if username exists
     if (_username != _username.replaceAll(RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]'), '')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Username has special characters. Failed to update.')),
+      );
+      return;
+    }
+
+    if (await _isUsernameTaken(_usernameController.text.toString())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username is already taken.')),
       );
       return;
     }
