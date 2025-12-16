@@ -195,11 +195,13 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
       return;
     }
 
-    if (await _isUsernameTaken(_usernameController.text.toString())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username is already taken.')),
-      );
-      return;
+    if (_usernameController.text.toString() != _username) {
+      if (await _isUsernameTaken(_usernameController.text.toString())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Username is already taken.')),
+        );
+        return;
+      }
     }
 
     try {
