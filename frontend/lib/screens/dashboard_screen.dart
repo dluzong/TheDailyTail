@@ -5,7 +5,6 @@ import '../pet_provider.dart';
 import '../user_provider.dart';
 import '../shared/app_layout.dart';
 import '../log_provider.dart';
-import '../shared/utils.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -97,7 +96,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             'Birthday': selectedPet.birthday,
             'Weight': (() {
               final weightStr = selectedPet!.weight.toString();
-              final truncatedWeight = weightStr.length > 8 ? '${weightStr.substring(0, 8)}...' : weightStr;
+              final truncatedWeight = weightStr.length > 8
+                  ? '${weightStr.substring(0, 8)}...'
+                  : weightStr;
               return '$truncatedWeight lbs';
             })(),
           }
@@ -131,16 +132,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       hint: Text(
                         petProvider.isLoading ? 'Loading...' : 'Select a pet',
                       ),
-                      items: pets
-                          .map((p) {
-                            final displayName = p.name.length > 12 ? '${p.name.substring(0, 12)}...' : p.name;
-                            return DropdownMenuItem(
-                                value: p.petId,
-                                child: Text(displayName,
-                                    style: GoogleFonts.lato(fontSize: 20)),
-                              );
-                          })
-                          .toList(),
+                      items: pets.map((p) {
+                        final displayName = p.name.length > 12
+                            ? '${p.name.substring(0, 12)}...'
+                            : p.name;
+                        return DropdownMenuItem(
+                          value: p.petId,
+                          child: Text(displayName,
+                              style: GoogleFonts.lato(fontSize: 20)),
+                        );
+                      }).toList(),
                       onChanged: (newPetId) {
                         if (newPetId == null) return;
 
@@ -299,7 +300,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final now = DateTime.now();
             final xDaysAgo = now.subtract(const Duration(days: 7));
             final recentLogs = _currentLogs
-                .where((log) => log.date.isAfter(xDaysAgo))
+                .where((log) =>
+                    log.date.isAfter(xDaysAgo) && !log.date.isAfter(now))
                 .toList();
             if (recentLogs.isEmpty) {
               return const Center(
