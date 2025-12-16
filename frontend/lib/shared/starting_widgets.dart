@@ -60,8 +60,9 @@ Widget buildAppTextField({
   TextEditingController? controller,
   Widget? suffixIcon,
   required BuildContext context,
+  bool forceLightMode = false,
 }) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final isDark = !forceLightMode && Theme.of(context).brightness == Brightness.dark;
   return SizedBox(
     width: 300,
     child: TextField(

@@ -355,9 +355,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 name: (petMap['name'] ?? 'Unknown').toString(),
                 species: (petMap['species'] ?? 'Dog').toString(),
                 breed: (petMap['breed'] ?? 'Unknown').toString(),
-                age: (petMap['age'] as num?)?.toInt() ?? 0,
                 birthday:
                   (petMap['dob'] ?? petMap['birthday'])?.toString() ?? '',
+                sex: (petMap['sex'] ?? '').toString(),
                 weight: (petMap['weight'] as num?)?.toDouble() ?? 0.0,
                 imageUrl: (petMap['image_url'] ?? petMap['imageUrl'])?.toString() ?? '',
                 status: petMap['status']?.toString() ?? 'owned',

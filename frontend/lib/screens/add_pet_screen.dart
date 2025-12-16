@@ -92,25 +92,6 @@ class _AddPetScreenState extends State<AddPetScreen> {
     return true;
   }
 
-  int _calcAgeYears(String dateStr) {
-    try {
-      final parts = dateStr.split('/');
-      if (parts.length != 3) return 0;
-      final month = int.parse(parts[0]);
-      final day = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-      final birthDate = DateTime(year, month, day);
-      final now = DateTime.now();
-      int years = now.year - birthDate.year;
-      if (DateTime(now.year, month, day).isAfter(now)) {
-        years -= 1;
-      }
-      return years < 0 ? 0 : years;
-    } catch (_) {
-      return 0;
-    }
-  }
-
   void _save() {
     final name = _nameController.text.trim();
     final breed = _breedController.text.trim();
