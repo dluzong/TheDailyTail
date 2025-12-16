@@ -199,7 +199,41 @@ class UserProvider extends ChangeNotifier {
           ''').eq('user_id', session.user.id).maybeSingle();
 
       if (response == null) {
-        _user = null;
+        // If the auth session exists but profile row was deleted, recreate a minimal profile.
+        try {
+          await _supabase.from('users').insert({
+            'user_id': session.user.id,
+            'username': session.user.userMetadata?['username'] ??
+                session.user.email?.split('@').first ??
+                'user_${session.user.id.substring(0, 6)}',
+            'name': session.user.userMetadata?['name'] ?? '',
+            'photo_url': session.user.userMetadata?['avatar_url'] ?? '',
+            'role': <String>[],
+            'bio': '',
+          });
+          // Refetch after insert
+          final recreated = await _supabase.from('users').select('''
+                user_id,
+                username,
+                name,
+                bio,
+                photo_url,
+                role,
+                organization_members(organization_id, role),
+                following:follows!follower_id(followee_id),
+                followers:follows!followee_id(follower_id)
+              ''').eq('user_id', session.user.id).maybeSingle();
+          if (recreated != null) {
+            final newUser = AppUser.fromMap(recreated);
+            _user = newUser;
+            _lastFetchTime = DateTime.now();
+            await _saveToCache();
+            notifyListeners();
+          }
+        } catch (e) {
+          debugPrint('ERROR: Failed to recreate user profile: $e');
+          _user = null;
+        }
       } else {
         final newUser = AppUser.fromMap(response);
 

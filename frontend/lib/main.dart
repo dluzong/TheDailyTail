@@ -24,7 +24,14 @@ void main() async {
   }
 
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+      // iOS: uses ASWebAuthenticationSession with CFBundleURLSchemes
+    ),
+  );
 
   debugPrint('Supabase initialized');
   debugPrint('supabaseUrl: $supabaseUrl');

@@ -24,17 +24,45 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _supabase = Supabase.instance.client;
   bool _isLoading = false;
 
+  StreamSubscription<AuthState>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen for successful auth state changes
+    _authSub = _supabase.auth.onAuthStateChange.listen((data) {
+      if (!mounted) return;
+      final event = data.event;
+      debugPrint('SignUpScreen: auth event=$event');
+
+      if (event == AuthChangeEvent.signedIn) {
+        setState(() => _isLoading = false);
+        // Successful sign-in, navigate to onboarding
+        context.read<UserProvider>().fetchUser().then((_) {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            );
+          }
+        });
+      }
+    });
+  }
+
   Future<void> signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
+      debugPrint('SignUpScreen: Starting Google OAuth');
       final response = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'io.supabase.flutter://login-callback',
+        redirectTo: 'com.example.thedailytail://login-callback',
       );
+      debugPrint('SignUpScreen: OAuth response=$response');
 
-      // Handle SDK differences: some versions return bool, others return an object
       if (response == false) {
         if (mounted) {
+          setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
                 content: Text('Google sign-in failed or was cancelled')),
@@ -42,31 +70,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         return;
       }
-      // response == true -> continue
-
-      // Attempt to load user/profile after OAuth flow
-      try {
-        await context.read<UserProvider>().fetchUser();
-      } catch (e) {
-        debugPrint('fetchUser after Google sign-in failed: $e');
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Signed in with Google')));
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
-      }
+      // Don't navigate here - let the auth state listener handle it
     } catch (e) {
+      debugPrint('SignUpScreen: Google OAuth error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Sign-in error: ${e.toString()}')));
       }
-      debugPrint('Google sign-in error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -261,6 +272,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _fullName.dispose();
     _username.dispose();
     _email.dispose();
@@ -298,9 +310,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
-                        buildAppTitle(),
-                        const SizedBox(height: 20), // Adjusted spacing after logo
-                        buildAppTextField(
+                      buildAppTitle(),
+                      const SizedBox(height: 20), // Adjusted spacing after logo
+                      buildAppTextField(
                           hint: "Full Name",
                           controller: _fullName,
                           context: context),
