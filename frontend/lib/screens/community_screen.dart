@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,10 @@ class CommunityBoardScreen extends StatefulWidget {
 class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchTerm = '';
+  Timer? _searchDebounce;
+  bool _isSearchingUsers = false;
+  List<Map<String, dynamic>> _userSearchResults = [];
+  bool _showAllPeople = false;
   final List<String> _categories = [
     'General',
     'Announcement',
@@ -57,6 +62,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   @override
   void dispose() {
     _clearSavedFilters();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _titleController.dispose();
     _contentController.dispose();
@@ -71,6 +77,594 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     } catch (e) {
       // ignore
     }
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchTerm = value;
+      _showAllPeople = false;
+    });
+    _searchDebounce?.cancel();
+    if (value.trim().isEmpty) {
+      setState(() {
+        _userSearchResults = [];
+        _isSearchingUsers = false;
+      });
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      setState(() => _isSearchingUsers = true);
+      final results = await context
+          .read<UserProvider>()
+          .searchUsers(value.trim(), limit: 30, excludeSelf: true);
+      if (!mounted) return;
+      setState(() {
+        _userSearchResults = results;
+        _isSearchingUsers = false;
+      });
+    });
+  }
+
+  List<Map<String, dynamic>> _sortUsersByRelevance(
+      List<Map<String, dynamic>> users, String term) {
+    final q = term.toLowerCase().trim();
+    int scoreUser(Map<String, dynamic> u) {
+      final username = (u['username'] as String? ?? '').toLowerCase();
+      final name = (u['name'] as String? ?? '').toLowerCase();
+      int s = 0;
+      if (username == q) s += 1000;
+      if (name == q) s += 900;
+      if (username.startsWith(q)) s += 800;
+      if (name.startsWith(q)) s += 700;
+      if (username.contains(q)) s += 300;
+      if (name.contains(q)) s += 200;
+      return s;
+    }
+
+    final sorted = List<Map<String, dynamic>>.from(users);
+    sorted.sort((a, b) {
+      final sb = scoreUser(b);
+      final sa = scoreUser(a);
+      if (sb != sa) return sb.compareTo(sa);
+
+      // Tiebreak by username then name
+      final aU = (a['username'] as String? ?? '').toLowerCase();
+      final bU = (b['username'] as String? ?? '').toLowerCase();
+      final cmpU = aU.compareTo(bU);
+      if (cmpU != 0) return cmpU;
+      final aN = (a['name'] as String? ?? '').toLowerCase();
+      final bN = (b['name'] as String? ?? '').toLowerCase();
+      return aN.compareTo(bN);
+    });
+    return sorted;
+  }
+
+  Widget _buildFeedTab() {
+    return Consumer2<PostsProvider, UserProvider>(
+      builder: (context, postsProvider, userProvider, _) {
+        // Build filtered posts just like _buildPostsList
+        List<Post> posts = postsProvider.posts;
+        if (_searchTerm.isNotEmpty) {
+          posts = posts
+              .where((p) =>
+                  p.title.toLowerCase().contains(_searchTerm.toLowerCase()))
+              .toList();
+        }
+
+        if (_filterCategories.isNotEmpty) {
+          posts = posts.where((p) {
+            return p.categories.any((cat) => _filterCategories.contains(cat));
+          }).toList();
+        }
+        if (_filterSort == 'popular') {
+          posts = List.from(posts)
+            ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+        }
+
+        final following = userProvider.user?.following ?? const [];
+        final sortedUsers =
+            _sortUsersByRelevance(_userSearchResults, _searchTerm);
+        final visibleUsers = _showAllPeople
+            ? sortedUsers
+            : (sortedUsers.length > 6
+                ? sortedUsers.sublist(0, 6)
+                : sortedUsers);
+
+        Widget peopleTile(Map<String, dynamic> u) {
+          final username = (u['username'] as String?) ?? '';
+          final name = (u['name'] as String?) ?? '';
+          final userId = (u['user_id'] as String?) ?? '';
+          final photo = (u['photo_url'] as String?) ?? '';
+          final isFollowing = following.contains(userId);
+
+          return Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              leading: CircleAvatar(
+                backgroundColor: const Color(0xFF7496B3),
+                backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null,
+                child: photo.isEmpty
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
+              title: Text(
+                username.isNotEmpty ? username : name,
+                style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+              ),
+              subtitle: name.isNotEmpty && username.isNotEmpty
+                  ? Text(name, style: GoogleFonts.lato(color: Colors.grey))
+                  : null,
+              onTap: () {
+                final selfId = userProvider.user?.userId;
+                if (selfId != null && selfId == userId) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(
+                        shouldAnimate: false,
+                      ),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfileScreen(
+                        otherUsername: username.isNotEmpty ? username : null,
+                        shouldAnimate: false,
+                      ),
+                    ),
+                  );
+                }
+              },
+              trailing: (userProvider.user?.userId == userId)
+                  ? null
+                  : TextButton(
+                      onPressed: () async {
+                        try {
+                          await userProvider.toggleFollow(userId);
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed: $e')),
+                          );
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: isFollowing
+                            ? const Color(0xFF7496B3)
+                            : Colors.white,
+                        backgroundColor: isFollowing
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF3A5A75)
+                                : const Color(0xFFEEF7FB))
+                            : const Color(0xFF7496B3),
+                      ),
+                      child: Text(isFollowing ? 'Following' : 'Follow'),
+                    ),
+            ),
+          );
+        }
+
+        return NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (n.metrics.pixels >= n.metrics.maxScrollExtent - 200 &&
+                !postsProvider.isLoading) {
+              postsProvider.loadMorePosts();
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            slivers: [
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+              if (_searchTerm.isNotEmpty) ...[
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'People',
+                          style: GoogleFonts.lato(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (sortedUsers.length > 6)
+                          TextButton(
+                            onPressed: () => setState(() {
+                              _showAllPeople = !_showAllPeople;
+                            }),
+                            child: Text(
+                              _showAllPeople
+                                  ? 'Show less'
+                                  : 'See all (${sortedUsers.length})',
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                if (_isSearchingUsers)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: LinearProgressIndicator(),
+                    ),
+                  )
+                else if (sortedUsers.isEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    sliver: SliverToBoxAdapter(
+                      child: Text('No matching people found',
+                          style: GoogleFonts.lato(color: Colors.grey)),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    sliver: SliverList.separated(
+                      itemCount: visibleUsers.length,
+                      itemBuilder: (context, index) =>
+                          peopleTile(visibleUsers[index]),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                    ),
+                  ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 12),
+                        const Divider(),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Posts',
+                          style: GoogleFonts.lato(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+
+              // Posts list
+              if (postsProvider.isLoading && posts.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (posts.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'No posts found. :(',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        color: const Color(0xFF394957),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.all(16.0),
+                  sliver: SliverList.separated(
+                    itemCount: posts.length,
+                    itemBuilder: (context, index) {
+                      final post = posts[index];
+                      final providerIndex = postsProvider.posts.indexOf(post);
+                      // Reuse existing card UI by building it inline
+                      return Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: const Color(0xFF7496B3),
+                                    backgroundImage: post.authorPhoto.isNotEmpty
+                                        ? NetworkImage(post.authorPhoto)
+                                        : null,
+                                    child: post.authorPhoto.isEmpty
+                                        ? const Icon(Icons.person,
+                                            color: Colors.white)
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        final currentUserId = context
+                                            .read<UserProvider>()
+                                            .user
+                                            ?.userId;
+                                        final isOwnPost =
+                                            currentUserId != null &&
+                                                post.userId == currentUserId;
+                                        if (isOwnPost ||
+                                            post.authorName == 'You') {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const ProfileScreen(
+                                                shouldAnimate: false,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ProfileScreen(
+                                                otherUsername: post.authorName,
+                                                shouldAnimate: false,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            post.authorName,
+                                            style: GoogleFonts.lato(
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF7496B3),
+                                            ),
+                                          ),
+                                          Text(
+                                            post.createdTs,
+                                            style: GoogleFonts.lato(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Consumer<UserProvider>(
+                                    builder: (context, userProvider, _) {
+                                      final currentUserId =
+                                          userProvider.user?.userId;
+                                      final isOwnPost = currentUserId != null &&
+                                          post.userId == currentUserId;
+                                      final isFollowing = userProvider
+                                              .user?.following
+                                              .contains(post.userId) ??
+                                          false;
+                                      if (isOwnPost ||
+                                          post.authorName == 'You') {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 8),
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            try {
+                                              await userProvider
+                                                  .toggleFollow(post.userId);
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                      content: Text(
+                                                          'Failed to update follow status: $e')),
+                                                );
+                                              }
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: isFollowing
+                                                  ? (Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? const Color(0xFF3A5A75)
+                                                      : const Color(0xFFEEF7FB))
+                                                  : const Color(0xFF7496B3),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              border: isFollowing
+                                                  ? Border.all(
+                                                      color: const Color(
+                                                          0xFF7496B3))
+                                                  : null,
+                                            ),
+                                            child: Text(
+                                              isFollowing
+                                                  ? 'Following'
+                                                  : 'Follow',
+                                              style: GoogleFonts.lato(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: isFollowing
+                                                    ? const Color(0xFF7496B3)
+                                                    : Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  if ((context
+                                              .read<UserProvider>()
+                                              .user
+                                              ?.userId ==
+                                          post.userId) ||
+                                      post.authorName == 'You')
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert,
+                                          color: Colors.grey),
+                                      onSelected: (value) {
+                                        if (value == 'edit') {
+                                          _showNewPostModal(post: post);
+                                        } else if (value == 'delete') {
+                                          _confirmDeletePost(post.postId);
+                                        }
+                                      },
+                                      itemBuilder: (context) => const [
+                                        PopupMenuItem(
+                                            value: 'edit',
+                                            child: Text('Edit post')),
+                                        PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text('Delete post')),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CommunityPostScreen(
+                                          postIndex: providerIndex),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  post.title,
+                                  style: GoogleFonts.lato(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                post.content,
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.lato(),
+                              ),
+                              if (post.categories.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: post.categories.map((cat) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF3A5A75)
+                                            : const Color(0xFFEEF7FB),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? const Color(0xFF4A6B85)
+                                              : const Color(0xFFBCD9EC),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        cat,
+                                        style: GoogleFonts.lato(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : const Color(0xFF7496B3),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      postsProvider.toggleLike(providerIndex);
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          post.isLiked
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color: post.isLiked
+                                              ? Colors.red
+                                              : Colors.grey,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text("${post.likesCount}"),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 24),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => CommunityPostScreen(
+                                            postIndex: providerIndex,
+                                            openKeyboard: true,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.comment_outlined),
+                                        const SizedBox(width: 4),
+                                        Text("${post.commentCount}"),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 16),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadSavedFilters() async {
@@ -1134,8 +1728,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                   ),
                                   child: TextField(
                                     controller: _searchController,
-                                    onChanged: (value) =>
-                                        setState(() => _searchTerm = value),
+                                    onChanged: _onSearchChanged,
                                     style: TextStyle(
                                       color: Theme.of(context).brightness ==
                                               Brightness.dark
@@ -1226,7 +1819,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     Expanded(
                       child: TabBarView(
                         children: [
-                          _buildPostsList(mode: 'feed'),
+                          _buildFeedTab(),
                           _buildPostsList(mode: 'friends'),
                           _buildOrgsList(),
                         ],

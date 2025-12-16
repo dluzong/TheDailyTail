@@ -83,9 +83,8 @@ class _ProfileScreenState extends State<ProfileScreen>
           await userProvider.fetchPublicProfile(widget.otherUsername!);
 
       if (profile != null && mounted) {
-        // Fetch other user's pets by getting user's ID and querying from userProvider
-        // Since fetchOtherUserPets may not be available, we'll get the pets through a different approach
-        // For now, we'll just show empty pets for other users
+        // Fetch other user's pets
+        final pets = await userProvider.fetchOtherUserPets(profile.userId);
 
         setState(() {
           _otherUserData = {
@@ -99,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             'followingIds': profile.following,
             'totalFollowers': profile.followers.length,
             'totalFollowing': profile.following.length,
-            'pets': [],
+            'pets': pets,
             'totalPosts': 0,
           };
         });
@@ -881,7 +880,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   displayPets = otherPets
                       .map((e) => pet_list.Pet(
                             name: e['name']?.toString() ?? 'Pet',
-                            imageUrl: e['imageUrl']?.toString() ?? '',
+                            imageUrl: e['image_url']?.toString() ?? '',
                           ))
                       .toList();
                   final first = _otherUserData?['firstName']?.toString() ?? '';
@@ -1087,16 +1086,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                           final user = followers[index];
                           final name = user['name'] ?? 'Unknown';
                           final username = user['username'] ?? '';
+                          final visitorUserId = user['user_id'] as String?;
                           final photoUrl = user['photo_url'] as String?;
+                          final currentUserId = userProvider.user?.userId;
 
                           return ListTile(
                             onTap: () {
                               Navigator.of(context).pop(); // Close dialog
+                              // Check if this is the current user's own account
+                              final isOwnAccount = currentUserId != null &&
+                                  visitorUserId == currentUserId;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ProfileScreen(
-                                    otherUsername: username,
+                                    otherUsername:
+                                        isOwnAccount ? null : username,
                                     shouldAnimate: false,
                                   ),
                                 ),
@@ -1240,16 +1245,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                           final user = following[index];
                           final name = user['name'] ?? 'Unknown';
                           final username = user['username'] ?? '';
+                          final visitedUserId = user['user_id'] as String?;
                           final photoUrl = user['photo_url'] as String?;
+                          final currentUserId = userProvider.user?.userId;
 
                           return ListTile(
                             onTap: () {
                               Navigator.of(context).pop(); // Close dialog
+                              // Check if this is the current user's own account
+                              final isOwnAccount = currentUserId != null &&
+                                  visitedUserId == currentUserId;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ProfileScreen(
-                                    otherUsername: username,
+                                    otherUsername:
+                                        isOwnAccount ? null : username,
                                     shouldAnimate: false,
                                   ),
                                 ),
