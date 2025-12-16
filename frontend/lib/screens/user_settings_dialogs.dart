@@ -805,7 +805,14 @@ class UserSettingsDialogs {
                                   Theme.of(context).brightness == Brightness.dark
                                       ? const Color(0xFF5A7A95)
                                       : const Color(0xFF7496B3),
-                              child: const Icon(Icons.pets, color: Colors.white),
+                              backgroundImage: pet.imageUrl.isNotEmpty
+                                  ? (pet.imageUrl.startsWith('http')
+                                      ? NetworkImage(pet.imageUrl)
+                                      : AssetImage(pet.imageUrl) as ImageProvider)
+                                  : null,
+                              child: pet.imageUrl.isEmpty
+                                  ? const Icon(Icons.pets, color: Colors.white)
+                                  : null,
                             ),
                             const SizedBox(width: 12),
                             Expanded(

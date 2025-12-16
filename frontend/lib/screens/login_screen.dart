@@ -138,13 +138,14 @@ Widget build(BuildContext context) {
                         const SizedBox(height: 20),
                         buildAppTitle(),
                         const SizedBox(height: 20), // Adjusted spacing after logo
-                        buildAppTextField(hint: "Email", controller: _email, context: context),
+                        buildAppTextField(hint: "Email", controller: _email, context: context, forceLightMode: true),
                         const SizedBox(height: 24),
                         buildAppTextField(
                           hint: "Password",
                           obscure: _obscurePassword,
                           controller: _password,
                           context: context,
+                          forceLightMode: true,
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword ? Icons.visibility_off : Icons.visibility,
