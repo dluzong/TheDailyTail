@@ -94,11 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final details = hasPets
         ? {
             'Breed': selectedPet.breed,
-            'Age': (() {
-              final ageStr = selectedPet!.age.toString();
-              final truncatedAge = ageStr.length > 8 ? '${ageStr.substring(0, 8)}...' : ageStr;
-              return '$truncatedAge y/o';
-            })(),
+            'Birthday': selectedPet.birthday,
             'Weight': (() {
               final weightStr = selectedPet!.weight.toString();
               final truncatedWeight = weightStr.length > 8 ? '${weightStr.substring(0, 8)}...' : weightStr;

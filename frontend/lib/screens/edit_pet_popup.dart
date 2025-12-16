@@ -123,6 +123,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
     final birthday = birthdayController.text.trim();
     final weight = double.tryParse(weightController.text.trim()) ?? 0.0;
 
+
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pet name is required')),
@@ -149,8 +150,8 @@ class _EditPetPopupState extends State<EditPetPopup> {
     Navigator.of(context).pop({
       'name': name,
       'breed': breed,
-      'age': birthday.isNotEmpty ? _calcAgeYears(birthday) : 0,
-      'birthday': birthday,
+      //'age': birthday.isNotEmpty ? _calcAgeYears(birthday) : 0,
+      'dob': birthday,
       'weight': weight,
       'imageUrl': tempImagePath,
     });
