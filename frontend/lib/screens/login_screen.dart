@@ -45,13 +45,12 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint('fetchUser after Google sign-in failed: $e');
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -76,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user == null) {
         // SDK doesn't expose `res.error` here — show a generic messages.
         debugPrint('User == null');
+        if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Login failed')));
         return;
@@ -85,6 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await context.read<UserProvider>().fetchUser();
       } catch (e) {
         debugPrint('fetchUser failed: $e');
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load user: $e')),
         );
@@ -110,7 +111,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      child: Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Column(
@@ -124,63 +131,73 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    buildAppTitle(),
-                    const SizedBox(height: 25),
-                    buildDogIcon(),
-                    const SizedBox(height: 35),
-                    buildAppTextField(hint: "Email", controller: _email),
-                    const SizedBox(height: 15),
-                    buildAppTextField(
-                      hint: "Password",
-                      obscure: _obscurePassword,
-                      controller: _password,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: const Color(0xFF7496B3),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 25),
-                    ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              _signIn();
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        buildAppTitle(),
+                        const SizedBox(height: 25),
+                        buildDogIcon(),
+                        const SizedBox(height: 35),
+                        buildAppTextField(hint: "Email", controller: _email, context: context),
+                        const SizedBox(height: 15),
+                        buildAppTextField(
+                          hint: "Password",
+                          obscure: _obscurePassword,
+                          controller: _password,
+                          context: context,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: const Color(0xFF7496B3),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
                             },
-                      child: Text(_isLoading ? 'Logging in...' : 'Log In'),
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+                        ElevatedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  _signIn();
+                                },
+                          child: Text(_isLoading ? 'Logging in...' : 'Log In'),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        OutlinedButton.icon(
+                          onPressed: _isLoading ? null : signInWithGoogle,
+                          icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
+                          label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
+                            style: const TextStyle(color: Color(0xFF7496B3))),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF7496B3)),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : signInWithGoogle,
-                      icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-                      label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
-                        style: const TextStyle(color: Color(0xFF7496B3))),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF7496B3)),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
           buildBorderBar(),
         ],
+      ),
       ),
     );
   }

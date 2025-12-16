@@ -26,7 +26,9 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF7496B3),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2A4A65)
+            : const Color(0xFF7496B3),
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
@@ -51,17 +53,34 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 220, 220, 232),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color.fromARGB(255, 220, 220, 232),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: TextField(
                 controller: _searchController,
                 onChanged: (value) => setState(() => _searchTerm = value),
-                decoration: const InputDecoration(
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+                decoration: InputDecoration(
                   hintText: 'Search organizations...',
-                  prefixIcon: Icon(Icons.search),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF888888)
+                        : const Color(0xFF888888),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF888888)
+                        : const Color(0xFF888888),
+                  ),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),

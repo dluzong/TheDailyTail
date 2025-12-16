@@ -4,6 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:frontend/screens/dashboard_screen.dart';
 import 'package:frontend/screens/add_pet_screen.dart';
+import 'package:provider/provider.dart';
+import '../user_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -15,13 +19,13 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  String? selectedRole;
+  List<String> selectedRoles = [];
 
   final List<Map<String, dynamic>> _pages = [
     {
       "title": "Welcome user!",
       "subtitle":
-          "The Daily Tail helps you track your pet’s health and connect with fellow pet lovers.",
+          "The Daily Tail helps you track your pet’s health and connect with fellow pet lovers. ",
       "animation": "assets/lottie/cat_playing.json",
     },
     {
@@ -39,8 +43,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       "title": "Tell us who you are",
       "showPaw": true,
-      "subtitle": "Choose the role that fits you best",
-      "roles": ["Pet Owner", "Pet Sitter", "Adoption Organizer", "Foster"],
+      "subtitle": "Choose the role that fits you best: Pet Owner, Organizer Leader, or Foster",
+      "roles": ["Owner", "Organizer", "Foster"],
       "animation": "assets/lottie/dog_roles.json",
     },
     {
@@ -67,6 +71,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+
   void _goToAddPet() async {
     await Navigator.push(
       context,
@@ -81,11 +86,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void _finishOnboarding() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const DashboardScreen()),
-    );
+  void _finishOnboarding() async {
+    // 1. Save roles if any were selected
+    if (selectedRoles.isNotEmpty) {
+      try {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          final rolesToSave = selectedRoles.map((r) => r.toLowerCase()).toList();
+          await Supabase.instance.client
+              .from('users')
+              .update({'role': rolesToSave})
+              .eq('user_id', userId);
+
+          // Sync UserProvider
+          if (context.mounted) {
+            await context.read<UserProvider>().fetchUser(force: true);
+          }
+        }
+      } catch (e) {
+        debugPrint("Error saving roles: $e");
+      }
+    }
+
+    // 2. Navigate to Dashboard
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+    }
   }
 
   @override
@@ -96,9 +125,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     const titleColor = Color(0xFF5F7C94);
     const buttonBlue = Color(0xFF8DB6D9);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white,
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Colors.white,
       body: Column(
         children: [
           Container(height: 30, color: topBottomBarColor),
@@ -203,43 +238,51 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                             // Role buttons (for role slide) — select/highlight only
                             if (page["roles"] != null)
-                              Column(
-                                children:
-                                    (page["roles"] as List<String>).map((role) {
-                                  final isSelected = selectedRole == role;
-                                  return Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 8),
-                                    child: SizedBox(
-                                      width: 220,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              isSelected ? titleColor : buttonBlue,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 14),
+                              Column(                                children:
+                              (page["roles"] as List<String>).map((role) {
+
+                                // CHANGED: Check if list contains the role
+                                final isSelected = selectedRoles.contains(role);
+
+                                return Padding(
+                                  padding:
+                                  const EdgeInsets.symmetric(vertical: 8),
+                                  child: SizedBox(
+                                    width: 220,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                        isSelected ? titleColor : buttonBlue,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                          BorderRadius.circular(20),
                                         ),
-                                        onPressed: () {
-                                          // only highlight — do not navigate here
-                                          setState(() => selectedRole = role);
-                                        },
-                                        child: Text(
-                                          role,
-                                          style: const TextStyle(
-                                            fontFamily: 'Georgia',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 14),
+                                      ),
+                                      onPressed: () {
+                                        // CHANGED: Toggle logic (Add/Remove) locally only
+                                        setState(() {
+                                          if (isSelected) {
+                                            selectedRoles.remove(role);
+                                          } else {
+                                            selectedRoles.add(role);
+                                          }
+                                        });
+                                      },
+                                      child: Text(
+                                        role,
+                                        style: const TextStyle(
+                                          fontFamily: 'Georgia',
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
-                                  );
-                                }).toList(),
+                                  ),
+                                );
+                              }).toList(),
                               ),
                           ],
                         );
@@ -349,6 +392,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
           Container(height: 30, color: topBottomBarColor),
         ],
+      ),
       ),
     );
   }

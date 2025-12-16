@@ -14,6 +14,7 @@ class AddPetScreen extends StatefulWidget {
 
 class _AddPetScreenState extends State<AddPetScreen> {
   final TextEditingController _nameController = TextEditingController();
+  String _species = 'Dog'; // default species
   final TextEditingController _breedController = TextEditingController();
   final TextEditingController _bornController = TextEditingController();
   String? _sex;
@@ -66,7 +67,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
     final Map<String, dynamic> petMap = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'name': name,
-      'type': '',
+      'type': _species, // Use selected species
       'breed': _breedController.text.trim(),
       'age': 0,
       'imageUrl': _imagePath ?? '',
@@ -105,9 +106,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     child: Text(
                       'Pet Profile',
                       style: GoogleFonts.inknutAntiqua(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold
-                      ),
+                          fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -167,7 +166,50 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Pet Name', controller: _nameController)),
+                    hint: 'Pet Name', controller: _nameController, context: context)),
+
+            const SizedBox(height: 12),
+
+            // Insert Species
+            Padding(
+              padding: EdgeInsets.only(
+                  top: 6.0,
+                  bottom: 6.0,
+                  left: MediaQuery.of(context).size.width * 0.05),
+              child: Text(
+                "Species",
+                style: GoogleFonts.inknutAntiqua(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF7496B3)),
+              ),
+            ),
+            FractionallySizedBox(
+              widthFactor: 0.9,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFBCD9EC)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _species,
+                    isExpanded: true,
+                    items: ['Dog', 'Cat', 'Other']
+                        .map((s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s, style: GoogleFonts.lato()),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _species = val);
+                    },
+                  ),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 12),
 
@@ -188,7 +230,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Breed', controller: _breedController)),
+                    hint: 'Breed', controller: _breedController, context: context)),
 
             const SizedBox(height: 12),
 
@@ -209,7 +251,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Born (mm/dd/yy)', controller: _bornController)),
+                    hint: 'Born (mm/dd/yy)', controller: _bornController, context: context)),
 
             const SizedBox(height: 12),
 
@@ -270,7 +312,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
             FractionallySizedBox(
                 widthFactor: 0.9,
                 child: buildAppTextField(
-                    hint: 'Weight (lbs)', controller: _weightController)),
+                    hint: 'Weight (lbs)', controller: _weightController, context: context)),
 
             const SizedBox(height: 24),
             // Add pet button

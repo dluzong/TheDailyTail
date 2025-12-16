@@ -62,18 +62,30 @@ Widget buildAppTextField({
   bool obscure = false,
   TextEditingController? controller,
   Widget? suffixIcon,
+  required BuildContext context,
 }) {
   return SizedBox(
     width: 300,
     child: TextField(
       controller: controller,
       obscureText: obscure,
-      style: GoogleFonts.inknutAntiqua(fontSize: 16),
+      style: GoogleFonts.inknutAntiqua(
+        fontSize: 16,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.inknutAntiqua(color: Colors.grey[600]),
+        hintStyle: GoogleFonts.inknutAntiqua(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[400]
+              : Colors.grey[600],
+        ),
         filled: true,
-        fillColor: Colors.grey[200],
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF3A3A3A)
+            : Colors.grey[200],
         contentPadding: const EdgeInsets.symmetric(
           vertical: 15,
           horizontal: 20,

@@ -16,8 +16,7 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  final _firstName = TextEditingController();
-  final _lastName = TextEditingController();
+  final _fullName = TextEditingController();
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -89,12 +88,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _signUp() async {
     // Basic validation
     if (_password.text != _confirmPassword.text) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Passwords do not match')),
       );
       return; // Exit early
     }
     if (_email.text.isEmpty || !_email.text.contains('@')) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email')),
       );
@@ -127,8 +128,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password: _password.text,
         data: {
           'username': _username.text,
-          'first_name': _firstName.text,
-          'last_name': _lastName.text
+          'name': _fullName.text,
         },
       );
       debugPrint('Sign-Up Response: $res');
@@ -151,9 +151,67 @@ class _SignUpScreenState extends State<SignUpScreen> {
               (res as dynamic).errorMessage;
           if (maybeErr != null) message = maybeErr.toString();
         } catch (_) {}
+        if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
         return; // Exit early
+      }
+
+      if (_supabase.auth.currentSession == null) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false, // User cannot click away
+          builder: (BuildContext context) {
+            return const AlertDialog(
+              title: Text("Verification Required"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("A verification email has been sent. Please click the link in your email to continue."),
+                  SizedBox(height: 20),
+                  CircularProgressIndicator(), // Show they are waiting
+                ],
+              ),
+            );
+          },
+        );
+
+        // 2. Start a loop that tries to log in every 3 seconds
+        bool loggedIn = false;
+        int attempts = 0;
+
+        // Try for 5 mins (120 attempts * 5 secs = 300 secs)
+        while (!loggedIn && attempts < 60) {
+          await Future.delayed(const Duration(seconds: 5));
+          attempts++;
+
+          try {
+            // Attempt to sign in. This will succeed ONLY after they click the email link.
+            await _supabase.auth.signInWithPassword(
+              email: _email.text.trim(),
+              password: _password.text,
+            );
+
+            // If we get here, no error was thrown -> We are logged in!
+            loggedIn = true;
+            if (mounted) Navigator.pop(context); // Close the dialog
+          } catch (e) {
+            // Still not verified, keep waiting...
+            debugPrint("Waiting for verification... Attempt $attempts");
+          }
+        }
+
+        // 3. Handle timeout (User didn't click link in 60 seconds)
+        if (!loggedIn) {
+          if (mounted) Navigator.pop(context); // Close dialog
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Verification timed out. Please try logging in manually.')),
+            );
+          }
+          return;
+        }
       }
 
       try {
@@ -169,6 +227,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       }
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Signed up')));
       // Navigate to OnboardingScreen after successful signup
@@ -190,8 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
-    _firstName.dispose();
-    _lastName.dispose();
+    _fullName.dispose();
     _username.dispose();
     _email.dispose();
     _password.dispose();
@@ -201,9 +259,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white,
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Colors.white,
       body: Column(
         children: [
           buildBorderBar(),
@@ -224,19 +288,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 25),
                     buildDogIcon(),
                     const SizedBox(height: 35),
-                    buildAppTextField(
-                        hint: "First Name", controller: _firstName),
+                    buildAppTextField(hint: "Full Name", controller: _fullName, context: context),
                     const SizedBox(height: 15),
-                    buildAppTextField(hint: "Last Name", controller: _lastName),
+                    buildAppTextField(hint: "Username", controller: _username, context: context),
                     const SizedBox(height: 15),
-                    buildAppTextField(hint: "Username", controller: _username),
-                    const SizedBox(height: 15),
-                    buildAppTextField(hint: "Email", controller: _email),
+                    buildAppTextField(hint: "Email", controller: _email, context: context),
                     const SizedBox(height: 15),
                     buildAppTextField(
                       hint: "Password",
                       controller: _password,
                       obscure: _obscurePassword,
+                      context: context,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -256,6 +318,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       hint: "Confirm Password",
                       controller: _confirmPassword,
                       obscure: _obscureConfirmPassword,
+                      context: context,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirmPassword
@@ -300,6 +363,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           buildBorderBar(),
         ],
+      ),
       ),
     );
   }

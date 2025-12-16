@@ -45,7 +45,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -82,27 +82,93 @@ class _MedicationScreenState extends State<MedicationScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Medication Name',
-                  border: OutlineInputBorder(),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext).brightness == Brightness.dark 
+                    ? const Color(0xFF3A3A3A)
+                    : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(sheetContext).brightness == Brightness.dark
+                      ? const Color(0xFF505050)
+                      : Colors.grey.shade300,
+                  ),
+                ),
+                child: TextField(
+                  controller: nameController,
+                  style: Theme.of(sheetContext).brightness == Brightness.dark 
+                    ? const TextStyle(color: Colors.white) 
+                    : null,
+                  decoration: InputDecoration(
+                    labelText: 'Medication Name',
+                    labelStyle: TextStyle(
+                      color: Theme.of(sheetContext).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.grey,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: doseController,
-                decoration: const InputDecoration(
-                  labelText: 'Dose / Notes',
-                  border: OutlineInputBorder(),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext).brightness == Brightness.dark 
+                    ? const Color(0xFF3A3A3A)
+                    : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(sheetContext).brightness == Brightness.dark
+                      ? const Color(0xFF505050)
+                      : Colors.grey.shade300,
+                  ),
+                ),
+                child: TextField(
+                  controller: doseController,
+                  style: Theme.of(sheetContext).brightness == Brightness.dark 
+                    ? const TextStyle(color: Colors.white) 
+                    : null,
+                  decoration: InputDecoration(
+                    labelText: 'Dose / Notes',
+                    labelStyle: TextStyle(
+                      color: Theme.of(sheetContext).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.grey,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: freqController,
-                decoration: const InputDecoration(
-                  labelText: 'Frequency (e.g. 2x/day)',
-                  border: OutlineInputBorder(),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext).brightness == Brightness.dark 
+                    ? const Color(0xFF3A3A3A)
+                    : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(sheetContext).brightness == Brightness.dark
+                      ? const Color(0xFF505050)
+                      : Colors.grey.shade300,
+                  ),
+                ),
+                child: TextField(
+                  controller: freqController,
+                  style: Theme.of(sheetContext).brightness == Brightness.dark 
+                    ? const TextStyle(color: Colors.white) 
+                    : null,
+                  decoration: InputDecoration(
+                    labelText: 'Frequency (e.g. 2x/day)',
+                    labelStyle: TextStyle(
+                      color: Theme.of(sheetContext).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.grey,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -110,7 +176,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7AA9C8),
+                    backgroundColor: Theme.of(sheetContext).brightness == Brightness.dark
+                        ? const Color(0xFF3A5A75)
+                        : const Color(0xFF7AA9C8),
                   ),
                   onPressed: () async {
                     final name = nameController.text.trim();
@@ -152,20 +220,44 @@ class _MedicationScreenState extends State<MedicationScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Log Medication'),
+          title: Text(
+            'Log Medication',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+            ),
+          ),
           content: Text(
             "Mark '$name' as taken for $friendlyDate?",
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.black87,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                ),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7AA9C8)),
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                    ? const Color(0xFF4A6B85)
+                    : const Color(0xFF7AA9C8)),
               onPressed: () {
                 final now = DateTime.now();
                 final logDate = DateTime(
@@ -214,17 +306,44 @@ class _MedicationScreenState extends State<MedicationScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(title),
-          content: Text(message),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+            ),
+          ),
+          content: Text(
+            message,
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.black87,
+            ),
+          ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(cancelText)),
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                cancelText,
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                ),
+              ),
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7AA9C8)),
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3A5A75)
+                      : const Color(0xFF7AA9C8)),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Yes', style: TextStyle(color: Colors.white)),
             ),
@@ -273,7 +392,8 @@ class _MedicationScreenState extends State<MedicationScreen> {
       currentIndex: 0,
       onTabSelected: (index) {},
       child: Scaffold(
-        backgroundColor: Colors.white,
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,8 +415,11 @@ class _MedicationScreenState extends State<MedicationScreen> {
                           ),
                         );
                       },
-                      child: const Icon(Icons.arrow_back,
-                          size: 24, color: Colors.black87),
+                      child: Icon(Icons.arrow_back,
+                          size: 24, 
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -349,8 +472,12 @@ class _MedicationScreenState extends State<MedicationScreen> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: selected
-                                      ? const Color(0xFF7AA9C8)
-                                      : const Color(0xFFEDF7FF),
+                                      ? (Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF4A6B85)
+                                          : const Color(0xFF7AA9C8))
+                                      : (Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2A2A2A)
+                                          : const Color(0xFFEDF7FF)),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 padding: const EdgeInsets.all(8),
@@ -364,7 +491,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                         fontWeight: FontWeight.bold,
                                         color: selected
                                             ? Colors.white
-                                            : Colors.black87,
+                                            : (Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white70
+                                                : Colors.black87),
                                       ),
                                     ),
                                     Text(
@@ -373,7 +502,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                         fontSize: 12,
                                         color: selected
                                             ? Colors.white
-                                            : Colors.black87,
+                                            : (Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white70
+                                                : Colors.black87),
                                       ),
                                     ),
                                   ],
@@ -414,7 +545,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
                           'No medications taken on this day.',
                           style: GoogleFonts.inknutAntiqua(
                             fontSize: 14,
-                            color: Colors.black54,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.white 
+                              : Colors.black54,
                           ),
                         ),
                       )
@@ -443,13 +576,17 @@ class _MedicationScreenState extends State<MedicationScreen> {
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEDF7FF),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF4A6B85)
+                                    : const Color(0xFFD9E8F5),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.check_circle,
-                                      color: Color(0xFF7AA9C8)),
+                                  Icon(Icons.check_circle,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : const Color(0xFF7AA9C8)),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -466,7 +603,10 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                         Text(
                                           "Taken at ${DateFormat('h:mm a').format(log.loggedAt ?? log.date)}",
                                           style: GoogleFonts.inknutAntiqua(
-                                              fontSize: 12),
+                                              fontSize: 12,
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.white70
+                                                  : Colors.grey),
                                         ),
                                       ],
                                     ),
@@ -534,10 +674,14 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                 margin: const EdgeInsets.symmetric(vertical: 8),
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? const Color(0xFF3A5A75)
+                                      : const Color(0xFFD9E8F5),
                                   borderRadius: BorderRadius.circular(14),
                                   border:
-                                      Border.all(color: const Color(0xFFBCD9EC)),
+                                      Border.all(color: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF8AB4D5)
+                                          : const Color(0xFF7496B3)),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withValues(alpha: 0.05),
@@ -573,13 +717,17 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                               'Freq: ${med['frequency']}',
                                               style: GoogleFonts.inknutAntiqua(
                                                   fontSize: 12,
-                                                  color: Colors.grey),
+                                                  color: Theme.of(context).brightness == Brightness.dark 
+                                                    ? Colors.white70 
+                                                    : Colors.grey),
                                             ),
                                         ],
                                       ),
                                     ),
-                                    const Icon(Icons.add_circle_outline,
-                                        color: Color(0xFF7AA9C8)),
+                                    Icon(Icons.add_circle_outline,
+                                        color: Theme.of(context).brightness == Brightness.dark 
+                                          ? Colors.white 
+                                          : const Color(0xFF7AA9C8)),
                                   ],
                                 ),
                               ),
@@ -595,7 +743,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7AA9C8),
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7AA9C8),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

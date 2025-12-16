@@ -12,12 +12,8 @@ class AppUser {
   final List<String> roles;
   final String bio;
   final String photoUrl;
-
-  // Social
   final List<String> following;
   final List<String> followers;
-
-  // Organization Roles: Maps Organization ID -> Role (e.g., 'admin', 'member')
   final Map<String, String> organizationRoles;
 
   AppUser({
@@ -32,46 +28,18 @@ class AppUser {
     required this.organizationRoles,
   });
 
-
-  AppUser copyWith({
-    String? name,
-    String? username,
-    List<String>? roles,
-    String? bio,
-    String? photoUrl,
-    List<String>? following,
-    List<String>? followers,
-    Map<String, String>? organizationRoles,
-  }) {
-    return AppUser(
-      userId: userId, // ID never changes
-      name: name ?? this.name,
-      username: username ?? this.username,
-      roles: roles ?? this.roles,
-      bio: bio ?? this.bio,
-      photoUrl: photoUrl ?? this.photoUrl,
-      following: following ?? this.following,
-      followers: followers ?? this.followers,
-      organizationRoles: organizationRoles ?? this.organizationRoles,
-    );
-  }
-
-
   factory AppUser.fromMap(Map<String, dynamic> map) {
-    // 1. Parse Following
     List<String> parsedFollowing = [];
     if (map['following'] != null) {
       final List<dynamic> data = map['following'];
       parsedFollowing =
           data.map((item) => item['followee_id'] as String).toList();
     } else if (map['follows'] != null) {
-      // Legacy cache support
       final List<dynamic> data = map['follows'];
       parsedFollowing =
           data.map((item) => item['followee_id'] as String).toList();
     }
 
-    // 2. Parse Followers
     List<String> parsedFollowers = [];
     if (map['followers'] != null) {
       final List<dynamic> data = map['followers'];
@@ -79,7 +47,6 @@ class AppUser {
           data.map((item) => item['follower_id'] as String).toList();
     }
 
-    // 3. Parse Organization Roles
     Map<String, String> parsedOrgRoles = {};
     if (map['organization_members'] != null) {
       final List<dynamic> membersData = map['organization_members'];
@@ -114,7 +81,6 @@ class AppUser {
       'role': roles,
       'bio': bio,
       'photo_url': photoUrl,
-      // Store IDs for cache
       'following': following.map((id) => {'followee_id': id}).toList(),
       'followers': followers.map((id) => {'follower_id': id}).toList(),
       'organization_roles': organizationRoles,
@@ -124,16 +90,18 @@ class AppUser {
   // User Equivalence Operator
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    bool listEquals(List a, List b) {
-      if (a.length != b.length) return false;
-      return a.toSet().containsAll(b);
+    if (identical(this, other)) {
+      return true;
     }
 
     bool mapsEqual(Map a, Map b) {
       if (a.length != b.length) return false;
       return a.keys.every((k) => b.containsKey(k) && a[k] == b[k]);
+    }
+
+    bool listEquals(List a, List b) {
+      if (a.length != b.length) return false;
+      return a.toSet().containsAll(b);
     }
 
     return other is AppUser &&
@@ -159,9 +127,7 @@ class UserProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
   AppUser? _user;
-
   AppUser? get user => _user;
-
   bool get isAuthenticated => _user != null;
 
   bool _isFetching = false;
@@ -179,8 +145,6 @@ class UserProvider extends ChangeNotifier {
 
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
       final event = data.event;
-
-      // only fetch or clear on sign in/out or initial session
       if (event == AuthChangeEvent.signedIn ||
           event == AuthChangeEvent.initialSession) {
         fetchUser();
@@ -196,7 +160,6 @@ class UserProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  // Fetch user data
   Future<void> fetchUser({bool force = false}) async {
     if (_isFetching) {
       debugPrint('WARNING: Fetch skipped: Already fetching.');
@@ -236,17 +199,12 @@ class UserProvider extends ChangeNotifier {
         _user = null;
       } else {
         final newUser = AppUser.fromMap(response);
-        debugPrint('INFO: User data fetched successfully');
-        debugPrint('DEBUG: User roles: ${newUser.roles}');
-        debugPrint('DEBUG: User bio: ${newUser.bio}');
-        debugPrint('DEBUG: User photo URL: ${newUser.photoUrl}');
 
-        if (_user != newUser) {
+        if (_user != newUser || force) {
           _user = newUser;
           _lastFetchTime = DateTime.now();
           await _saveToCache();
           notifyListeners();
-          debugPrint('INFO: User state updated and listeners notified');
         }
       }
     } catch (e) {
@@ -256,7 +214,7 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch a public profile by username
+  // Fetch a public profile by username (for viewing other users)
   Future<AppUser?> fetchPublicProfile(String username) async {
     try {
       final response = await _supabase.from('users').select('''
@@ -281,7 +239,6 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch basic details for a list of user IDs (for follower/following lists)
   Future<List<Map<String, dynamic>>> fetchUsersByIds(
       List<String> userIds) async {
     if (userIds.isEmpty) {
@@ -294,7 +251,21 @@ class UserProvider extends ChangeNotifier {
           .inFilter('user_id', userIds);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      debugPrint('Error fetching user profiles: $e');
+      debugPrint('Error fetching users by IDs: $e');
+      return [];
+    }
+  }
+
+  // Fetch other user's pets by user ID
+  Future<List<Map<String, dynamic>>> fetchOtherUserPets(String userId) async {
+    try {
+      final response = await _supabase
+          .from('pets')
+          .select()
+          .eq('user_id', userId);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Error fetching other user pets: $e');
       return [];
     }
   }
@@ -318,7 +289,6 @@ class UserProvider extends ChangeNotifier {
           'followee_id': targetUserId,
         });
       }
-      // Refresh my profile to update 'following' list
       await fetchUser(force: true);
     } catch (e) {
       debugPrint('Error toggling follow: $e');
@@ -361,11 +331,11 @@ class UserProvider extends ChangeNotifier {
     await prefs.remove(_cacheKey);
   }
 
-  Future<void> updateUserProfile({ required String username,
+  Future<void> updateUserProfile({
+    required String username,
     required String name,
     String? bio,
     List<String>? roles,
-    // TODO: Implement photo upload functionality
     String? photoUrl,
   }) async {
     final session = _supabase.auth.currentSession;
@@ -374,48 +344,19 @@ class UserProvider extends ChangeNotifier {
       return;
     }
 
-    // 1. Prepare Supabase update data
-    final updateData = <String, dynamic>{
-      'username': username,
-      'name': name,
-    };
-
-    if (bio != null) updateData['bio'] = bio;
-    if (roles != null) updateData['role'] = roles;
-    if (photoUrl != null) updateData['photo_url'] = photoUrl;
-
     try {
-      debugPrint('INFO: Updating user profile in DB: $updateData');
+      final Map<String, dynamic> updates = {
+        'username': username,
+        'name': name,
+      };
+      
+      if (bio != null) updates['bio'] = bio;
+      if (roles != null) updates['role'] = roles;
+      if (photoUrl != null) updates['photo_url'] = photoUrl;
 
-      // 2. Perform DB Update
-      await _supabase
-          .from('users')
-          .update(updateData)
-          .eq('user_id', session.user.id);
+      await _supabase.from('users').update(updates).eq('user_id', session.user.id);
 
-      // 3. OPTIMISTIC UPDATE (Critical Fix)
-      // Manually update the local _user object so UI updates instantly
-      if (_user != null) {
-        _user = _user!.copyWith(
-          username: username,
-          name: name,
-          bio: bio,
-          roles: roles,
-          photoUrl: photoUrl,
-        );
-
-        // Update the cache immediately
-        await _saveToCache();
-
-        // Notify UI listeners (ProfileScreen)
-        notifyListeners();
-      }
-
-      debugPrint('INFO: Local user state updated and listeners notified.');
-
-      // 4. Background Fetch (Optional safety net)
-      // We don't strictly need to await this anymore since we updated locally
-      fetchUser(force: true);
+      await fetchUser(force: true);
     } catch (e) {
       debugPrint('ERROR: Failed to update user profile: $e');
       rethrow;

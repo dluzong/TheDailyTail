@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/user_settings.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../screens/dailylog_screen.dart';
@@ -52,6 +53,9 @@ class _AppLayoutState extends State<AppLayout> {
       case 4:
         destination = const ProfileScreen();
         break;
+      case 5:
+        destination = const UserSettingsScreen();
+        break;
     }
 
     if (destination != null) {
@@ -74,6 +78,14 @@ class _AppLayoutState extends State<AppLayout> {
     }
   }
 
+  void _openSettings() {
+    if (currentIndex != 5) {
+      widget.onTabSelected(5);
+      _navigateToIndex(5);
+      setState(() => currentIndex = 5);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final double bottomInset = MediaQuery.of(context).padding.bottom;
@@ -85,18 +97,26 @@ class _AppLayoutState extends State<AppLayout> {
     final double adjustedInnerHeight = baseInnerHeight + (bottomInset / 2);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         top: false,
         bottom: false,
         child: Column(
           children: [
-            Container(height: 50, color: outerBlue),
+            Container(
+              height: 50,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF3A5A75)
+                  : outerBlue,
+            ),
 
             // Top bar
             Container(
               height: 60,
               width: double.infinity,
-              color: innerBlue,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF4A6B85)
+                  : innerBlue,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Stack(
                 alignment: Alignment.center,
@@ -106,7 +126,14 @@ class _AppLayoutState extends State<AppLayout> {
                       left: 0,
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () async {
+                          final didPop = await Navigator.of(context).maybePop();
+                          if (!didPop) {
+                            // If nothing to pop, go to Dashboard
+                            widget.onTabSelected(1);
+                            _navigateToIndex(1);
+                          }
+                        },
                       ),
                     ),
                   Center(
@@ -115,7 +142,9 @@ class _AppLayoutState extends State<AppLayout> {
                       style: GoogleFonts.inknutAntiqua(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
                       ),
                     ),
                   ),
@@ -130,7 +159,9 @@ class _AppLayoutState extends State<AppLayout> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Colors.white,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black
+                                    : Colors.white,
                                 width: 2,
                               ),
                             ),
@@ -168,20 +199,25 @@ class _AppLayoutState extends State<AppLayout> {
                 clipBehavior: Clip.none,
                 alignment: Alignment.bottomCenter,
                 children: [
-                  // Bottom bar with U-shaped cutout
+                  // Bottom bar painter
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: CustomPaint(
                       size: Size(MediaQuery.of(context).size.width, adjustedInnerHeight),
-                      // Pass adjustedInnerHeight as the height to the painter
-                      painter: _BottomNavPainter(innerBlue, floatingButtonSize, adjustedInnerHeight),
+                      painter: _BottomNavPainter(
+                        Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A5A75)
+                            : innerBlue,
+                        floatingButtonSize,
+                        adjustedInnerHeight,
+                      ),
                       child: SizedBox(
                         height: adjustedInnerHeight,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             _buildNavIcon(icon: Icons.book, index: 0),
-                            SizedBox(width: floatingButtonSize), // space for floating button
+                            const SizedBox(width: floatingButtonSize),
                             _buildNavIcon(icon: Icons.group, index: 2),
                           ],
                         ),
@@ -191,8 +227,7 @@ class _AppLayoutState extends State<AppLayout> {
 
                   // Floating Home Button
                   Positioned(
-                    // Lower the position to sit properly in the deeper notch
-                    bottom: (adjustedInnerHeight / 2) - 4, // Adjusted position
+                    bottom: (adjustedInnerHeight / 2) - 4,
                     child: GestureDetector(
                       onTap: () {
                         if (currentIndex != 1) {
@@ -205,9 +240,14 @@ class _AppLayoutState extends State<AppLayout> {
                         width: floatingButtonSize,
                         height: floatingButtonSize,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           shape: BoxShape.circle,
-                          border: Border.all(color: outerBlue, width: 4),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF3A5A75)
+                                : outerBlue,
+                            width: 4,
+                          ),
                           boxShadow: const [
                             BoxShadow(
                               color: Colors.black26,
@@ -218,7 +258,9 @@ class _AppLayoutState extends State<AppLayout> {
                         ),
                         child: Icon(
                           Icons.home,
-                          color: outerBlue,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF3A5A75)
+                              : outerBlue,
                           size: 36,
                         ),
                       ),
@@ -246,14 +288,18 @@ class _AppLayoutState extends State<AppLayout> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 28),
+          Icon(
+            icon,
+            color: Theme.of(context).scaffoldBackgroundColor,
+            size: 28,
+          ),
           const SizedBox(height: 4),
           if (isActive)
             Container(
               width: 6,
               height: 6,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
                 shape: BoxShape.circle,
               ),
             ),
@@ -266,9 +312,8 @@ class _AppLayoutState extends State<AppLayout> {
 class _BottomNavPainter extends CustomPainter {
   final Color color;
   final double fabSize;
-  final double barHeight; // New: Pass the actual bar height
+  final double barHeight;
 
-  // Update constructor
   _BottomNavPainter(this.color, this.fabSize, this.barHeight);
 
   @override
@@ -276,41 +321,41 @@ class _BottomNavPainter extends CustomPainter {
     final Paint paint = Paint()..color = color;
     final Path path = Path();
 
+    const double topOffset = 6.0;
+
     final double centerX = size.width / 2;
-    // Notch radius is half the button size plus padding
-    final double notchRadius = fabSize / 2 + 10; 
-    // The depth of the curve down from the top edge
-    final double notchDepth = 25; 
+    final double notchRadius = fabSize / 2 + 10;
+    final double notchDepth = 18;
 
-    path.moveTo(0, 0);
-    // Line to the start of the curve
-    path.lineTo(centerX - notchRadius - 15, 0); 
+    path.moveTo(0, topOffset);
+    path.lineTo(centerX - notchRadius - 15, topOffset);
 
-    // First part of the curve: down and into the notch
     path.quadraticBezierTo(
-      centerX - notchRadius, 0, // Control point near the top-left of the notch
-      centerX - notchRadius + 10, notchDepth, // End point for the down-curve
+      centerX - notchRadius,
+      topOffset,
+      centerX - notchRadius + 10,
+      topOffset + notchDepth,
     );
-    
-    // Curved arc segment for the bottom of the notch
+
     path.arcToPoint(
-      Offset(centerX + notchRadius - 10, notchDepth),
+      Offset(centerX + notchRadius - 10, topOffset + notchDepth),
       radius: Radius.circular(notchRadius - 5),
       clockwise: false,
     );
-    
-    // Second part of the curve: out and back to the top edge
+
     path.quadraticBezierTo(
-      centerX + notchRadius, 0, // Control point near the top-right of the notch
-      centerX + notchRadius + 15, 0, // End point for the up-curve
+      centerX + notchRadius,
+      topOffset,
+      centerX + notchRadius + 15,
+      topOffset,
     );
 
-    path.lineTo(size.width, 0); // straight line after notch
-    path.lineTo(size.width, barHeight); // Use barHeight for the bottom
+    path.lineTo(size.width, topOffset);
+    path.lineTo(size.width, barHeight);
     path.lineTo(0, barHeight);
     path.close();
 
-    canvas.drawShadow(path, Colors.black26, 4, true); 
+    canvas.drawShadow(path, Colors.black26, 4, true);
     canvas.drawPath(path, paint);
   }
 
