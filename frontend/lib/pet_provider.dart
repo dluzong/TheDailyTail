@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
 
 // --- PET MODEL ---
 class Pet {
@@ -65,6 +66,7 @@ class Pet {
 // --- PROVIDER ---
 class PetProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
+  StreamSubscription<AuthState>? _authSubscription;
 
   List<Pet> _pets = [];
   List<Pet> get pets => _pets;
@@ -76,6 +78,37 @@ class PetProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   // --- STATE MANAGEMENT ---
+
+  PetProvider() {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
+      switch (data.event) {
+        case AuthChangeEvent.signedOut:
+          _clearState();
+          break;
+        case AuthChangeEvent.signedIn:
+        case AuthChangeEvent.initialSession:
+          // Refresh pets for the signed-in user
+          await fetchPets();
+          break;
+        default:
+          // no-op
+          break;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _clearState() {
+    _pets = [];
+    _selectedPetId = null;
+    _isLoading = false;
+    notifyListeners();
+  }
 
   void selectPet(String petId) {
     _selectedPetId = petId;

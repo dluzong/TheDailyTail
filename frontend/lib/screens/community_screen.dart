@@ -182,13 +182,14 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              final currentUserId =
-                                  Provider.of<UserProvider>(context, listen: false)
-                                      .user
-                                      ?.userId;
+                              final currentUserId = Provider.of<UserProvider>(
+                                      context,
+                                      listen: false)
+                                  .user
+                                  ?.userId;
 
-                              final isOwnPost =
-                                  currentUserId != null && post.userId == currentUserId;
+                              final isOwnPost = currentUserId != null &&
+                                  post.userId == currentUserId;
 
                               if (isOwnPost || post.authorName == 'You') {
                                 // Own profile - no otherUsername so _isOwnProfile stays true
@@ -235,10 +236,14 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           ),
                         ),
                         // Show menu if this post belongs to the current user
-                        if ((Provider.of<UserProvider>(context, listen: false).user?.userId == post.userId) ||
+                        if ((Provider.of<UserProvider>(context, listen: false)
+                                    .user
+                                    ?.userId ==
+                                post.userId) ||
                             post.authorName == 'You')
                           PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, color: Colors.grey),
+                            icon:
+                                const Icon(Icons.more_vert, color: Colors.grey),
                             onSelected: (value) {
                               if (value == 'edit') {
                                 _showNewPostModal(post: post);
@@ -295,19 +300,22 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? const Color(0xFF3A5A75)
                                   : const Color(0xFFEEF7FB),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                  color: Theme.of(context).brightness == Brightness.dark
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? const Color(0xFF4A6B85)
                                       : const Color(0xFFBCD9EC)),
                             ),
                             child: Text(
                               cat,
                               style: GoogleFonts.lato(
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.white
                                     : const Color(0xFF7496B3),
                                 fontWeight: FontWeight.w600,
@@ -406,49 +414,55 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           }).toList();
         }
 
+        // only show organization creation if user is organizer
+        final isOrganizer = (userProvider.user?.roles ?? const [])
+            .map((r) => r.toLowerCase())
+            .contains('organizer');
+
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'My Organizations',
-                  style: GoogleFonts.lato(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+            if (isOrganizer) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'My Organizations',
+                    style: GoogleFonts.lato(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.add_circle,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF4A6B85)
-                        : const Color(0xFF7496B3),
-                    size: 28,
+                  IconButton(
+                    icon: Icon(
+                      Icons.add_circle,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF4A6B85)
+                          : const Color(0xFF7496B3),
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context)
+                          .push(
+                        MaterialPageRoute(
+                          builder: (_) => const CreateOrgScreen(),
+                        ),
+                      )
+                          .then((success) {
+                        if (success == true) {
+                          // Refresh orgs after creation
+                          context
+                              .read<OrganizationProvider>()
+                              .fetchOrganizations();
+                        }
+                      });
+                    },
                   ),
-                  onPressed: () {
-                    Navigator.of(context)
-                        .push(
-                      MaterialPageRoute(
-                        builder: (_) => const CreateOrgScreen(),
-                      ),
-                    )
-                        .then((success) {
-                      if (success == true) {
-                        // Refresh orgs after creation
-                        context
-                            .read<OrganizationProvider>()
-                            .fetchOrganizations();
-                      }
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            if (createdOrgs.isEmpty)
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (isOrganizer && createdOrgs.isEmpty)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
@@ -462,7 +476,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 ),
               )
-            else
+            else if (isOrganizer)
               ...createdOrgs.map((org) {
                 int membersCount = 0;
                 if (org['organization_members'] is List &&
@@ -572,11 +586,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   ),
                 );
               }).toList(),
-
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 16),
-
+            if (isOrganizer) ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -598,9 +612,10 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     icon: const Icon(Icons.explore, size: 18),
                     label: const Text('Explore'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF4A6B85)
-                          : const Color(0xFF7496B3),
+                      backgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7496B3),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -612,7 +627,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               ],
             ),
             const SizedBox(height: 12),
-
             if (joinedOrgs.isEmpty)
               Center(
                 child: Padding(
@@ -635,9 +649,10 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         icon: const Icon(Icons.explore),
                         label: const Text('Explore organizations'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF4A6B85)
-                              : const Color(0xFF7496B3),
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF4A6B85)
+                                  : const Color(0xFF7496B3),
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -771,176 +786,178 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.close,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.close,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF7496B3),
+                        size: 28),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (_contentController.text.isEmpty) return;
+
+                      if (post != null) {
+                        await context.read<PostsProvider>().updatePost(
+                              post.postId,
+                              _titleController.text.isEmpty
+                                  ? 'Untitled'
+                                  : _titleController.text,
+                              _contentController.text,
+                              _newPostCategories,
+                            );
+                      } else {
+                        await context.read<PostsProvider>().createPost(
+                              _titleController.text.isEmpty
+                                  ? 'Untitled'
+                                  : _titleController.text,
+                              _contentController.text,
+                              _newPostCategories,
+                            );
+                      }
+
+                      if (mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4A6B85)
+                              : const Color(0xFF7496B3),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: Text(
+                      post != null ? 'Update Post' : 'Create Post',
+                      style: GoogleFonts.lato(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              Divider(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF404040)
+                    : Colors.grey.shade300,
+              ),
+              const SizedBox(height: 10),
+              // Category Selection
+              Text(
+                'Select Categories:',
+                style: GoogleFonts.lato(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : const Color(0xFF394957),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: _categories.map((category) {
+                  final isSelected = _newPostCategories.contains(category);
+                  return FilterChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setModalState(() {
+                        if (selected) {
+                          _newPostCategories.add(category);
+                        } else {
+                          _newPostCategories.remove(category);
+                        }
+                      });
+                    },
+                    selectedColor:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A5A75)
+                            : const Color(0xFFEEF7FB),
+                    checkmarkColor: const Color(0xFF7496B3),
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? const Color(0xFF7496B3)
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957)),
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _titleController,
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Post Title',
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey,
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : Colors.white,
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF404040)
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 42),
+                  child: TextField(
+                    controller: _contentController,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    style: TextStyle(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
-                          : const Color(0xFF7496B3),
-                      size: 28),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_contentController.text.isEmpty) return;
-
-                    if (post != null) {
-                      await context.read<PostsProvider>().updatePost(
-                            post.postId,
-                            _titleController.text.isEmpty
-                                ? 'Untitled'
-                                : _titleController.text,
-                            _contentController.text,
-                            _newPostCategories,
-                          );
-                    } else {
-                      await context.read<PostsProvider>().createPost(
-                            _titleController.text.isEmpty
-                                ? 'Untitled'
-                                : _titleController.text,
-                            _contentController.text,
-                            _newPostCategories,
-                          );
-                    }
-
-                    if (mounted) {
-                      Navigator.pop(context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF4A6B85)
-                        : const Color(0xFF7496B3),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: Text(
-                    post != null ? 'Update Post' : 'Create Post',
-                    style: GoogleFonts.lato(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            Divider(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF404040)
-                  : Colors.grey.shade300,
-            ),
-            const SizedBox(height: 10),
-            // Category Selection
-            Text(
-              'Select Categories:',
-              style: GoogleFonts.lato(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : const Color(0xFF394957),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: _categories.map((category) {
-                final isSelected = _newPostCategories.contains(category);
-                return FilterChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setModalState(() {
-                      if (selected) {
-                        _newPostCategories.add(category);
-                      } else {
-                        _newPostCategories.remove(category);
-                      }
-                    });
-                  },
-                  selectedColor: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF3A5A75)
-                      : const Color(0xFFEEF7FB),
-                  checkmarkColor: const Color(0xFF7496B3),
-                  labelStyle: TextStyle(
-                    color: isSelected
-                        ? const Color(0xFF7496B3)
-                        : (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : const Color(0xFF394957)),
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _titleController,
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Post Title',
-                hintStyle: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade600
-                      : Colors.grey,
-                ),
-                filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF1E1E1E)
-                    : Colors.white,
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF404040)
-                        : Colors.grey.shade300,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Flexible(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 42),
-                child: TextField(
-                  controller: _contentController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Write your post here...',
-                    hintStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey.shade600
-                          : Colors.grey,
+                          : Colors.black,
                     ),
-                    filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF1E1E1E)
-                        : Colors.white,
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
+                    decoration: InputDecoration(
+                      hintText: 'Write your post here...',
+                      hintStyle: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF404040)
-                            : Colors.grey.shade300,
+                            ? Colors.grey.shade600
+                            : Colors.grey,
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1E1E1E)
+                          : Colors.white,
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF404040)
+                              : Colors.grey.shade300,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -1003,167 +1020,179 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      currentIndex: 2,
-      onTabSelected: (index) {},
-      child: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: DefaultTabController(
-          length: 3,
-          child: Stack(
-            children: [
-              Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        currentIndex: 2,
+        onTabSelected: (index) {},
+        child: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: DefaultTabController(
+            length: 3,
+            child: Stack(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Community',
-                        style: GoogleFonts.lato(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF2A2A2A)
-                                    : const Color.fromARGB(255, 220, 220, 232),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: TextField(
-                                controller: _searchController,
-                                onChanged: (value) =>
-                                    setState(() => _searchTerm = value),
-                                style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white
-                                      : Colors.black,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'Search...',
-                                  hintStyle: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? const Color(0xFF888888)
-                                        : const Color(0xFF888888),
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.search,
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? const Color(0xFF888888)
-                                        : const Color(0xFF888888),
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
+                          Text(
+                            'Community',
+                            style: GoogleFonts.lato(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Builder(builder: (context) {
-                            final bool hasActiveFilters =
-                                _filterSort != 'recent' ||
-                                    _filterCategories.isNotEmpty;
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: hasActiveFilters
-                                    ? (Theme.of(context).brightness == Brightness.dark
-                                        ? const Color(0xFF4A6B85)
-                                        : const Color(0xFF7496B3))
-                                    : (Theme.of(context).brightness == Brightness.dark
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
                                         ? const Color(0xFF2A2A2A)
-                                        : const Color.fromARGB(255, 220, 220, 232)),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: IconButton(
-                                icon: Icon(Icons.filter_list,
-                                    color: hasActiveFilters
-                                        ? Colors.white
-                                        : (Theme.of(context).brightness == Brightness.dark
+                                        : const Color.fromARGB(
+                                            255, 220, 220, 232),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: TextField(
+                                    controller: _searchController,
+                                    onChanged: (value) =>
+                                        setState(() => _searchTerm = value),
+                                    style: TextStyle(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search...',
+                                      hintStyle: TextStyle(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
                                             ? const Color(0xFF888888)
-                                            : const Color(0xFF888888))),
-                                onPressed: _openCommunityFilterPopup,
+                                            : const Color(0xFF888888),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.search,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF888888)
+                                            : const Color(0xFF888888),
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            );
-                          }),
+                              const SizedBox(width: 8),
+                              Builder(builder: (context) {
+                                final bool hasActiveFilters =
+                                    _filterSort != 'recent' ||
+                                        _filterCategories.isNotEmpty;
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: hasActiveFilters
+                                        ? (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF4A6B85)
+                                            : const Color(0xFF7496B3))
+                                        : (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF2A2A2A)
+                                            : const Color.fromARGB(
+                                                255, 220, 220, 232)),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(Icons.filter_list,
+                                        color: hasActiveFilters
+                                            ? Colors.white
+                                            : (Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? const Color(0xFF888888)
+                                                : const Color(0xFF888888))),
+                                    onPressed: _openCommunityFilterPopup,
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                TabBar(
-                  labelColor: const Color(0xFF7496B3),
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: const Color(0xFF7496B3),
-                  tabs: [
-                    Tab(
-                        child: Text('Feed',
-                            style:
-                                GoogleFonts.lato(fontWeight: FontWeight.bold))),
-                    Tab(
-                        child: Text('Friends',
-                            style:
-                                GoogleFonts.lato(fontWeight: FontWeight.bold))),
-                    Tab(
-                        child: Text('Organizations',
-                            style:
-                                GoogleFonts.lato(fontWeight: FontWeight.bold))),
+                    ),
+                    TabBar(
+                      labelColor: const Color(0xFF7496B3),
+                      unselectedLabelColor: Colors.grey,
+                      indicatorColor: const Color(0xFF7496B3),
+                      tabs: [
+                        Tab(
+                            child: Text('Feed',
+                                style: GoogleFonts.lato(
+                                    fontWeight: FontWeight.bold))),
+                        Tab(
+                            child: Text('Friends',
+                                style: GoogleFonts.lato(
+                                    fontWeight: FontWeight.bold))),
+                        Tab(
+                            child: Text('Organizations',
+                                style: GoogleFonts.lato(
+                                    fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _buildPostsList(mode: 'feed'),
+                          _buildPostsList(mode: 'friends'),
+                          _buildOrgsList(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-                const Divider(height: 1),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildPostsList(mode: 'feed'),
-                      _buildPostsList(mode: 'friends'),
-                      _buildOrgsList(),
-                    ],
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: Builder(
+                    builder: (context) {
+                      final tabController = DefaultTabController.of(context);
+                      return AnimatedBuilder(
+                        animation: tabController,
+                        builder: (context, _) {
+                          if (tabController.index != 2) {
+                            return FloatingActionButton(
+                              onPressed: _showNewPostModal,
+                              backgroundColor: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? const Color(0xFF4A6B85)
+                                  : const Color(0xFF7496B3),
+                              child: const Icon(Icons.add, color: Colors.white),
+                            );
+                          }
+                          return FloatingActionButton(
+                            onPressed: _showNewPostModal,
+                            backgroundColor:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF4A6B85)
+                                    : const Color(0xFF7496B3),
+                            child: const Icon(Icons.add, color: Colors.white),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ],
             ),
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: Builder(
-                builder: (context) {
-                  final tabController = DefaultTabController.of(context);
-                  return AnimatedBuilder(
-                    animation: tabController,
-                    builder: (context, _) {
-                      if (tabController.index != 2) {
-                        return FloatingActionButton(
-                          onPressed: _showNewPostModal,
-                          backgroundColor: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF4A6B85)
-                              : const Color(0xFF7496B3),
-                          child: const Icon(Icons.add, color: Colors.white),
-                        );
-                      }
-                      return FloatingActionButton(
-                        onPressed: _showNewPostModal,
-                        backgroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF4A6B85)
-                            : const Color(0xFF7496B3),
-                        child: const Icon(Icons.add, color: Colors.white),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    ));
+          ),
+        ));
   }
 }
