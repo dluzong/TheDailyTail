@@ -284,9 +284,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
           children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
-                onPressed: () => Navigator.pop(context),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 48), // Match login_screen
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
             ),
             Expanded(
@@ -295,22 +298,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
-                      buildAppTitle(),
-                      const SizedBox(height: 25),
-                      const SizedBox(height: 35),
-                      buildAppTextField(
+                        buildAppTitle(),
+                        const SizedBox(height: 20), // Adjusted spacing after logo
+                        buildAppTextField(
                           hint: "Full Name",
                           controller: _fullName,
                           context: context),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 24),
                       buildAppTextField(
                           hint: "Username",
                           controller: _username,
                           context: context),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 24),
                       buildAppTextField(
                           hint: "Email", controller: _email, context: context),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 24),
                       buildAppTextField(
                         hint: "Password",
                         controller: _password,
@@ -330,7 +332,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                         ),
                       ),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 24),
                       buildAppTextField(
                         hint: "Confirm Password",
                         controller: _confirmPassword,
@@ -351,8 +353,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                         ),
                       ),
-                      const SizedBox(height: 25),
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 32),
+                      // const SizedBox(height: 25),
                       OutlinedButton(
                         onPressed: _isLoading
                             ? null
@@ -368,7 +370,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         child: Text(_isLoading ? 'Signing Up...' : 'Sign Up'),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 15),
                       OutlinedButton.icon(
                         onPressed: _isLoading ? null : signInWithGoogle,
                         icon: const Icon(Icons.login, color: Color(0xFF7496B3)),

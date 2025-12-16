@@ -36,7 +36,7 @@ class LaunchScreen extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               buildAppButton(
                 text: "Sign Up",
                 onPressed: () {
