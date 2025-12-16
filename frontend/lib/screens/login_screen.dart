@@ -137,11 +137,9 @@ Widget build(BuildContext context) {
                       children: [
                         const SizedBox(height: 20),
                         buildAppTitle(),
-                        const SizedBox(height: 25),
-                        // buildDogIcon(),
-                        const SizedBox(height: 35),
+                        const SizedBox(height: 20), // Adjusted spacing after logo
                         buildAppTextField(hint: "Email", controller: _email, context: context),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 24),
                         buildAppTextField(
                           hint: "Password",
                           obscure: _obscurePassword,
