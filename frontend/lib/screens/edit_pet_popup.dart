@@ -96,7 +96,6 @@ class _EditPetPopupState extends State<EditPetPopup> {
 
   @override
   Widget build(BuildContext context) {
-    // ... (The rest of your build method remains exactly the same)
     return Center(
       child: Material(
         color: Colors.transparent,
@@ -105,9 +104,14 @@ class _EditPetPopupState extends State<EditPetPopup> {
           constraints: const BoxConstraints(maxWidth: 460),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2A2A2A)
+                : Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF404040)
+                    : Colors.grey.shade300),
             boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
@@ -124,7 +128,10 @@ class _EditPetPopupState extends State<EditPetPopup> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF7496B3)),
+                      icon: Icon(Icons.close,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3)),
                       onPressed: () => Navigator.of(context).pop(), // Returns null
                     ),
                     Expanded(
@@ -134,7 +141,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -142,7 +151,11 @@ class _EditPetPopupState extends State<EditPetPopup> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                Divider(
+                    height: 2,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF404040)
+                        : const Color(0xFF5F7C94)),
                 const SizedBox(height: 20),
                 Center(
                   child: Text(
@@ -150,7 +163,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF7FA8C7)
+                          : const Color(0xFF7496B3),
                     ),
                   ),
                 ),
@@ -160,7 +175,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     onTap: _pickImage,
                     child: CircleAvatar(
                       radius: 48,
-                      backgroundColor: const Color(0xFF7496B3),
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF5A7A95)
+                          : const Color(0xFF7496B3),
                       backgroundImage: tempImagePath != null
                           ? (tempImagePath!.startsWith('http') || tempImagePath!.startsWith('assets/')
                           ? (tempImagePath!.startsWith('http')
@@ -181,7 +198,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF7FA8C7)
+                          : const Color(0xFF7496B3),
                     ),
                   ),
                 ),
@@ -198,7 +217,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF7FA8C7)
+                          : const Color(0xFF7496B3),
                     ),
                   ),
                 ),
@@ -215,7 +236,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF7FA8C7)
+                          : const Color(0xFF7496B3),
                     ),
                   ),
                 ),
@@ -232,7 +255,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     style: GoogleFonts.inknutAntiqua(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7496B3),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF7FA8C7)
+                          : const Color(0xFF7496B3),
                     ),
                   ),
                 ),

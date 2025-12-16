@@ -237,6 +237,27 @@ class _AddEventPageState extends State<AddEventPage> {
                   children: getTabColors(context).keys.map((category) {
                     final isSelected = _selectedCategory == category;
                     final tabColors = getTabColors(context);
+                    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                    final baseColor = tabColors[category] ?? Colors.grey;
+                    
+                    // Get light mode colors for display
+                    final lightModeColor = colorSchemes[category]?['light'] ?? Colors.grey;
+                    
+                    // Calculate pastel color for light mode
+                    final pastelColor = Color.alphaBlend(
+                      baseColor.withValues(alpha: 0.2),
+                      Colors.white,
+                    );
+                    
+                    // Calculate dark color for dark mode
+                    final darkColor = Color.alphaBlend(
+                      baseColor.withValues(alpha: 0.15),
+                      const Color(0xFF1A1A1A),
+                    );
+                    
+                    final selectedBgColor = isDarkMode ? darkColor : pastelColor;
+                    final unselectedBgColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey.shade200;
+                    
                     return GestureDetector(
                       onTap: () =>
                           setState(() => _selectedCategory = category),
@@ -246,28 +267,31 @@ class _AddEventPageState extends State<AddEventPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? tabColors[category]
-                              : (Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF2A2A2A)
-                                  : Colors.grey.shade200),
+                          color: isSelected ? selectedBgColor : unselectedBgColor,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
-                            if (isSelected)
-                              BoxShadow(
-                                color: tabColors[category]!
-                                    .withValues(alpha: 0.4),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 3,
+                              offset: const Offset(0, 2),
+                            ),
                           ],
                         ),
-                        child: Text(
-                          category,
-                          style: GoogleFonts.inknutAntiqua(
-                            fontSize: 10,
-                            color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.circle,
+                                color: lightModeColor,
+                                size: 10),
+                            const SizedBox(width: 6),
+                            Text(
+                              category,
+                              style: GoogleFonts.inknutAntiqua(
+                                fontSize: 10,
+                                color: isDarkMode ? Colors.white : (isSelected ? Colors.black : Colors.grey[600]),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );

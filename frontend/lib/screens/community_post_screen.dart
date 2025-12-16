@@ -345,40 +345,34 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 if (post.categories.isNotEmpty)
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF3A5A75)
-                            : const Color(0xFFEEF7FB),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: post.categories.map((cat) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF2A4A65)
-                                  : const Color(0xFFEEF7FB),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              cat,
-                              style: GoogleFonts.lato(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: post.categories.map((cat) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF2A4A65)
+                                : const Color(0xFFEEF7FB),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
                                 color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : const Color(0xFF7496B3),
-                                fontWeight: FontWeight.w600,
-                              ),
+                                    ? const Color(0xFF3A5A75)
+                                    : const Color(0xFFBCD9EC)),
+                          ),
+                          child: Text(
+                            cat,
+                            style: GoogleFonts.lato(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF7496B3),
+                              fontWeight: FontWeight.w600,
                             ),
-                          );
-                        }).toList(),
-                      ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 const SizedBox(height: 20),

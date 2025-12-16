@@ -183,7 +183,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         backgroundColor: Colors.white,
       body: Column(
         children: [
-          buildBorderBar(),
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
@@ -199,7 +198,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   children: [
                     buildAppTitle(),
                     const SizedBox(height: 25),
-                    buildDogIcon(),
+                    // buildDogIcon(),
                     const SizedBox(height: 35),
                     buildAppTextField(
                         hint: "First Name", controller: _firstName, context: context),
@@ -251,12 +250,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     const SizedBox(height: 25),
                     const SizedBox(height: 25),
-                    ElevatedButton(
+                    OutlinedButton(
                       onPressed: _isLoading
                           ? null
                           : () {
                               _signUp();
                             },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
+                        foregroundColor: const Color(0xFF7496B3),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      ),
                       child: Text(_isLoading ? 'Signing Up...' : 'Sign Up'),
                     ),
                     const SizedBox(height: 12),
@@ -277,7 +281,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
           ),
-          buildBorderBar(),
         ],
       ),
       ),

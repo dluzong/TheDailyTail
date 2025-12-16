@@ -19,7 +19,6 @@ class LaunchScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         body: Column(
           children: [
-            buildBorderBar(),
             Expanded(
               child: Center(
                 child: Column(
@@ -27,7 +26,7 @@ class LaunchScreen extends StatelessWidget {
                   children: [
                     buildAppTitle(),
                     const SizedBox(height: 25),
-                    buildDogIcon(),
+                    // buildDogIcon(),
                     const SizedBox(height: 35),
                     buildAppButton(
                       text: "Login",
@@ -56,7 +55,6 @@ class LaunchScreen extends StatelessWidget {
                 ),
               ),
             ),
-            buildBorderBar(),
           ],
         ),
       ),
