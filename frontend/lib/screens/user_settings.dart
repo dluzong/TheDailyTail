@@ -283,10 +283,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         name: result['name'] as String? ?? '',
         species: result['type'] as String? ?? 'Dog', // Map 'type' to 'species'
         breed: result['breed'] as String? ?? '',
-        age: (result['age'] is int)
-            ? result['age'] as int
-            : int.tryParse(result['age']?.toString() ?? '') ?? 0,
-        birthday: result['birthday'] as String? ?? '',
+        birthday: result['dob'] as String? ?? '',
         weight: (result['weight'] is num)
           ? (result['weight'] as num).toDouble()
           : double.tryParse(result['weight']?.toString() ?? '') ?? 0.0,
@@ -355,8 +352,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         name: result['name'] ?? originalPet.name,
         species: originalPet.species, // Preserve existing species
         breed: result['breed'] ?? originalPet.breed,
-        age: result['age'] ?? originalPet.age,
-        birthday: result['birthday'] as String? ?? originalPet.birthday,
+        birthday: result['dob'] as String? ?? originalPet.birthday,
         weight: (result['weight'] is num)
             ? (result['weight'] as num).toDouble()
             : double.tryParse(result['weight']?.toString() ?? '') ??

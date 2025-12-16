@@ -94,7 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final details = hasPets
         ? {
             'Breed': selectedPet.breed,
-            'Age': '${selectedPet.age} y/o',
+            'Birthday': '$selectedPet.birthday',
             'Weight': '${selectedPet.weight} lbs',
           }
         : <String, String>{};
