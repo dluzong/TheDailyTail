@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../shared/app_layout.dart';
 import '../shared/starting_widgets.dart';
+import '../shared/utils.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +25,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // Formats birthday as mm/dd/yyyy while the user types digits only
-  static const _dateInputFormatter = _DateSlashFormatter();
+  static const _dateInputFormatter = DateSlashFormatter();
 
   @override
   void dispose() {
@@ -529,98 +530,6 @@ class _AddPetScreenState extends State<AddPetScreen> {
         ),
         ),
       ),
-    );
-  }
-}
-
-/// Ensures birthday input stays in mm/dd/yyyy with auto-padding and slashes.
-class _DateSlashFormatter extends TextInputFormatter {
-  const _DateSlashFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
-    
-    // Extract only digits and slashes
-    String filtered = text.replaceAll(RegExp(r'[^0-9/]'), '');
-    
-    // Extract just the digits
-    String digits = filtered.replaceAll('/', '');
-    if (digits.length > 8) {
-      digits = digits.substring(0, 8);
-    }
-    
-    // Check if user just typed a slash - if so, auto-pad previous section
-    bool userTypedSlash = text.endsWith('/') && !oldValue.text.endsWith('/');
-    
-    StringBuffer buffer = StringBuffer();
-    int digitIndex = 0;
-    
-    // Month
-    if (digitIndex < digits.length) {
-      if (digitIndex + 1 < digits.length) {
-        // Have 2+ digits, use first 2
-        buffer.write(digits.substring(digitIndex, digitIndex + 2));
-        digitIndex += 2;
-      } else {
-        // Only 1 digit
-        if (userTypedSlash || (filtered.contains('/') && filtered.indexOf('/') <= 2)) {
-          // User typed slash or there's a slash nearby, pad with 0
-          buffer.write('0${digits[digitIndex]}');
-          digitIndex += 1;
-        } else {
-          // Just show the single digit
-          buffer.write(digits[digitIndex]);
-          digitIndex += 1;
-        }
-      }
-      
-      // Add slash after month if there are more digits or user typed one
-      if (digitIndex < digits.length || (userTypedSlash && buffer.length <= 2)) {
-        buffer.write('/');
-      }
-    }
-    
-    // Day
-    if (digitIndex < digits.length) {
-      int dayStart = digitIndex;
-      if (digitIndex + 1 < digits.length) {
-        // Have 2+ digits for day
-        buffer.write(digits.substring(digitIndex, digitIndex + 2));
-        digitIndex += 2;
-      } else {
-        // Only 1 digit for day
-        int slashCount = filtered.split('/').length - 1;
-        if (slashCount >= 2 || (userTypedSlash && buffer.toString().contains('/'))) {
-          // User typed second slash or there are 2 slashes, pad with 0
-          buffer.write('0${digits[digitIndex]}');
-          digitIndex += 1;
-        } else {
-          buffer.write(digits[digitIndex]);
-          digitIndex += 1;
-        }
-      }
-      
-      // Add slash after day if there are more digits or user typed one
-      if (digitIndex < digits.length || (userTypedSlash && digitIndex > dayStart)) {
-        buffer.write('/');
-      }
-    }
-    
-    // Year
-    if (digitIndex < digits.length) {
-      buffer.write(digits.substring(digitIndex));
-    }
-
-    final formatted = buffer.toString();
-    int cursorPosition = formatted.length;
-    
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: cursorPosition),
     );
   }
 }
