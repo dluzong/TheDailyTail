@@ -94,8 +94,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final details = hasPets
         ? {
             'Breed': selectedPet.breed,
-            'Age': '${selectedPet.age} y/o',
-            'Weight': '${selectedPet.weight} lbs',
+            'Age': (() {
+              final ageStr = selectedPet!.age.toString();
+              final truncatedAge = ageStr.length > 8 ? '${ageStr.substring(0, 8)}...' : ageStr;
+              return '$truncatedAge y/o';
+            })(),
+            'Weight': (() {
+              final weightStr = selectedPet!.weight.toString();
+              final truncatedWeight = weightStr.length > 8 ? '${weightStr.substring(0, 8)}...' : weightStr;
+              return '$truncatedWeight lbs';
+            })(),
           }
         : <String, String>{};
 
@@ -128,11 +136,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         petProvider.isLoading ? 'Loading...' : 'Select a pet',
                       ),
                       items: pets
-                          .map((p) => DropdownMenuItem(
+                          .map((p) {
+                            final displayName = p.name.length > 12 ? '${p.name.substring(0, 12)}...' : p.name;
+                            return DropdownMenuItem(
                                 value: p.petId,
-                                child: Text(p.name,
+                                child: Text(displayName,
                                     style: GoogleFonts.lato(fontSize: 20)),
-                              ))
+                              );
+                          })
                           .toList(),
                       onChanged: (newPetId) {
                         if (newPetId == null) return;
@@ -260,6 +271,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                             child: Text(entry.value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.lato(fontSize: 18))),
                       ],
                     ),

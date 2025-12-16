@@ -302,10 +302,11 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                         DropdownButton<String>(
                           value: selectedPetId,
                           items: pets.map((p) {
+                            final displayName = p.name.length > 12 ? '${p.name.substring(0, 12)}...' : p.name;
                             return DropdownMenuItem(
                               value: p.petId,
                               child: Text(
-                                p.name,
+                                displayName,
                                 style: GoogleFonts.lato(
                                     fontSize: 20, fontWeight: FontWeight.w500),
                               ),
