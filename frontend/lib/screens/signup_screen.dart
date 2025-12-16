@@ -27,9 +27,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
+      const webClientId = '712045869643-qrs87u2dmfj2kt7nuvo078bavjdkq6kg.apps.googleusercontent.com';
+      const iosClientId = '712045869643-66ts83vskvkgsvnd15g3t4ft59hsuldb.apps.googleusercontent.com';
+
       final response = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: 'io.supabase.flutter://login-callback',
+          queryParams: {
+            'access_type': 'offline',
+            'prompt': 'consent',
+            'client_id': webClientId,
+          },
       );
 
       // Handle SDK differences: some versions return bool, others return an object

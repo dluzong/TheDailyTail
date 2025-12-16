@@ -29,7 +29,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.861823949799-vc35cprkp249096uujjn0vvnmcvjppkn</string>
+                <string>com.googleusercontent.apps.712045869643-66ts83vskvkgsvnd15g3t4ft59hsuldb</string>
 				<string>io.supabase.flutter</string>
 			</array>
 		</dict>
