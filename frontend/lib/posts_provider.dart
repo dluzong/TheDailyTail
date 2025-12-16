@@ -63,7 +63,8 @@ class Post {
         ? (commentsData[0] is Map ? (commentsData[0]['count'] as int? ?? 0) : 0)
         : 0;
 
-    final createdRaw = _asString(map['created_ts'], DateTime.now().toIso8601String());
+    final createdRaw =
+        _asString(map['created_ts'], DateTime.now().toIso8601String());
 
     return Post(
       postId: map['post_id'] as int? ?? 0,
@@ -136,6 +137,7 @@ class PostsProvider extends ChangeNotifier {
         users:user_id (username, photo_url),
         comments(count)
       ''')
+          .filter('visibility', 'is', null)
           .order('created_ts', ascending: false)
           .range(0, _pageSize - 1); // Fetch first 10
 
@@ -158,11 +160,16 @@ class PostsProvider extends ChangeNotifier {
       final start = _posts.length;
       final end = start + _pageSize - 1;
 
-      final response = await _supabase.from('posts').select('''
+      final response = await _supabase
+          .from('posts')
+          .select('''
         *,
         users:user_id (username, photo_url),
         comments(count)
-      ''').order('created_ts', ascending: false).range(start, end);
+        ''')
+          .filter('visibility', 'is', null)
+          .order('created_ts', ascending: false)
+          .range(start, end);
 
       final data = List<Map<String, dynamic>>.from(response);
 
@@ -178,6 +185,62 @@ class PostsProvider extends ChangeNotifier {
       debugPrint('Error loading more posts: $e');
     }
   }
+
+  // Fetch posts for a specific user profile (not limited to global feed list)
+  Future<List<Post>> fetchPostsByUserId(String targetUserId) async {
+    final currentUserId = _supabase.auth.currentUser?.id;
+
+    try {
+      final response = await _supabase
+          .from('posts')
+          .select('''
+            *,
+            users:user_id (username, photo_url),
+            comments(count)
+          ''')
+          .eq('user_id', targetUserId)
+          .order('created_ts', ascending: false);
+
+      final data = List<Map<String, dynamic>>.from(response);
+      return data.map((m) => Post.fromMap(m, currentUserId)).toList();
+    } catch (e) {
+      debugPrint('Error fetching user posts: $e');
+      return [];
+    }
+  }
+
+  // 2. New method to handle liking a post that isn't in the global feed list
+  Future<Post> toggleLikeForPost(Post post) async {
+    final currentUserId = _supabase.auth.currentUser?.id;
+    if (currentUserId == null) return post;
+
+    final newLikesArray = List<String>.from(post.likesArray);
+    final bool newLikedState = !post.isLiked;
+
+    if (newLikedState) {
+      newLikesArray.add(currentUserId);
+    } else {
+      newLikesArray.remove(currentUserId);
+    }
+
+    // Update DB
+    try {
+      await _supabase
+          .from('posts')
+          .update({'likes': newLikesArray}).eq('post_id', post.postId);
+
+      // Return updated model so UI can update locally
+      return post.copyWith(
+        isLiked: newLikedState,
+        likesCount: newLikesArray.length,
+        likesArray: newLikesArray,
+      );
+    } catch (e) {
+      debugPrint("Like failed: $e");
+      return post; // Return original if failed
+    }
+  }
+
 
   // --- LIKE LOGIC ---
 
@@ -255,9 +318,43 @@ class PostsProvider extends ChangeNotifier {
     await fetchPosts();
   }
 
+  // Create a post scoped to an organization via visibility
+  Future<void> createPostForOrg(
+      {required String orgId,
+      required String title,
+      required String content,
+      List<String>? categories}) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    await _supabase.from('posts').insert({
+      'user_id': user.id,
+      'title': title,
+      'content': content,
+      'category': categories ?? ['Organization'],
+      'likes': [],
+      'comments': [],
+      'visibility': orgId,
+    });
+  }
+
+  // Fetch posts for a specific organization (does not mutate main feed list)
+  Future<List<Post>> fetchOrgPosts(String orgId) async {
+    final currentUserId = _supabase.auth.currentUser?.id;
+    final response = await _supabase.from('posts').select('''
+          *,
+          users:user_id (username, photo_url),
+          comments(count)
+        ''').eq('visibility', orgId).order('created_ts', ascending: false);
+
+    final data = List<Map<String, dynamic>>.from(response);
+    return data.map((m) => Post.fromMap(m, currentUserId)).toList();
+  }
+
   // --- UPDATE POST ---
 
-  Future<void> updatePost(int postId, String title, String content, List<String> categories) async {
+  Future<void> updatePost(
+      int postId, String title, String content, List<String> categories) async {
     try {
       await _supabase.from('posts').update({
         'title': title,
@@ -279,7 +376,7 @@ class PostsProvider extends ChangeNotifier {
     try {
       // Delete comments first (in case of foreign key constraints)
       await _supabase.from('comments').delete().eq('post_id', postId);
-      
+
       // Then delete the post
       await _supabase.from('posts').delete().eq('post_id', postId);
 

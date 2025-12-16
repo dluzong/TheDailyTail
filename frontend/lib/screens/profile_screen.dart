@@ -866,7 +866,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   displayPets = otherPets
                       .map((e) => pet_list.Pet(
                             name: e['name']?.toString() ?? 'Pet',
-                            imageUrl: e['imageUrl']?.toString() ?? '',
+                            imageUrl: e['image_url']?.toString() ?? '',
                           ))
                       .toList();
                   final first = _otherUserData?['firstName']?.toString() ?? '';
@@ -900,7 +900,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (!didPop) {
-            final shouldPop = await _onWillPop() ?? true;
+            final shouldPop = await _onWillPop();
             if (shouldPop && context.mounted) {
               Navigator.of(context).pop();
             }

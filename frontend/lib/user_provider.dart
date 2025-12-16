@@ -120,7 +120,10 @@ class AppUser {
 
   // --- HELPER METHODS ---
   bool isMemberOf(String orgId) => organizationRoles.containsKey(orgId);
-  bool isAdminOf(String orgId) => organizationRoles[orgId] == 'admin';
+  bool isAdminOf(String orgId) {
+    final role = organizationRoles[orgId];
+    return role == 'admin' || role == 'owner';
+  }
 }
 
 class UserProvider extends ChangeNotifier {
@@ -259,10 +262,8 @@ class UserProvider extends ChangeNotifier {
   // Fetch other user's pets by user ID
   Future<List<Map<String, dynamic>>> fetchOtherUserPets(String userId) async {
     try {
-      final response = await _supabase
-          .from('pets')
-          .select()
-          .eq('user_id', userId);
+      final response =
+          await _supabase.from('pets').select().eq('user_id', userId);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error fetching other user pets: $e');
@@ -349,12 +350,15 @@ class UserProvider extends ChangeNotifier {
         'username': username,
         'name': name,
       };
-      
+
       if (bio != null) updates['bio'] = bio;
       if (roles != null) updates['role'] = roles;
       if (photoUrl != null) updates['photo_url'] = photoUrl;
 
-      await _supabase.from('users').update(updates).eq('user_id', session.user.id);
+      await _supabase
+          .from('users')
+          .update(updates)
+          .eq('user_id', session.user.id);
 
       await fetchUser(force: true);
     } catch (e) {

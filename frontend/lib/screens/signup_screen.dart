@@ -16,8 +16,7 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  final _firstName = TextEditingController();
-  final _lastName = TextEditingController();
+  final _fullName = TextEditingController();
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -71,6 +70,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  Future<bool> _isUsernameTaken(String username) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('user_id')
+          .eq('username', username)
+          .maybeSingle();
+      return response != null;
+    } catch (e) {
+      debugPrint('Error checking username: $e');
+      // Default to true to prevent accidental overwrites on error
+      return true;
+    }
+  }
+
   Future<void> _signUp() async {
     // Basic validation
     if (_password.text != _confirmPassword.text) {
@@ -88,6 +102,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return; // Exit early
     }
 
+    // Username validation
+    final username = _username.text.trim();
+    if (username.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username cannot be empty')),
+      );
+      return;
+    }
+
+    final invalidChars = RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]');
+    if (invalidChars.hasMatch(username)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Username contains invalid characters. Do not include special characters.')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       debugPrint('Attempting sign up with email=${_email.text}');
@@ -96,8 +128,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password: _password.text,
         data: {
           'username': _username.text,
-          'first_name': _firstName.text,
-          'last_name': _lastName.text
+          'name': _fullName.text,
         },
       );
       debugPrint('Sign-Up Response: $res');
@@ -124,6 +155,63 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
         return; // Exit early
+      }
+
+      if (_supabase.auth.currentSession == null) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false, // User cannot click away
+          builder: (BuildContext context) {
+            return const AlertDialog(
+              title: Text("Verification Required"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("A verification email has been sent. Please click the link in your email to continue."),
+                  SizedBox(height: 20),
+                  CircularProgressIndicator(), // Show they are waiting
+                ],
+              ),
+            );
+          },
+        );
+
+        // 2. Start a loop that tries to log in every 3 seconds
+        bool loggedIn = false;
+        int attempts = 0;
+
+        // Try for 5 mins (120 attempts * 5 secs = 300 secs)
+        while (!loggedIn && attempts < 60) {
+          await Future.delayed(const Duration(seconds: 5));
+          attempts++;
+
+          try {
+            // Attempt to sign in. This will succeed ONLY after they click the email link.
+            await _supabase.auth.signInWithPassword(
+              email: _email.text.trim(),
+              password: _password.text,
+            );
+
+            // If we get here, no error was thrown -> We are logged in!
+            loggedIn = true;
+            if (mounted) Navigator.pop(context); // Close the dialog
+          } catch (e) {
+            // Still not verified, keep waiting...
+            debugPrint("Waiting for verification... Attempt $attempts");
+          }
+        }
+
+        // 3. Handle timeout (User didn't click link in 60 seconds)
+        if (!loggedIn) {
+          if (mounted) Navigator.pop(context); // Close dialog
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Verification timed out. Please try logging in manually.')),
+            );
+          }
+          return;
+        }
       }
 
       try {
@@ -161,8 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
-    _firstName.dispose();
-    _lastName.dispose();
+    _fullName.dispose();
     _username.dispose();
     _email.dispose();
     _password.dispose();
@@ -197,13 +284,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Column(
                   children: [
                     buildAppTitle(),
-                    const SizedBox(height: 15),
-                    // buildDogIcon(),
-                    const SizedBox(height: 20),
-                    buildAppTextField(
-                        hint: "First Name", controller: _firstName, context: context),
-                    const SizedBox(height: 15),
-                    buildAppTextField(hint: "Last Name", controller: _lastName, context: context),
+                    const SizedBox(height: 25),
+                    const SizedBox(height: 35),
+                    buildAppTextField(hint: "Full Name", controller: _fullName, context: context),
                     const SizedBox(height: 15),
                     buildAppTextField(hint: "Username", controller: _username, context: context),
                     const SizedBox(height: 15),
