@@ -118,79 +118,83 @@ class _LoginScreenState extends State<LoginScreen> {
         scaffoldBackgroundColor: Colors.white,
       ),
       child: Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
-              onPressed: () => Navigator.pop(context),
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Center(
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                      left: 24,
+                      right: 24,
+                    ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         buildAppTitle(),
-                        const SizedBox(height: 25),
-                        // buildDogIcon(),
-                        const SizedBox(height: 35),
-                        buildAppTextField(hint: "Email", controller: _email, context: context),
-                        const SizedBox(height: 15),
-                        buildAppTextField(
-                          hint: "Password",
-                          obscure: _obscurePassword,
-                          controller: _password,
-                          context: context,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: const Color(0xFF7496B3),
+                        const SizedBox(height: 30),
+                        Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                          buildAppTextField(hint: "Email", controller: _email, context: context),
+                          const SizedBox(height: 15),
+                          buildAppTextField(
+                            hint: "Password",
+                            obscure: _obscurePassword,
+                            controller: _password,
+                            context: context,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: const Color(0xFF7496B3),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
                           ),
-                        ),
-                        const SizedBox(height: 25),
-                        OutlinedButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                                  _signIn();
-                                },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
-                            foregroundColor: const Color(0xFF7496B3),
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          const SizedBox(height: 25),
+                          OutlinedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    _signIn();
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
+                              foregroundColor: const Color(0xFF7496B3),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            ),
+                            child: Text(_isLoading ? 'Logging in...' : 'Log In'),
                           ),
-                          child: Text(_isLoading ? 'Logging in...' : 'Log In'),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        OutlinedButton.icon(
-                          onPressed: _isLoading ? null : signInWithGoogle,
-                          icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-                          label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
-                            style: const TextStyle(color: Color(0xFF7496B3))),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF7496B3)),
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          const SizedBox(height: 12),
+                          
+                          OutlinedButton.icon(
+                            onPressed: _isLoading ? null : signInWithGoogle,
+                            icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
+                            label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
+                              style: const TextStyle(color: Color(0xFF7496B3))),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFF7496B3)),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            ),
                           ),
+                        ],
                         ),
                       ],
                     ),
@@ -198,10 +202,166 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+class LoginScreenContent extends StatefulWidget {
+  const LoginScreenContent();
+
+  @override
+  State<LoginScreenContent> createState() => _LoginScreenContentState();
+}
+
+class _LoginScreenContentState extends State<LoginScreenContent> {
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _supabase = Supabase.instance.client;
+
+  Future<void> signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
+      );
+
+      if (response == false) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Google sign-in failed or was cancelled')),
+          );
+        }
+        return;
+      }
+
+      try {
+        await context.read<UserProvider>().fetchUser();
+      } catch (e) {
+        debugPrint('fetchUser after Google sign-in failed: $e');
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+      debugPrint('Google sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signIn() async {
+    setState(() => _isLoading = true);
+    try {
+      debugPrint('Attempting sign in with email=${_email.text}');
+      final res = await _supabase.auth.signInWithPassword(
+        email: _email.text,
+        password: _password.text,
+      );
+
+      final user = res.user;
+      debugPrint('signIn response: $res');
+      if (user == null) {
+        debugPrint('User == null');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Login failed')));
+        return;
+      }
+
+      try {
+        await context.read<UserProvider>().fetchUser();
+      } catch (e) {
+        debugPrint('fetchUser failed: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load user: $e')),
+        );
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Logged in')));
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        (Route<dynamic> route) => false,
+      );
+    } catch (err) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(err.toString())));
+      debugPrint('Log in error');
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        buildAppTextField(hint: "Email", controller: _email, context: context),
+        const SizedBox(height: 15),
+        buildAppTextField(
+          hint: "Password",
+          obscure: _obscurePassword,
+          controller: _password,
+          context: context,
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: const Color(0xFF7496B3),
+            ),
+            onPressed: () {
+              setState(() {
+                _obscurePassword = !_obscurePassword;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 25),
+        OutlinedButton(
+          onPressed: _isLoading ? null : _signIn,
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
+            foregroundColor: const Color(0xFF7496B3),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          ),
+          child: Text(_isLoading ? 'Logging in...' : 'Log In'),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _isLoading ? null : signInWithGoogle,
+          icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
+          label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
+            style: const TextStyle(color: Color(0xFF7496B3))),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFF7496B3)),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
   }
 }

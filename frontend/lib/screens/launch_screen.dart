@@ -17,45 +17,39 @@ class LaunchScreen extends StatelessWidget {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    buildAppTitle(),
-                    const SizedBox(height: 25),
-                    // buildDogIcon(),
-                    const SizedBox(height: 35),
-                    buildAppButton(
-                      text: "Login",
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
-                      },
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              buildAppTitle(),
+              const SizedBox(height: 25),
+              //buildDogIcon(),
+              const SizedBox(height: 35),
+              buildAppButton(
+                text: "Login",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
                     ),
-                    const SizedBox(height: 12),
-                    buildAppButton(
-                      text: "Sign Up",
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SignUpScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              buildAppButton(
+                text: "Sign Up",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SignUpScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -33,7 +33,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         redirectTo: 'io.supabase.flutter://login-callback',
       );
 
-      // Handle SDK differences: some versions return bool, others return an object
       if (response == false) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -43,9 +42,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         return;
       }
-      // response == true -> continue
 
-      // Attempt to load user/profile after OAuth flow
       try {
         await context.read<UserProvider>().fetchUser();
       } catch (e) {
@@ -72,23 +69,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
-    // Basic validation
     if (_password.text != _confirmPassword.text) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Passwords do not match')),
       );
-      return; // Exit early
+      return;
     }
+
     if (_email.text.isEmpty || !_email.text.contains('@')) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email')),
       );
-      return; // Exit early
+      return;
     }
 
     setState(() => _isLoading = true);
+
     try {
       debugPrint('Attempting sign up with email=${_email.text}');
       final res = await _supabase.auth.signUp(
@@ -102,7 +100,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       debugPrint('Sign-Up Response: $res');
 
-      // Safely try to get the created user
       dynamic user;
       try {
         user = (res as dynamic).user ?? (res as dynamic).data?['user'];
@@ -111,7 +108,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       if (user == null) {
-        // Extract an error/message safely for user feedback
         String message =
             'Sign up did not complete. The email may already be registered.';
         try {
@@ -123,7 +119,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
-        return; // Exit early
+        return;
       }
 
       try {
@@ -142,7 +138,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Signed up')));
-      // Navigate to OnboardingScreen after successful signup
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -181,108 +176,129 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
-              onPressed: () => Navigator.pop(context),
+        body: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
-          ),
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    buildAppTitle(),
-                    const SizedBox(height: 25),
-                    // buildDogIcon(),
-                    const SizedBox(height: 35),
-                    buildAppTextField(
-                        hint: "First Name", controller: _firstName, context: context),
-                    const SizedBox(height: 15),
-                    buildAppTextField(hint: "Last Name", controller: _lastName, context: context),
-                    const SizedBox(height: 15),
-                    buildAppTextField(hint: "Username", controller: _username, context: context),
-                    const SizedBox(height: 15),
-                    buildAppTextField(hint: "Email", controller: _email, context: context),
-                    const SizedBox(height: 15),
-                    buildAppTextField(
-                      hint: "Password",
-                      controller: _password,
-                      obscure: _obscurePassword,
-                      context: context,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: const Color(0xFF7496B3),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        buildAppTitle(),
+                        const SizedBox(height: 30),
+                        Column(
+                          children: [
+                            buildAppTextField(
+                                hint: "First Name",
+                                controller: _firstName,
+                                context: context),
+                            const SizedBox(height: 15),
+                            buildAppTextField(
+                                hint: "Last Name",
+                                controller: _lastName,
+                                context: context),
+                            const SizedBox(height: 15),
+                            buildAppTextField(
+                                hint: "Username",
+                                controller: _username,
+                                context: context),
+                            const SizedBox(height: 15),
+                            buildAppTextField(
+                                hint: "Email",
+                                controller: _email,
+                                context: context),
+                            const SizedBox(height: 15),
+                            buildAppTextField(
+                              hint: "Password",
+                              controller: _password,
+                              obscure: _obscurePassword,
+                              context: context,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: const Color(0xFF7496B3),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            buildAppTextField(
+                              hint: "Confirm Password",
+                              controller: _confirmPassword,
+                              obscure: _obscureConfirmPassword,
+                              context: context,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: const Color(0xFF7496B3),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 25),
+                            OutlinedButton(
+                              onPressed: _isLoading ? null : _signUp,
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                    color: Color(0xFF7496B3), width: 1.5),
+                                foregroundColor: const Color(0xFF7496B3),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 12, horizontal: 16),
+                              ),
+                              child: Text(
+                                  _isLoading ? 'Signing Up...' : 'Sign Up'),
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed:
+                                  _isLoading ? null : () => signInWithGoogle(),
+                              icon: const Icon(Icons.login,
+                                  color: Color(0xFF7496B3)),
+                              label: Text(
+                                  _isLoading
+                                      ? 'Please wait...'
+                                      : 'Sign up with Google',
+                                  style: const TextStyle(
+                                      color: Color(0xFF7496B3))),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF7496B3)),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 12, horizontal: 16),
+                              ),
+                            ),
+                          ],
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 15),
-                    buildAppTextField(
-                      hint: "Confirm Password",
-                      controller: _confirmPassword,
-                      obscure: _obscureConfirmPassword,
-                      context: context,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: const Color(0xFF7496B3),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 25),
-                    const SizedBox(height: 25),
-                    OutlinedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              _signUp();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
-                        foregroundColor: const Color(0xFF7496B3),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      ),
-                      child: Text(_isLoading ? 'Signing Up...' : 'Sign Up'),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : signInWithGoogle,
-                      icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-                      label: Text(
-                          _isLoading ? 'Please wait...' : 'Sign up with Google',
-                          style: const TextStyle(color: Color(0xFF7496B3))),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF7496B3)),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 16),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
