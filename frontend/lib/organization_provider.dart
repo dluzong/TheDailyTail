@@ -108,7 +108,6 @@ class OrganizationProvider extends ChangeNotifier {
     if (userId == null) throw Exception('User not authenticated');
 
     try {
-      // 1) Insert new organization (schema has only basic fields)
       final response = await _supabase.from('organizations').insert({
         'name': name,
         'description': description,
@@ -130,6 +129,9 @@ class OrganizationProvider extends ChangeNotifier {
           debugPrint('Warning: failed to add owner membership: $e');
         }
 
+        newOrg['name'] = newOrg['name'] ?? name;
+        newOrg['description'] = newOrg['description'] ?? description;
+
         // Seed local member count as 1 (creator)
         newOrg['organization_members'] = [
           {'count': 1}
@@ -144,19 +146,38 @@ class OrganizationProvider extends ChangeNotifier {
   }
 
   Future<void> updateOrganization(
-      String orgId, {
-        String? name,
-        String? description,
-      }) async {
+    String orgId, {
+    String? name,
+    String? description,
+  }) async {
     final Map<String, dynamic> updates = {};
-    if (name != null) updates['name'] = name;
-    if (description != null) updates['description'] = description;
+
+    if (name != null) {
+      updates['name'] = name;
+    }
+    if (description != null) {
+      updates['description'] = description;
+    }
     if (updates.isEmpty) return;
 
-    await _supabase.from('organizations').update(updates).eq('organization_id', orgId);
+    try {
+      final List<dynamic> result = await _supabase
+          .from('organizations')
+          .update(updates)
+          .eq('organization_id', orgId)
+          .select();
+
+      if (result.isEmpty) {
+        throw Exception('Update did not affect any rows');
+      }
+    } catch (e) {
+      debugPrint('Error updating organization $orgId: $e');
+      rethrow;
+    }
 
     // Update local cache
-    final idx = _allOrgs.indexWhere((o) => (o['organization_id'] as String?) == orgId);
+    final idx =
+        _allOrgs.indexWhere((o) => (o['organization_id'] as String?) == orgId);
     if (idx != -1) {
       final org = Map<String, dynamic>.from(_allOrgs[idx]);
       org.addAll(updates);
