@@ -311,21 +311,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         buildAppTextField(
                           hint: "Full Name",
                           controller: _fullName,
-                          context: context),
+                          context: context,
+                          forceLightMode: true),
                       const SizedBox(height: 24),
                       buildAppTextField(
                           hint: "Username",
                           controller: _username,
-                          context: context),
+                          context: context,
+                          forceLightMode: true),
                       const SizedBox(height: 24),
                       buildAppTextField(
-                          hint: "Email", controller: _email, context: context),
+                          hint: "Email", controller: _email, context: context, forceLightMode: true),
                       const SizedBox(height: 24),
                       buildAppTextField(
                         hint: "Password",
                         controller: _password,
                         obscure: _obscurePassword,
                         context: context,
+                        forceLightMode: true,
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
@@ -346,6 +349,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         controller: _confirmPassword,
                         obscure: _obscureConfirmPassword,
                         context: context,
+                        forceLightMode: true,
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureConfirmPassword
