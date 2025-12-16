@@ -118,79 +118,90 @@ class _AppLayoutState extends State<AppLayout> {
             //       ? const Color(0xFF4A6B85)
             //       : innerBlue,
             //   padding: const EdgeInsets.symmetric(horizontal: 16),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (widget.showBackButton)
-                    Positioned(
-                      left: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                        onPressed: () async {
-                          final didPop = await Navigator.of(context).maybePop();
-                          if (!didPop) {
-                            // If nothing to pop, go to Dashboard
-                            widget.onTabSelected(1);
-                            _navigateToIndex(1);
-                          }
-                        },
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                if (widget.showBackButton)
+                  Positioned(
+                    left: 0,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                        size: 28,
                       ),
+                      onPressed: () async {
+                        final didPop = await Navigator.of(context).maybePop();
+                        if (!didPop) {
+                          // If nothing to pop, go to Dashboard
+                          widget.onTabSelected(1);
+                          _navigateToIndex(1);
+                        }
+                      },
                     ),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 15), // Add top padding
-                      child: ClipRect(
-                        child: Align(
-                          alignment: Alignment.topCenter, // Crop from bottom
-                          heightFactor: 0.8, // Show only top 70% of image (adjust 0.5-1.0)
-                          child: Image.asset(
-                            Theme.of(context).brightness == Brightness.dark
+                  ),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 15), // Add top padding
+                    child: ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter, // Crop from bottom
+                        heightFactor:
+                            0.8, // Show only top 70% of image (adjust 0.5-1.0)
+                        child: Image.asset(
+                          Theme.of(context).brightness == Brightness.dark
                               ? 'assets/dailytail-logotype-white.png'
                               : 'assets/dailytail-logotype-blue.png',
-                            height: 80,
-                            fit: BoxFit.contain,
-                          ),
+                          height: 80,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
                   ),
-                  Positioned(
-                    right: 0,
-                    child: Consumer<UserProvider>(
-                      builder: (context, userProvider, _) {
-                        final photoUrl = userProvider.user?.photoUrl;
-                        return GestureDetector(
-                          onTap: _openProfile,
-                          child: Padding(
-                            padding: const EdgeInsets.all(15.0), // Add padding around avatar
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white
-                                      : Colors.grey[700]!,
-                                  width: 2,
-                                ),
-                              ),
-                              child: CircleAvatar(
-                                radius: 18,
-                                backgroundColor: const Color(0xFF7496B3),
-                                backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                                    ? NetworkImage(photoUrl)
-                                    : null,
-                                child: (photoUrl == null || photoUrl.isEmpty)
-                                    ? const Icon(Icons.person, color: Colors.white)
-                                    : null,
+                ),
+                Positioned(
+                  right: 0,
+                  child: Consumer<UserProvider>(
+                    builder: (context, userProvider, _) {
+                      final photoUrl = userProvider.user?.photoUrl;
+                      return GestureDetector(
+                        onTap: _openProfile,
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                              15.0), // Add padding around avatar
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : Colors.grey[700]!,
+                                width: 2,
                               ),
                             ),
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: const Color(0xFF7496B3),
+                              backgroundImage:
+                                  (photoUrl != null && photoUrl.isNotEmpty)
+                                      ? NetworkImage(photoUrl)
+                                      : null,
+                              child: (photoUrl == null || photoUrl.isEmpty)
+                                  ? const Icon(Icons.person,
+                                      color: Colors.white)
+                                  : null,
+                            ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
             // ),
 
             Expanded(
@@ -212,7 +223,8 @@ class _AppLayoutState extends State<AppLayout> {
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: CustomPaint(
-                      size: Size(MediaQuery.of(context).size.width, adjustedInnerHeight),
+                      size: Size(MediaQuery.of(context).size.width,
+                          adjustedInnerHeight),
                       painter: _BottomNavPainter(
                         Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF3A5A75)
@@ -252,9 +264,10 @@ class _AppLayoutState extends State<AppLayout> {
                           color: Theme.of(context).scaffoldBackgroundColor,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF3A5A75)
-                                : outerBlue,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF3A5A75)
+                                    : outerBlue,
                             width: 4,
                           ),
                           boxShadow: const [

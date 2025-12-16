@@ -197,9 +197,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Column(
                   children: [
                     buildAppTitle(),
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 15),
                     // buildDogIcon(),
-                    const SizedBox(height: 35),
+                    const SizedBox(height: 20),
                     buildAppTextField(
                         hint: "First Name", controller: _firstName, context: context),
                     const SizedBox(height: 15),
