@@ -24,7 +24,10 @@ class _EditPetPopupState extends State<EditPetPopup> {
   late TextEditingController breedController;
   late TextEditingController birthdayController;
   late TextEditingController weightController;
+  late ScrollController _scrollController;
   String? tempImagePath;
+  String? _sex;
+  bool _showScrollIndicator = true;
   final ImagePicker _picker = ImagePicker();
   
   static const _dateInputFormatter = DateSlashFormatter();
@@ -37,6 +40,9 @@ class _EditPetPopupState extends State<EditPetPopup> {
     birthdayController = TextEditingController(text: widget.pet.birthday);
     weightController = TextEditingController(text: widget.pet.weight.toString());
     tempImagePath = widget.pet.imageUrl.isNotEmpty ? widget.pet.imageUrl : null;
+    
+    _scrollController = ScrollController();
+    _scrollController.addListener(_checkScroll);
   }
 
   @override
@@ -45,7 +51,21 @@ class _EditPetPopupState extends State<EditPetPopup> {
     breedController.dispose();
     birthdayController.dispose();
     weightController.dispose();
+    _scrollController.removeListener(_checkScroll);
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _checkScroll() {
+    if (!_scrollController.hasClients) return;
+    
+    final isAtBottom = _scrollController.offset >= _scrollController.position.maxScrollExtent - 10;
+    
+    if (isAtBottom && _showScrollIndicator) {
+      setState(() => _showScrollIndicator = false);
+    } else if (!isAtBottom && !_showScrollIndicator) {
+      setState(() => _showScrollIndicator = true);
+    }
   }
 
   Future<void> _pickImage() async {
@@ -97,25 +117,6 @@ class _EditPetPopupState extends State<EditPetPopup> {
     }
     
     return true;
-  }
-
-  int _calcAgeYears(String dateStr) {
-    try {
-      final parts = dateStr.split('/');
-      if (parts.length != 3) return 0;
-      final month = int.parse(parts[0]);
-      final day = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-      final birthDate = DateTime(year, month, day);
-      final now = DateTime.now();
-      int years = now.year - birthDate.year;
-      if (DateTime(now.year, month, day).isAfter(now)) {
-        years -= 1;
-      }
-      return years < 0 ? 0 : years;
-    } catch (_) {
-      return 0;
-    }
   }
 
   void _handleSave() {
@@ -171,8 +172,8 @@ class _EditPetPopupState extends State<EditPetPopup> {
           ),
           child: Container(
             width: MediaQuery.of(context).size.width * 0.92,
-            constraints: const BoxConstraints(maxWidth: 460),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+            constraints: const BoxConstraints(maxWidth: 460, maxHeight: 560),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.dark
                   ? const Color(0xFF2A2A2A)
@@ -190,242 +191,343 @@ class _EditPetPopupState extends State<EditPetPopup> {
                 )
               ],
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Edit Pet',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inknutAntiqua(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Divider(
+                    height: 1,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF404040)
+                        : const Color(0xFF5F7C94)),
+                Expanded(
+                  child: Stack(
                     children: [
-                      IconButton(
-                        icon: Icon(Icons.close,
+                      SingleChildScrollView(
+                        controller: _scrollController,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'Upload a photo',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? const Color(0xFF7FA8C7)
-                                : const Color(0xFF7496B3)),
-                        onPressed: () => Navigator.of(context).pop(),
+                                : const Color(0xFF7496B3),
+                          ),
+                        ),
                       ),
-                      Expanded(
+                      const SizedBox(height: 8),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: 56,
+                            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF5A7A95)
+                                : const Color(0xFF7496B3),
+                            backgroundImage: tempImagePath != null
+                                ? (tempImagePath!.startsWith('http') || tempImagePath!.startsWith('assets/')
+                                ? (tempImagePath!.startsWith('http')
+                                ? NetworkImage(tempImagePath!)
+                                : AssetImage(tempImagePath!)) as ImageProvider
+                                : FileImage(File(tempImagePath!)))
+                                : null,
+                            child: tempImagePath == null
+                                ? const Icon(Icons.camera_alt, size: 24, color: Colors.white)
+                                : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
                         child: Text(
-                          'Edit Pet',
-                          textAlign: TextAlign.center,
+                          'Pet Name',
                           style: GoogleFonts.inknutAntiqua(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      buildAppTextField(
+                        hint: 'Pet Name',
+                        controller: nameController,
+                        context: context,
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'Breed',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      buildAppTextField(
+                        hint: 'Breed',
+                        controller: breedController,
+                        context: context,
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'Birthday',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: 200,
+                        child: TextField(
+                          controller: birthdayController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            _dateInputFormatter,
+                          ],
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? Colors.white
-                                : const Color(0xFF394957),
+                                : Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'mm/dd/yyyy',
+                            hintStyle: GoogleFonts.inknutAntiqua(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF3A3A3A)
+                                : Colors.grey[200],
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 15,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 48),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'Sex',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      FractionallySizedBox(
+                        widthFactor: 1.0,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _sex,
+                          items: const [
+                            DropdownMenuItem(value: 'Male', child: Text('Male')),
+                            DropdownMenuItem(value: 'Female', child: Text('Female')),
+                          ],
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Sex',
+                            hintStyle: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF3A3A3A)
+                                : Colors.grey[200],
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 15,
+                            ),
+                          ),
+                          onChanged: (v) => setState(() => _sex = v),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'Weight (lbs)',
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: 200,
+                        child: TextField(
+                          controller: weightController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                          ],
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Weight (lbs)',
+                            hintStyle: GoogleFonts.inknutAntiqua(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF3A3A3A)
+                                : Colors.grey[200],
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 15,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: _showScrollIndicator
+                            ? Container(
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      (Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2A2A2A).withValues(alpha:0.0)
+                                          : Colors.white.withValues(alpha:0.0)),
+                                      (Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2A2A2A).withValues(alpha:0.3)
+                                          : Colors.white.withValues(alpha:0.3)),
+                                      (Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2A2A2A).withValues(alpha:0.8)
+                                          : Colors.white.withValues(alpha:0.8)),
+                                      (Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2A2A2A)
+                                          : Colors.white),
+                                    ],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down,
+                                    color:
+                                    (Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : Colors.grey[800]),
+                                    size: 24,
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Divider(
-                      height: 2,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF404040)
-                          : const Color(0xFF5F7C94)),
-                  const SizedBox(height: 20),
-                  Center(
-                    child: Text(
-                      'Upload a photo',
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF7FA8C7)
-                            : const Color(0xFF7496B3),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: GestureDetector(
-                      onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: 48,
-                        backgroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF5A7A95)
-                            : const Color(0xFF7496B3),
-                        backgroundImage: tempImagePath != null
-                            ? (tempImagePath!.startsWith('http') || tempImagePath!.startsWith('assets/')
-                            ? (tempImagePath!.startsWith('http')
-                            ? NetworkImage(tempImagePath!)
-                            : AssetImage(tempImagePath!)) as ImageProvider
-                            : FileImage(File(tempImagePath!)))
-                            : null,
-                        child: tempImagePath == null
-                            ? const Icon(Icons.camera_alt, size: 36, color: Colors.white)
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Center(
-                    child: Text(
-                      'Pet Name',
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF7FA8C7)
-                            : const Color(0xFF7496B3),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  buildAppTextField(
-                    hint: 'Pet Name',
-                    controller: nameController,
-                    context: context,
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      'Breed',
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF7FA8C7)
-                            : const Color(0xFF7496B3),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  buildAppTextField(
-                    hint: 'Breed',
-                    controller: breedController,
-                    context: context,
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      'Birthday',
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF7FA8C7)
-                            : const Color(0xFF7496B3),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 300,
-                    child: TextField(
-                      controller: birthdayController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        _dateInputFormatter,
-                      ],
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'mm/dd/yyyy',
-                        hintStyle: GoogleFonts.inknutAntiqua(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[400]
-                              : Colors.grey[600],
-                        ),
-                        filled: true,
-                        fillColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF3A3A3A)
-                            : Colors.grey[200],
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 15,
-                          horizontal: 20,
-                        ),
-                        border: OutlineInputBorder(
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: SizedBox(
+                    width: 180,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7F9CB3),
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      onPressed: _handleSave,
+                      child: Text(
+                        'Save',
+                        style: GoogleFonts.inknutAntiqua(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      'Weight (lbs)',
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF7FA8C7)
-                            : const Color(0xFF7496B3),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 300,
-                    child: TextField(
-                      controller: weightController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                      ],
-                      style: GoogleFonts.inknutAntiqua(
-                        fontSize: 16,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Weight (lbs)',
-                        hintStyle: GoogleFonts.inknutAntiqua(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[400]
-                              : Colors.grey[600],
-                        ),
-                        filled: true,
-                        fillColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF3A3A3A)
-                            : Colors.grey[200],
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 15,
-                          horizontal: 20,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: SizedBox(
-                      width: 160,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7F9CB3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: _handleSave,
-                        child: Text(
-                          'Save',
-                          style: GoogleFonts.inknutAntiqua(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+              ],
             ),
           ),
         ),

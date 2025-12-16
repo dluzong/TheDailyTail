@@ -557,6 +557,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                           return Dismissible(
                             key: Key(log.logId),
                             direction: DismissDirection.endToStart,
+                            resizeDuration: null,
                             background: Container(
                               alignment: Alignment.centerRight,
                               color: Colors.redAccent,
@@ -642,6 +643,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                           return Dismissible(
                             key: Key("saved_med_${idx}_${med['name'] ?? ''}"),
                             direction: DismissDirection.endToStart,
+                            resizeDuration: null,
                             background: Container(
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.symmetric(horizontal: 16),

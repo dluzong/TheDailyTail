@@ -355,6 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 name: (petMap['name'] ?? 'Unknown').toString(),
                 species: (petMap['species'] ?? 'Dog').toString(),
                 breed: (petMap['breed'] ?? 'Unknown').toString(),
+                age: (petMap['age'] as num?)?.toInt() ?? 0,
                 birthday:
                   (petMap['dob'] ?? petMap['birthday'])?.toString() ?? '',
                 weight: (petMap['weight'] as num?)?.toDouble() ?? 0.0,
@@ -435,6 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ? (currentUser?.userId ?? '')
         : (_otherUserData?['user_id']?.toString() ?? '');
 
+      // Filter by immutable userId so username changes don't break matching
       final userPosts = targetUserId.isEmpty
         ? <Post>[]
         : postsProvider.posts
