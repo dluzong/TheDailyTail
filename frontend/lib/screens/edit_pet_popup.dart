@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import '../pet_provider.dart' as pet_provider;
 import '../shared/starting_widgets.dart';
@@ -20,17 +21,19 @@ class EditPetPopup extends StatefulWidget {
 class _EditPetPopupState extends State<EditPetPopup> {
   late TextEditingController nameController;
   late TextEditingController breedController;
-  late TextEditingController ageController;
+  late TextEditingController birthdayController;
   late TextEditingController weightController;
   String? tempImagePath;
   final ImagePicker _picker = ImagePicker();
+  
+  static const _dateInputFormatter = _DateSlashFormatter();
 
   @override
   void initState() {
     super.initState();
     nameController = TextEditingController(text: widget.pet.name);
     breedController = TextEditingController(text: widget.pet.breed);
-    ageController = TextEditingController(text: widget.pet.age.toString());
+    birthdayController = TextEditingController(text: widget.pet.birthday);
     weightController = TextEditingController(text: widget.pet.weight.toString());
     tempImagePath = widget.pet.imageUrl.isNotEmpty ? widget.pet.imageUrl : null;
   }
@@ -39,7 +42,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
   void dispose() {
     nameController.dispose();
     breedController.dispose();
-    ageController.dispose();
+    birthdayController.dispose();
     weightController.dispose();
     super.dispose();
   }
@@ -67,10 +70,57 @@ class _EditPetPopupState extends State<EditPetPopup> {
     }
   }
 
+  bool _isValidDate(String dateStr) {
+    if (dateStr.length != 10) return false;
+    
+    final parts = dateStr.split('/');
+    if (parts.length != 3) return false;
+    
+    final month = int.tryParse(parts[0]);
+    final day = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    
+    if (month == null || day == null || year == null) return false;
+    
+    if (month < 1 || month > 12) return false;
+    if (year < 1900 || year > DateTime.now().year) return false;
+    
+    final daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    
+    if (month == 2) {
+      final isLeapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+      if (isLeapYear && day > 29) return false;
+      if (!isLeapYear && day > 28) return false;
+    } else {
+      if (day < 1 || day > daysInMonth[month - 1]) return false;
+    }
+    
+    return true;
+  }
+
+  int _calcAgeYears(String dateStr) {
+    try {
+      final parts = dateStr.split('/');
+      if (parts.length != 3) return 0;
+      final month = int.parse(parts[0]);
+      final day = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
+      final birthDate = DateTime(year, month, day);
+      final now = DateTime.now();
+      int years = now.year - birthDate.year;
+      if (DateTime(now.year, month, day).isAfter(now)) {
+        years -= 1;
+      }
+      return years < 0 ? 0 : years;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   void _handleSave() {
     final name = nameController.text.trim();
     final breed = breedController.text.trim();
-    final age = int.tryParse(ageController.text.trim()) ?? 0;
+    final birthday = birthdayController.text.trim();
     final weight = double.tryParse(weightController.text.trim()) ?? 0.0;
 
     if (name.isEmpty) {
@@ -80,10 +130,27 @@ class _EditPetPopupState extends State<EditPetPopup> {
       return;
     }
 
+    if (birthday.isNotEmpty && birthday.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter birthday as mm/dd/yyyy')),
+      );
+      return;
+    }
+
+    if (birthday.isNotEmpty && !_isValidDate(birthday)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Birthday is not valid. Please enter a valid date.'),
+          backgroundColor: Colors.red,
+        ));
+      return;
+    }
+
     Navigator.of(context).pop({
       'name': name,
       'breed': breed,
-      'age': age,
+      'age': birthday.isNotEmpty ? _calcAgeYears(birthday) : 0,
+      'birthday': birthday,
       'weight': weight,
       'imageUrl': tempImagePath,
     });
@@ -233,7 +300,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'Age',
+                      'Birthday',
                       style: GoogleFonts.inknutAntiqua(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -244,10 +311,42 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  buildAppTextField(
-                    hint: 'Age',
-                    controller: ageController,
-                    context: context,
+                  SizedBox(
+                    width: 300,
+                    child: TextField(
+                      controller: birthdayController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        _dateInputFormatter,
+                      ],
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'mm/dd/yyyy',
+                        hintStyle: GoogleFonts.inknutAntiqua(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A3A3A)
+                            : Colors.grey[200],
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                          horizontal: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Center(
@@ -263,10 +362,41 @@ class _EditPetPopupState extends State<EditPetPopup> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  buildAppTextField(
-                    hint: 'Weight',
-                    controller: weightController,
-                    context: context,
+                  SizedBox(
+                    width: 300,
+                    child: TextField(
+                      controller: weightController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                      ],
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Weight (lbs)',
+                        hintStyle: GoogleFonts.inknutAntiqua(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF3A3A3A)
+                            : Colors.grey[200],
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                          horizontal: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Center(
@@ -298,6 +428,82 @@ class _EditPetPopupState extends State<EditPetPopup> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Ensures birthday input stays in mm/dd/yyyy with auto-padding and slashes.
+class _DateSlashFormatter extends TextInputFormatter {
+  const _DateSlashFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    
+    String filtered = text.replaceAll(RegExp(r'[^0-9/]'), '');
+    String digits = filtered.replaceAll('/', '');
+    if (digits.length > 8) {
+      digits = digits.substring(0, 8);
+    }
+    
+    bool userTypedSlash = text.endsWith('/') && !oldValue.text.endsWith('/');
+    
+    StringBuffer buffer = StringBuffer();
+    int digitIndex = 0;
+    
+    if (digitIndex < digits.length) {
+      if (digitIndex + 1 < digits.length) {
+        buffer.write(digits.substring(digitIndex, digitIndex + 2));
+        digitIndex += 2;
+      } else {
+        if (userTypedSlash || (filtered.contains('/') && filtered.indexOf('/') <= 2)) {
+          buffer.write('0${digits[digitIndex]}');
+          digitIndex += 1;
+        } else {
+          buffer.write(digits[digitIndex]);
+          digitIndex += 1;
+        }
+      }
+      
+      if (digitIndex < digits.length || (userTypedSlash && buffer.length <= 2)) {
+        buffer.write('/');
+      }
+    }
+    
+    if (digitIndex < digits.length) {
+      int dayStart = digitIndex;
+      if (digitIndex + 1 < digits.length) {
+        buffer.write(digits.substring(digitIndex, digitIndex + 2));
+        digitIndex += 2;
+      } else {
+        int slashCount = filtered.split('/').length - 1;
+        if (slashCount >= 2 || (userTypedSlash && buffer.toString().contains('/'))) {
+          buffer.write('0${digits[digitIndex]}');
+          digitIndex += 1;
+        } else {
+          buffer.write(digits[digitIndex]);
+          digitIndex += 1;
+        }
+      }
+      
+      if (digitIndex < digits.length || (userTypedSlash && digitIndex > dayStart)) {
+        buffer.write('/');
+      }
+    }
+    
+    if (digitIndex < digits.length) {
+      buffer.write(digits.substring(digitIndex));
+    }
+
+    final formatted = buffer.toString();
+    int cursorPosition = formatted.length;
+    
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: cursorPosition),
     );
   }
 }
