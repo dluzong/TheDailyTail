@@ -7,13 +7,10 @@ import '../shared/starting_widgets.dart';
 
 class EditPetPopup extends StatefulWidget {
   final pet_provider.Pet pet;
-  // Remove the onSave callback, we will return data instead
-  // final Function(pet_provider.Pet) onSave;
 
   const EditPetPopup({
     super.key,
     required this.pet,
-    // required this.onSave, // Remove this
   });
 
   @override
@@ -83,14 +80,12 @@ class _EditPetPopupState extends State<EditPetPopup> {
       return;
     }
 
-    // Instead of calling onSave, we pop the Navigator with a Map of the changes.
-    // The parent (user_settings.dart) will receive this map.
     Navigator.of(context).pop({
       'name': name,
       'breed': breed,
       'age': age,
       'weight': weight,
-      'imageUrl': tempImagePath, // This might be a local file path now
+      'imageUrl': tempImagePath,
     });
   }
 
@@ -99,199 +94,206 @@ class _EditPetPopupState extends State<EditPetPopup> {
     return Center(
       child: Material(
         color: Colors.transparent,
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.92,
-          constraints: const BoxConstraints(maxWidth: 460),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF2A2A2A)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF404040)
-                    : Colors.grey.shade300),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 12,
-                offset: Offset(0, 6),
-              )
-            ],
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 14,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.close,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF7FA8C7)
-                              : const Color(0xFF7496B3)),
-                      onPressed: () => Navigator.of(context).pop(), // Returns null
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Edit Pet',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inknutAntiqua(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : const Color(0xFF394957),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Divider(
-                    height: 2,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF404040)
-                        : const Color(0xFF5F7C94)),
-                const SizedBox(height: 20),
-                Center(
-                  child: Text(
-                    'Upload a photo',
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF7FA8C7)
-                          : const Color(0xFF7496B3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Center(
-                  child: GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 48,
-                      backgroundColor: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF5A7A95)
-                          : const Color(0xFF7496B3),
-                      backgroundImage: tempImagePath != null
-                          ? (tempImagePath!.startsWith('http') || tempImagePath!.startsWith('assets/')
-                          ? (tempImagePath!.startsWith('http')
-                          ? NetworkImage(tempImagePath!)
-                          : AssetImage(tempImagePath!)) as ImageProvider
-                          : FileImage(File(tempImagePath!)))
-                          : null,
-                      child: tempImagePath == null
-                          ? const Icon(Icons.camera_alt, size: 36, color: Colors.white)
-                          : null,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Center(
-                  child: Text(
-                    'Pet Name',
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF7FA8C7)
-                          : const Color(0xFF7496B3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                buildAppTextField(
-                  hint: 'Pet Name',
-                  controller: nameController,
-                  context: context,
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'Breed',
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF7FA8C7)
-                          : const Color(0xFF7496B3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                buildAppTextField(
-                  hint: 'Breed',
-                  controller: breedController,
-                  context: context,
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'Age',
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF7FA8C7)
-                          : const Color(0xFF7496B3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                buildAppTextField(
-                  hint: 'Age',
-                  controller: ageController,
-                  context: context,
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'Weight (lbs)',
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF7FA8C7)
-                          : const Color(0xFF7496B3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                buildAppTextField(
-                  hint: 'Weight',
-                  controller: weightController,
-                  context: context,
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: SizedBox(
-                    width: 160,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7F9CB3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: _handleSave,
-                      child: Text(
-                        'Save',
-                        style: GoogleFonts.inknutAntiqua(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.92,
+            constraints: const BoxConstraints(maxWidth: 460),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF2A2A2A)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : Colors.grey.shade300),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 12,
+                  offset: Offset(0, 6),
+                )
               ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.close,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7FA8C7)
+                                : const Color(0xFF7496B3)),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Edit Pet',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF394957),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Divider(
+                      height: 2,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF404040)
+                          : const Color(0xFF5F7C94)),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Text(
+                      'Upload a photo',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7FA8C7)
+                            : const Color(0xFF7496B3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 48,
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF5A7A95)
+                            : const Color(0xFF7496B3),
+                        backgroundImage: tempImagePath != null
+                            ? (tempImagePath!.startsWith('http') || tempImagePath!.startsWith('assets/')
+                            ? (tempImagePath!.startsWith('http')
+                            ? NetworkImage(tempImagePath!)
+                            : AssetImage(tempImagePath!)) as ImageProvider
+                            : FileImage(File(tempImagePath!)))
+                            : null,
+                        child: tempImagePath == null
+                            ? const Icon(Icons.camera_alt, size: 36, color: Colors.white)
+                            : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Text(
+                      'Pet Name',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7FA8C7)
+                            : const Color(0xFF7496B3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  buildAppTextField(
+                    hint: 'Pet Name',
+                    controller: nameController,
+                    context: context,
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'Breed',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7FA8C7)
+                            : const Color(0xFF7496B3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  buildAppTextField(
+                    hint: 'Breed',
+                    controller: breedController,
+                    context: context,
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'Age',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7FA8C7)
+                            : const Color(0xFF7496B3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  buildAppTextField(
+                    hint: 'Age',
+                    controller: ageController,
+                    context: context,
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'Weight (lbs)',
+                      style: GoogleFonts.inknutAntiqua(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7FA8C7)
+                            : const Color(0xFF7496B3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  buildAppTextField(
+                    hint: 'Weight',
+                    controller: weightController,
+                    context: context,
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: SizedBox(
+                      width: 160,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7F9CB3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: _handleSave,
+                        child: Text(
+                          'Save',
+                          style: GoogleFonts.inknutAntiqua(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
         ),

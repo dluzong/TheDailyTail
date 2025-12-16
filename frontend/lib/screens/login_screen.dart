@@ -19,210 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   final _supabase = Supabase.instance.client;
 
-    Future<void> signInWithGoogle() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'io.supabase.flutter://login-callback',
-      );
-
-      // Handle SDK differences: some versions return bool, others return an object
-      if (response == false) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Google sign-in failed or was cancelled')),
-          );
-        }
-        return;
-      }
-      // response == true -> continue
-    
-      // Attempt to load user/profile after OAuth flow
-      try {
-        await context.read<UserProvider>().fetchUser();
-      } catch (e) {
-        debugPrint('fetchUser after Google sign-in failed: $e');
-      }
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-      debugPrint('Google sign-in error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signIn() async {
-    setState(() => _isLoading = true); // <-- ensure loading state
-    try {
-      debugPrint('Attempting sign in with email=${_email.text}');
-      final res = await _supabase.auth.signInWithPassword(
-        email: _email.text,
-        password: _password.text,
-      );
-
-      final user = res.user;
-      debugPrint('signIn response: $res');
-      if (user == null) {
-        // SDK doesn't expose `res.error` here — show a generic messages.
-        debugPrint('User == null');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Login failed')));
-        return;
-      }
-
-      try {
-        await context.read<UserProvider>().fetchUser();
-      } catch (e) {
-        debugPrint('fetchUser failed: $e');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load user: $e')),
-        );
-      }
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Logged in')));
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        (Route<dynamic> route) => false,
-      );
-      // navigate or refresh UI as needed
-    } catch (err) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(err.toString())));
-      debugPrint('Log in error');
-    }
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData(
-        brightness: Brightness.light,
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).viewInsets.bottom,
-                      left: 24,
-                      right: 24,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        buildAppTitle(),
-                        const SizedBox(height: 30),
-                        Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                          buildAppTextField(hint: "Email", controller: _email, context: context),
-                          const SizedBox(height: 15),
-                          buildAppTextField(
-                            hint: "Password",
-                            obscure: _obscurePassword,
-                            controller: _password,
-                            context: context,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: const Color(0xFF7496B3),
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 25),
-                          OutlinedButton(
-                            onPressed: _isLoading
-                                ? null
-                                : () {
-                                    _signIn();
-                                  },
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
-                              foregroundColor: const Color(0xFF7496B3),
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                            ),
-                            child: Text(_isLoading ? 'Logging in...' : 'Log In'),
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          OutlinedButton.icon(
-                            onPressed: _isLoading ? null : signInWithGoogle,
-                            icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-                            label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
-                              style: const TextStyle(color: Color(0xFF7496B3))),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF7496B3)),
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                            ),
-                          ),
-                        ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class LoginScreenContent extends StatefulWidget {
-  const LoginScreenContent();
-
-  @override
-  State<LoginScreenContent> createState() => _LoginScreenContentState();
-}
-
-class _LoginScreenContentState extends State<LoginScreenContent> {
-  bool _obscurePassword = true;
-  bool _isLoading = false;
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  final _supabase = Supabase.instance.client;
-
   Future<void> signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
@@ -274,7 +70,6 @@ class _LoginScreenContentState extends State<LoginScreenContent> {
       final user = res.user;
       debugPrint('signIn response: $res');
       if (user == null) {
-        debugPrint('User == null');
         if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Login failed')));
@@ -303,65 +98,109 @@ class _LoginScreenContentState extends State<LoginScreenContent> {
     } catch (err) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(err.toString())));
-      debugPrint('Log in error');
+      debugPrint('Log in error: $err');
     }
     if (mounted) setState(() => _isLoading = false);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        buildAppTextField(hint: "Email", controller: _email, context: context),
-        const SizedBox(height: 15),
-        buildAppTextField(
-          hint: "Password",
-          obscure: _obscurePassword,
-          controller: _password,
-          context: context,
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscurePassword ? Icons.visibility_off : Icons.visibility,
-              color: const Color(0xFF7496B3),
+Widget build(BuildContext context) {
+  return Theme(
+    data: ThemeData(
+      brightness: Brightness.light,
+      primarySwatch: Colors.blue,
+      scaffoldBackgroundColor: Colors.white,
+    ),
+    child: Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Main centered content
+            SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height,
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: 24,
+                      right: 24,
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                      top: 24,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 20),
+                        buildAppTitle(),
+                        const SizedBox(height: 25),
+                        // buildDogIcon(),
+                        const SizedBox(height: 35),
+                        buildAppTextField(hint: "Email", controller: _email, context: context),
+                        const SizedBox(height: 15),
+                        buildAppTextField(
+                          hint: "Password",
+                          obscure: _obscurePassword,
+                          controller: _password,
+                          context: context,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              color: const Color(0xFF7496B3),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+                        OutlinedButton(
+                          onPressed: _isLoading ? null : _signIn,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
+                            foregroundColor: const Color(0xFF7496B3),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          ),
+                          child: Text(_isLoading ? 'Logging in...' : 'Log In'),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _isLoading ? null : signInWithGoogle,
+                          icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
+                          label: Text(
+                            _isLoading ? 'Please wait...' : 'Login with Google',
+                            style: const TextStyle(color: Color(0xFF7496B3)),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF7496B3)),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-            onPressed: () {
-              setState(() {
-                _obscurePassword = !_obscurePassword;
-              });
-            },
-          ),
+            // Back button at top-left
+            Positioned(
+              top: 0,
+              left: 0,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 25),
-        OutlinedButton(
-          onPressed: _isLoading ? null : _signIn,
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
-            foregroundColor: const Color(0xFF7496B3),
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          ),
-          child: Text(_isLoading ? 'Logging in...' : 'Log In'),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _isLoading ? null : signInWithGoogle,
-          icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
-          label: Text(_isLoading ? 'Please wait...' : 'Login with Google',
-            style: const TextStyle(color: Color(0xFF7496B3))),
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: Color(0xFF7496B3)),
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
+      ),
+    ),
+  );
+}
 }
