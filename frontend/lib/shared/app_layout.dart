@@ -70,11 +70,18 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   void _openProfile() {
-    if (currentIndex != 4) {
-      widget.onTabSelected(4);
-      _navigateToIndex(4);
-      setState(() => currentIndex = 4);
-    }
+    // Always navigate to own profile, even if already on profile tab
+    // (in case user is viewing someone else's profile)
+    widget.onTabSelected(4);
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const ProfileScreen(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+    setState(() => currentIndex = 4);
   }
 
   // Removed unused _openSettings to satisfy analyzer
