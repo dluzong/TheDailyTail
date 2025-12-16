@@ -74,7 +74,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       final response = await _supabase
           .from('users')
-          .select('user_id')
+          .select('username')
           .eq('username', username)
           .maybeSingle();
       return response != null;
@@ -90,23 +90,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_password.text != _confirmPassword.text) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
+        const SnackBar(content: Text('Passwords do not match.')),
       );
       return; // Exit early
     }
     if (_email.text.isEmpty || !_email.text.contains('@')) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email')),
+        const SnackBar(content: Text('Please enter a valid email.')),
       );
       return; // Exit early
     }
 
     // Username validation
     final username = _username.text.trim();
+    String usernameString = _username.text.toString();
     if (username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username cannot be empty')),
+        const SnackBar(content: Text('Username cannot be empty.')),
+      );
+      return;
+    }
+
+    if (await _isUsernameTaken(usernameString)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username is already taken.')),
       );
       return;
     }
