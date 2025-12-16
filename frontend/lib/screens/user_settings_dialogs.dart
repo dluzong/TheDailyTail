@@ -866,9 +866,14 @@ class UserSettingsDialogs {
             constraints: const BoxConstraints(maxWidth: 325),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF2A2A2A)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : Colors.grey.shade300),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -894,7 +899,9 @@ class UserSettingsDialogs {
                         style: GoogleFonts.inknutAntiqua(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF394957),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF394957),
                         ),
                       ),
                     ),
@@ -902,13 +909,20 @@ class UserSettingsDialogs {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Divider(height: 2, color: Color(0xFF5F7C94)),
+                Divider(
+                  height: 2,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF404040)
+                      : const Color(0xFF5F7C94),
+                ),
                 const SizedBox(height: 20),
                 Text(
                   'Are you sure you want to log out?',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.lato(
-                    color: const Color(0xFF394957),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : const Color(0xFF394957),
                     fontSize: 16,
                   ),
                 ),
@@ -921,7 +935,10 @@ class UserSettingsDialogs {
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                              color: Colors.grey.shade400, width: 1.5),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey.shade600
+                                  : Colors.grey.shade400,
+                              width: 1.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
@@ -931,7 +948,9 @@ class UserSettingsDialogs {
                         child: Text(
                           'Cancel',
                           style: GoogleFonts.inknutAntiqua(
-                            color: const Color(0xFF394957),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : const Color(0xFF394957),
                             fontWeight: FontWeight.w600,
                           ),
                         ),

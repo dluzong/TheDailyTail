@@ -168,8 +168,8 @@ class _AppLayoutState extends State<AppLayout> {
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.black
-                                      : Colors.white,
+                                      ? Colors.white
+                                      : Colors.grey[700]!,
                                   width: 2,
                                 ),
                               ),

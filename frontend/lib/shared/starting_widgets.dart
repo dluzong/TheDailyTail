@@ -68,21 +68,15 @@ Widget buildAppTextField({
       obscureText: obscure,
       style: GoogleFonts.inknutAntiqua(
         fontSize: 16,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white
-            : Colors.black,
+        color: Colors.black,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.inknutAntiqua(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey[400]
-              : Colors.grey[600],
+          color: Colors.grey[600],
         ),
         filled: true,
-        fillColor: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF3A3A3A)
-            : Colors.grey[200],
+        fillColor: Colors.grey[200],
         contentPadding: const EdgeInsets.symmetric(
           vertical: 15,
           horizontal: 20,

@@ -122,7 +122,6 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          buildBorderBar(),
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
@@ -168,12 +167,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 25),
-                        ElevatedButton(
+                        OutlinedButton(
                           onPressed: _isLoading
                               ? null
                               : () {
                                   _signIn();
                                 },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF7496B3), width: 1.5),
+                            foregroundColor: const Color(0xFF7496B3),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          ),
                           child: Text(_isLoading ? 'Logging in...' : 'Log In'),
                         ),
                         const SizedBox(height: 12),
@@ -195,7 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          buildBorderBar(),
         ],
       ),
       ),

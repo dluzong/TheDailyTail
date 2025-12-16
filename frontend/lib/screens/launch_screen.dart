@@ -19,7 +19,6 @@ class LaunchScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         body: Column(
           children: [
-            buildBorderBar(),
             Expanded(
               child: Center(
                 child: Column(
@@ -56,7 +55,6 @@ class LaunchScreen extends StatelessWidget {
                 ),
               ),
             ),
-            buildBorderBar(),
           ],
         ),
       ),
