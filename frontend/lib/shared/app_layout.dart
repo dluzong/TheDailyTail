@@ -95,7 +95,7 @@ class _AppLayoutState extends State<AppLayout> {
     }
 
     widget.onTabSelected(4);
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const ProfileScreen(),

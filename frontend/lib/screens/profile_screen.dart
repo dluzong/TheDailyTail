@@ -125,6 +125,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (navigator.canPop()) {
       navigator.pop();
     } else {
+      // When on own profile with no previous route, go to Dashboard (tab 1)
+      // which is the default tab position
       navigator.pushReplacement(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => const DashboardScreen(),
