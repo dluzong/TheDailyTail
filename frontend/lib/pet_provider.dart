@@ -10,8 +10,8 @@ class Pet {
   final String name;
   final String species; // Added species
   final String breed;
-  final int age; // legacy years field
   final String birthday; // mm/dd/yyyy
+  final String sex;
   final double weight;
   final String imageUrl;
   final String status;
@@ -24,8 +24,8 @@ class Pet {
     required this.name,
     required this.species, // Added species
     required this.breed,
-    required this.age,
     required this.birthday,
+    required this.sex,
     required this.weight,
     required this.imageUrl,
     required this.status,
@@ -40,9 +40,9 @@ class Pet {
       name: map['name'] ?? 'Unnamed',
       species: map['species'] ?? 'Dog', // Default to Dog if missing
       breed: map['breed'] ?? 'Unknown',
-      age: map['age'] ?? 0,
       // Supabase column renamed to 'dob' (date of birth); keep fallback for legacy payloads
       birthday: map['dob'] ?? map['birthday'] ?? '',
+      sex: map['sex'] ?? '',
       weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
       imageUrl: map['image_url'] ?? '',
       status: map['status'] ?? 'owned',
@@ -184,8 +184,8 @@ class PetProvider extends ChangeNotifier {
         'name': updatedPet.name,
         'species': updatedPet.species,
         'breed': updatedPet.breed,
-        'age': updatedPet.age,
         'dob': updatedPet.birthday,
+        'sex': updatedPet.sex,
         'weight': updatedPet.weight,
         'image_url': updatedPet.imageUrl,
         'status': updatedPet.status,
@@ -241,8 +241,8 @@ class PetProvider extends ChangeNotifier {
         'name': newPet.name,
         'species': newPet.species,
         'breed': newPet.breed,
-        'age': newPet.age,
         'dob': newPet.birthday,
+        'sex': newPet.sex,
         'weight': newPet.weight,
         'image_url': newPet.imageUrl,
         'status': newPet.status,
