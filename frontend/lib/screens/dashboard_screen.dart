@@ -5,7 +5,7 @@ import '../pet_provider.dart';
 import '../user_provider.dart';
 import '../shared/app_layout.dart';
 import '../log_provider.dart';
-// import '../theme_provider.dart';
+import '../shared/utils.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -259,7 +259,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Row(
                       children: [
                         SizedBox(
-                            width: 80,
+                            width: 90,
                             child: Text('${entry.key}:',
                                 style: GoogleFonts.lato(
                                     fontWeight: FontWeight.w600,
