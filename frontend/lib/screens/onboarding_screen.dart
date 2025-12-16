@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:frontend/screens/dashboard_screen.dart';
 import 'package:frontend/screens/add_pet_screen.dart';
+import '../pet_provider.dart' as pet_provider;
 import 'package:provider/provider.dart';
 import '../user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -71,13 +73,86 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+  Future<String?> _uploadPetImage(String localPath) async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final file = File(localPath);
+      final fileExt = file.path.split('.').last;
+      // Create a unique path: user_id/timestamp.ext
+      final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+      // Upload to the 'avatars' bucket (or 'pet_images' if you have a specific one)
+      await Supabase.instance.client.storage
+          .from('avatars')
+          .upload(fileName, file, fileOptions: const FileOptions(upsert: true));
+
+      // Get and return the Public URL
+      debugPrint('Pet image uploaded successfully! ${fileName}');
+      return Supabase.instance.client.storage.from('avatars').getPublicUrl(fileName);
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      return null;
+    }
+  }
 
   void _goToAddPet() async {
-    await Navigator.push(
+    final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(builder: (context) => const AddPetScreen()),
     );
+    if (result == null) return;
 
+    if (mounted) {
+      try {
+        // 1. Get the local path from the previous screen
+        String currentPath = result['imageUrl'] as String? ?? '';
+        String finalCloudUrl = ''; // Default to empty for DB
+
+        debugPrint('Local image path received: $currentPath');
+
+        // 2. Upload Logic
+        if (currentPath.isNotEmpty && !currentPath.startsWith('http')) {
+          // It is a local file, try to upload
+          final uploadedUrl = await _uploadPetImage(currentPath);
+
+          if (uploadedUrl != null) {
+            finalCloudUrl = uploadedUrl;
+            debugPrint('Upload successful: $finalCloudUrl');
+          } else {
+            debugPrint('Upload failed, saving pet without image');
+            // finalCloudUrl remains ''
+          }
+        } else if (currentPath.startsWith('http')) {
+          // It's already a web URL (unlikely for new pet, but good practice)
+          finalCloudUrl = currentPath;
+        }
+
+        // 3. Create Pet Object with the confirmed Cloud URL
+        final newPet = pet_provider.Pet(
+          petId: result['id'] as String? ?? '',
+          userId: result['userId'] as String? ?? '',
+          name: result['name'] as String? ?? '',
+          species: result['type'] as String? ?? 'Dog',
+          breed: result['breed'] as String? ?? '',
+          sex: (result['sex'] as String? ?? '').toLowerCase(),
+          birthday: result['birthday'] as String? ?? '',
+          weight: (result['weight'] is num)
+              ? (result['weight'] as num).toDouble()
+              : double.tryParse(result['weight']?.toString() ?? '') ?? 0.0,
+          imageUrl: finalCloudUrl, // <--- Use the new variable
+          savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
+          savedMedications: result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
+          status: result['status'] as String? ?? 'owned',
+        );
+
+        await context.read<pet_provider.PetProvider>().addPet(newPet);
+        debugPrint('Pet added successfully!');
+      } catch (e) {
+        debugPrint("Error adding pet: $e");
+      }
+    }
     // After returning, go to the last slide (add-pet prompt)
     _pageController.animateToPage(
       _pages.length - 1,
