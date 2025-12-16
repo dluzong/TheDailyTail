@@ -259,6 +259,31 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  // search users by username or name
+  Future<List<Map<String, dynamic>>> searchUsers(String term,
+      {int limit = 10, bool excludeSelf = true}) async {
+    final query = term.trim();
+    if (query.isEmpty) return [];
+    try {
+      final currentId = _supabase.auth.currentUser?.id;
+      final filter = 'username.ilike.%$query%,name.ilike.%$query%';
+      final res = await _supabase
+          .from('users')
+          .select('user_id, username, name, photo_url')
+          .or(filter)
+          .limit(limit);
+
+      var results = List<Map<String, dynamic>>.from(res);
+      if (excludeSelf && currentId != null) {
+        results = results.where((u) => u['user_id'] != currentId).toList();
+      }
+      return results;
+    } catch (e) {
+      debugPrint('Error searching users: $e');
+      return [];
+    }
+  }
+
   // Fetch other user's pets by user ID
   Future<List<Map<String, dynamic>>> fetchOtherUserPets(String userId) async {
     try {
