@@ -259,6 +259,17 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final petId = context.read<PetProvider>().selectedPetId;
+      if (petId != null) {
+        context.read<LogProvider>().fetchLogs(petId);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Watch providers
     final petProvider = context.watch<PetProvider>();
@@ -323,7 +334,8 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                             Navigator.push(
                               context,
                               PageRouteBuilder(
-                                pageBuilder: (_, __, ___) => const MealPlanScreen(),
+                                pageBuilder: (_, __, ___) =>
+                                    const MealPlanScreen(),
                                 transitionDuration: Duration.zero,
                                 reverseTransitionDuration: Duration.zero,
                               ),
@@ -340,7 +352,8 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                             Navigator.push(
                               context,
                               PageRouteBuilder(
-                                pageBuilder: (_, __, ___) => const MedicationScreen(),
+                                pageBuilder: (_, __, ___) =>
+                                    const MedicationScreen(),
                                 transitionDuration: Duration.zero,
                                 reverseTransitionDuration: Duration.zero,
                               ),
@@ -365,28 +378,33 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                     ].map((tab) {
                       final isSelected = _selectedTabs.contains(tab);
                       final tabColors = getTabColors(context);
-                      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                      final isDarkMode =
+                          Theme.of(context).brightness == Brightness.dark;
                       final baseColor = tabColors[tab] ?? Colors.grey;
-                      
+
                       // Get light mode colors for the dots (always bright)
-                      final lightModeColor = colorSchemes[tab]?['light'] ?? Colors.grey;
-                      
+                      final lightModeColor =
+                          colorSchemes[tab]?['light'] ?? Colors.grey;
+
                       // Calculate pastel color for light mode (matches widget background)
                       final pastelColor = Color.alphaBlend(
                         baseColor.withValues(alpha: 0.2),
                         Colors.white,
                       );
-                      
+
                       // Calculate dark color for dark mode (matches widget background)
                       final darkColor = Color.alphaBlend(
                         baseColor.withValues(alpha: 0.15),
                         const Color(0xFF1A1A1A),
                       );
-                      
+
                       // When selected, use the same color as widgets; otherwise use inactive state
-                      final selectedBgColor = isDarkMode ? darkColor : pastelColor;
-                      final unselectedBgColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey[200]!;
-                      
+                      final selectedBgColor =
+                          isDarkMode ? darkColor : pastelColor;
+                      final unselectedBgColor = isDarkMode
+                          ? const Color(0xFF2A2A2A)
+                          : Colors.grey[200]!;
+
                       return GestureDetector(
                         onTap: () {
                           setState(() => isSelected
@@ -397,7 +415,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isSelected ? selectedBgColor : unselectedBgColor,
+                            color: isSelected
+                                ? selectedBgColor
+                                : unselectedBgColor,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -411,13 +431,18 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.circle,
-                                  color: lightModeColor,  // always use light mode bright colors
+                                  color:
+                                      lightModeColor, // always use light mode bright colors
                                   size: 10),
                               const SizedBox(width: 6),
                               Text(tab,
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: 10,
-                                    color: isDarkMode ? Colors.white : (isSelected ? Colors.black : Colors.grey[600]),
+                                    color: isDarkMode
+                                        ? Colors.white
+                                        : (isSelected
+                                            ? Colors.black
+                                            : Colors.grey[600]),
                                   )),
                             ],
                           ),
@@ -445,18 +470,18 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       markerDecoration:
                           const BoxDecoration(shape: BoxShape.circle),
                       selectedDecoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark 
+                        color: Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF4A6B85)
                             : const Color(0xFF7496B3),
                         shape: BoxShape.circle,
                       ),
                       todayDecoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark 
+                        color: Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF2A5A75)
                             : const Color(0xFFBCD9EC),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Theme.of(context).brightness == Brightness.dark 
+                          color: Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF5F8FA8)
                               : const Color(0xFF7496B3),
                           width: 2,
@@ -481,7 +506,8 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                                     ? event['category'] as String
                                     : '';
                             // Use light mode colors for calendar dots (same as tab dots)
-                            final dotColor = colorSchemes[category]?['light'] ?? Colors.grey;
+                            final dotColor =
+                                colorSchemes[category]?['light'] ?? Colors.grey;
                             return Container(
                               width: 6,
                               height: 6,
@@ -504,9 +530,10 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       width: 180,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                              ? const Color(0xFF4A6B85)
-                              : const Color(0xFF7496B3),
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF4A6B85)
+                                  : const Color(0xFF7496B3),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -533,8 +560,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                   final category = event['category']!;
                   final tabColors = getTabColors(context);
                   final baseColor = tabColors[category] ?? Colors.grey;
-                  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-                  
+                  final isDarkMode =
+                      Theme.of(context).brightness == Brightness.dark;
+
                   // In light mode: pastel color. In dark mode: use muted dark color
                   final pastelColor = Color.alphaBlend(
                     baseColor.withValues(alpha: 0.2),
@@ -544,7 +572,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                     baseColor.withValues(alpha: 0.15),
                     const Color(0xFF1A1A1A),
                   );
-                  
+
                   final cardColor = isDarkMode ? darkColor : pastelColor;
                   final dotColor = baseColor;
 
@@ -560,9 +588,16 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                         leading: Icon(Icons.circle, color: dotColor, size: 12),
                         title: Text(event['title'] ?? '',
                             style: GoogleFonts.inknutAntiqua(
-                                fontSize: 14, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black)),
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black)),
                         subtitle: Text(event['desc'] ?? '',
-                            style: GoogleFonts.inknutAntiqua(fontSize: 12, color: isDarkMode ? const Color(0xFFB0B0B0) : const Color(0xFF666666))),
+                            style: GoogleFonts.inknutAntiqua(
+                                fontSize: 12,
+                                color: isDarkMode
+                                    ? const Color(0xFFB0B0B0)
+                                    : const Color(0xFF666666))),
                       ),
                     ),
                   );
@@ -596,8 +631,10 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
               color: isDark ? const Color(0xFF4A6B85) : const Color(0xFFBCD9EC),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 28, 
-                color: isDark ? const Color(0xFF7496B3) : const Color(0xFF7496B3)),
+            child: Icon(icon,
+                size: 28,
+                color:
+                    isDark ? const Color(0xFF7496B3) : const Color(0xFF7496B3)),
           ),
           const SizedBox(height: 4),
           Text(label,

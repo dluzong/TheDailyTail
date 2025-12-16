@@ -333,6 +333,10 @@ class PostsProvider extends ChangeNotifier {
 
   Future<void> deletePost(int postId) async {
     try {
+      // Delete comments first (in case of foreign key constraints)
+      await _supabase.from('comments').delete().eq('post_id', postId);
+      
+      // Then delete the post
       await _supabase.from('posts').delete().eq('post_id', postId);
 
       // Remove from local list immediately

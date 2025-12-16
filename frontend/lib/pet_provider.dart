@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 
 // --- PET MODEL ---
 class Pet {
@@ -65,6 +67,7 @@ class Pet {
 // --- PROVIDER ---
 class PetProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
+  StreamSubscription<AuthState>? _authSubscription;
 
   List<Pet> _pets = [];
   List<Pet> get pets => _pets;
@@ -77,9 +80,61 @@ class PetProvider extends ChangeNotifier {
 
   // --- STATE MANAGEMENT ---
 
-  void selectPet(String petId) {
+  PetProvider() {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
+      switch (data.event) {
+        case AuthChangeEvent.signedOut:
+          _clearState();
+          break;
+        case AuthChangeEvent.signedIn:
+        case AuthChangeEvent.initialSession:
+          await _loadSelectedPet();
+          await fetchPets();
+          break;
+        default:
+          // no-op
+          break;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _clearState() {
+    _pets = [];
+    _selectedPetId = null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> selectPet(String petId) async {
     _selectedPetId = petId;
     notifyListeners();
+    await _persistSelectedPet();
+  }
+
+  String _prefsKeyForUser(String userId) => 'selected_pet_' + userId;
+
+  Future<void> _persistSelectedPet() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null || _selectedPetId == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefsKeyForUser(user.id), _selectedPetId!);
+  }
+
+  Future<void> _loadSelectedPet() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_prefsKeyForUser(user.id));
+    if (saved != null && saved.isNotEmpty) {
+      _selectedPetId = saved;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchPets() async {
@@ -97,9 +152,15 @@ class PetProvider extends ChangeNotifier {
           .map((data) => Pet.fromMap(data))
           .toList();
 
-      // Auto-select first pet if none selected
-      if (_pets.isNotEmpty && _selectedPetId == null) {
-        _selectedPetId = _pets.first.petId;
+      if (_pets.isNotEmpty) {
+        final hasSelected = _selectedPetId != null &&
+            _pets.any((p) => p.petId == _selectedPetId);
+        if (!hasSelected) {
+          _selectedPetId = _pets.first.petId;
+          await _persistSelectedPet();
+        }
+      } else {
+        _selectedPetId = null;
       }
     } catch (e) {
       debugPrint('Error fetching pets: $e');
@@ -151,6 +212,7 @@ class PetProvider extends ChangeNotifier {
       // If the selected pet was deleted, clear selection or select another
       if (_selectedPetId == petId) {
         _selectedPetId = _pets.isNotEmpty ? _pets.first.petId : null;
+        await _persistSelectedPet();
       }
 
       notifyListeners();
