@@ -82,6 +82,9 @@ flutter:
   assets:
     - .env
     - assets/dog.png
+    - assets/dailytail-logotype-white.png
+    - assets/dailytail-logotype-black.png
+    - assets/dailytail-logotype-blue.png
     - assets/lottie/journaling.json
     - assets/lottie/connecting.json
     - assets/lottie/dog_roles.json

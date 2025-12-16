@@ -100,6 +100,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Dashboard title
+            Text('Dashboard',
+                style: GoogleFonts.lato(
+                    fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Divider(thickness: 2),
+            const SizedBox(height: 16),
+
             // Dropdown
             Row(
               children: [
@@ -114,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       .map((p) => DropdownMenuItem(
                             value: p.petId,
                             child: Text(p.name,
-                                style: GoogleFonts.lato(fontSize: 24)),
+                                style: GoogleFonts.lato(fontSize: 20)),
                           ))
                       .toList(),
                   onChanged: (newPetId) {
@@ -130,15 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
 
             const SizedBox(height: 24),
-
-            // Dashboard title
-            Text('Dashboard',
-                style: GoogleFonts.lato(
-                    fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            const Divider(thickness: 2),
-            const SizedBox(height: 16),
-
+            
             // main content logic
             _buildContent(
               context,
@@ -246,11 +246,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             width: 80,
                             child: Text('${entry.key}:',
                                 style: GoogleFonts.lato(
-                                    fontWeight: FontWeight.w600))),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 18))),
                         const SizedBox(width: 8),
                         Expanded(
                             child:
-                                Text(entry.value, style: GoogleFonts.lato())),
+                                Text(entry.value, style: GoogleFonts.lato(fontSize: 18))),
                       ],
                     ),
                   );

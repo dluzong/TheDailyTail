@@ -9,24 +9,21 @@ Widget buildBorderBar() {
 }
 
 Widget buildAppTitle() {
-  return Text(
-    "The Daily Tail",
-    style: GoogleFonts.inknutAntiqua(
-      fontSize: 30,
-      fontWeight: FontWeight.w600,
-      color: const Color(0xFF7496B3),
-    ),
-  );
-}
-
-Widget buildDogIcon({double size = 120}) {
   return Image.asset(
-    'assets/dog.png',
-    width: size,
-    height: size,
+    'assets/dailytail-logotype-blue.png',
+    height: 130,
     fit: BoxFit.contain,
   );
 }
+
+// Widget buildDogIcon({double size = 120}) {
+//   return Image.asset(
+//     'assets/dog.png',
+//     width: size,
+//     height: size,
+//     fit: BoxFit.contain,
+//   );
+// }
 
 Widget buildAppButton({
   required String text,

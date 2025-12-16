@@ -27,7 +27,7 @@ class LaunchScreen extends StatelessWidget {
                   children: [
                     buildAppTitle(),
                     const SizedBox(height: 25),
-                    buildDogIcon(),
+                    // buildDogIcon(),
                     const SizedBox(height: 35),
                     buildAppButton(
                       text: "Login",
