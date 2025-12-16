@@ -11,6 +11,8 @@ class OrganizationProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _allOrgs = [];
   List<Map<String, dynamic>> get allOrgs => _allOrgs;
 
+  String? get currentUserId => _supabase.auth.currentUser?.id;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -138,6 +140,28 @@ class OrganizationProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error creating org: $e');
       rethrow;
+    }
+  }
+
+  Future<void> updateOrganization(
+      String orgId, {
+        String? name,
+        String? description,
+      }) async {
+    final Map<String, dynamic> updates = {};
+    if (name != null) updates['name'] = name;
+    if (description != null) updates['description'] = description;
+    if (updates.isEmpty) return;
+
+    await _supabase.from('organizations').update(updates).eq('organization_id', orgId);
+
+    // Update local cache
+    final idx = _allOrgs.indexWhere((o) => (o['organization_id'] as String?) == orgId);
+    if (idx != -1) {
+      final org = Map<String, dynamic>.from(_allOrgs[idx]);
+      org.addAll(updates);
+      _allOrgs[idx] = org;
+      notifyListeners();
     }
   }
 
