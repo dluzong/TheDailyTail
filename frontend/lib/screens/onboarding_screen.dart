@@ -194,9 +194,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const topBottomBarColor = Color(0xFF7496B3);
-    const headerBg = Color(0xFFBFD4E6);
-    const headerTextColor = Color(0xFF7496B3);
     const titleColor = Color(0xFF5F7C94);
     const buttonBlue = Color(0xFF8DB6D9);
 
@@ -211,21 +208,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         backgroundColor: Colors.white,
       body: Column(
         children: [
-          Container(height: 30, color: topBottomBarColor),
-
-          // 🔹 Header (removed paw icon)
+          // Logo header
           Container(
             width: double.infinity,
-            color: headerBg,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            color: Colors.white,
+            padding: const EdgeInsets.only(top: 50, bottom: 10),
             child: Center(
-              child: Text(
-                "The Daily Tail",
-                style: GoogleFonts.inknutAntiqua(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w600,
-                  color: headerTextColor,
-                ),
+              child: Image.asset(
+                'assets/dailytail-logotype-blue.png',
+                height: 80,
+                fit: BoxFit.contain,
               ),
             ),
           ),
@@ -464,8 +456,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ),
-
-          Container(height: 30, color: topBottomBarColor),
         ],
       ),
       ),
