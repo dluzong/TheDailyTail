@@ -61,6 +61,7 @@ Widget buildAppTextField({
   Widget? suffixIcon,
   required BuildContext context,
 }) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   return SizedBox(
     width: 300,
     child: TextField(
@@ -68,15 +69,15 @@ Widget buildAppTextField({
       obscureText: obscure,
       style: GoogleFonts.inknutAntiqua(
         fontSize: 16,
-        color: Colors.black,
+        color: isDark ? Colors.white : Colors.black,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.inknutAntiqua(
-          color: Colors.grey[600],
+          color: isDark ? Colors.grey[400] : Colors.grey[600],
         ),
         filled: true,
-        fillColor: Colors.grey[200],
+        fillColor: isDark ? const Color(0xFF2A2A2A) : Colors.grey[200],
         contentPadding: const EdgeInsets.symmetric(
           vertical: 15,
           horizontal: 20,
@@ -84,6 +85,19 @@ Widget buildAppTextField({
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: isDark
+              ? const BorderSide(color: Color(0xFF4A4A4A), width: 1)
+              : BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(
+            color: isDark ? const Color(0xFF7496B3) : const Color(0xFF7496B3),
+            width: 1.5,
+          ),
         ),
         suffixIcon: suffixIcon,
       ),
