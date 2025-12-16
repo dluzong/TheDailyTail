@@ -491,21 +491,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     onTap: () {
                       Navigator.of(context)
                           .push(MaterialPageRoute(
-                            builder: (_) => OrgScreen(
-                              org: org,
-                              initiallyJoined: true,
-                              onJoinChanged: (joined) async {
-                                final orgId = org['organization_id'];
-                                if (joined) {
-                                  await orgProvider.joinOrg(orgId);
-                                } else {
-                                  await orgProvider.leaveOrg(orgId);
-                                }
-                                await userProvider.fetchUser(force: true);
-                              },
-                            ),
-                          ))
-                          .then((_) => orgProvider.fetchOrganizations());
+                        builder: (_) => OrgScreen(
+                          org: org,
+                          initiallyJoined: true,
+                          onJoinChanged: (joined) async {
+                            final orgId = org['organization_id'];
+                            if (joined) {
+                              await orgProvider.joinOrg(orgId);
+                            } else {
+                              await orgProvider.leaveOrg(orgId);
+                            }
+                            await userProvider.fetchUser(force: true);
+                          },
+                        ),
+                      ))
+                          .then((_) {
+                        Future.delayed(const Duration(milliseconds: 600),
+                            () => orgProvider.fetchOrganizations());
+                      });
                     },
                     child: Card(
                       elevation: 2,
@@ -675,21 +678,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     onTap: () {
                       Navigator.of(context)
                           .push(MaterialPageRoute(
-                            builder: (_) => OrgScreen(
-                              org: org,
-                              initiallyJoined: true,
-                              onJoinChanged: (joined) async {
-                                final orgId = org['organization_id'];
-                                if (joined) {
-                                  await orgProvider.joinOrg(orgId);
-                                } else {
-                                  await orgProvider.leaveOrg(orgId);
-                                }
-                                await userProvider.fetchUser(force: true);
-                              },
-                            ),
-                          ))
-                          .then((_) => orgProvider.fetchOrganizations());
+                        builder: (_) => OrgScreen(
+                          org: org,
+                          initiallyJoined: true,
+                          onJoinChanged: (joined) async {
+                            final orgId = org['organization_id'];
+                            if (joined) {
+                              await orgProvider.joinOrg(orgId);
+                            } else {
+                              await orgProvider.leaveOrg(orgId);
+                            }
+                            await userProvider.fetchUser(force: true);
+                          },
+                        ),
+                      ))
+                          .then((_) {
+                        Future.delayed(const Duration(milliseconds: 600),
+                            () => orgProvider.fetchOrganizations());
+                      });
                     },
                     child: Card(
                       elevation: 2,

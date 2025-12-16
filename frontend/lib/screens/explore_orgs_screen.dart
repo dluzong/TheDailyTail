@@ -163,8 +163,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                           ),
                         ))
                             .then((_) {
-                          // Refresh orgs after returning from OrgScreen
-                          orgProvider.fetchOrganizations();
+                          Future.delayed(const Duration(milliseconds: 600),
+                              () => orgProvider.fetchOrganizations());
                         });
                       },
                       child: Card(
