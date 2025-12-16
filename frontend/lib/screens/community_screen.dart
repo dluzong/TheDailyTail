@@ -515,12 +515,15 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           builder: (_) => const CreateOrgScreen(),
                         ),
                       )
-                          .then((success) {
+                          .then((success) async {
                         if (success == true) {
-                          // Refresh orgs after creation
-                          context
+                          // Refresh orgs and user (membership/roles) after creation
+                          await context
                               .read<OrganizationProvider>()
                               .fetchOrganizations();
+                          await context
+                              .read<UserProvider>()
+                              .fetchUser(force: true);
                         }
                       });
                     },

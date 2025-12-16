@@ -106,16 +106,29 @@ class OrganizationProvider extends ChangeNotifier {
     if (userId == null) throw Exception('User not authenticated');
 
     try {
-      // Insert new organization
+      // 1) Insert new organization (schema has only basic fields)
       final response = await _supabase.from('organizations').insert({
         'name': name,
         'description': description,
-        'admin_id': [userId], // Add creator as admin
-        'member_id': [userId], // Add creator as member
       }).select();
 
       if (response.isNotEmpty) {
         final newOrg = Map<String, dynamic>.from(response[0]);
+        final String orgId = newOrg['organization_id'] as String;
+
+        // 2) Add creator as owner in organization_members
+        try {
+          await _supabase.from('organization_members').insert({
+            'organization_id': orgId,
+            'user_id': userId,
+            'role': 'owner',
+          });
+        } catch (e) {
+          // If membership insert fails, still add org but with 0 count
+          debugPrint('Warning: failed to add owner membership: $e');
+        }
+
+        // Seed local member count as 1 (creator)
         newOrg['organization_members'] = [
           {'count': 1}
         ];
