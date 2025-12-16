@@ -143,8 +143,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
       'name': name,
       'type': _species, // Use selected species
       'breed': _breedController.text.trim(),
-      'age': _calcAgeYears(born),
       'birthday': born,
+      'sex': _sex,
       'weight': double.tryParse(weight) ?? 0.0,
       'imageUrl': _imagePath ?? '',
     };
