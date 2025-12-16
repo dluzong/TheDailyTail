@@ -181,8 +181,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         bool loggedIn = false;
         int attempts = 0;
 
-        // Try for 5 mins (120 attempts * 5 secs = 300 secs)
-        while (!loggedIn && attempts < 60) {
+        // Try for 3 mins (36 attempts * 5 secs = 180 secs)
+        while (!loggedIn && attempts < 36) {
           await Future.delayed(const Duration(seconds: 5));
           attempts++;
 
