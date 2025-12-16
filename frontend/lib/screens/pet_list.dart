@@ -28,6 +28,13 @@ class ExpandablePetCard extends StatefulWidget {
 class _ExpandablePetCardState extends State<ExpandablePetCard> {
   bool _isExpanded = false;
 
+  String _formatBirthday(String birthday) {
+    if (birthday.isEmpty) {
+      return 'Unknown';
+    }
+    return birthday;
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -117,7 +124,7 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                                 ),
                                 SizedBox(height: size.height * 0.01),
                                 _buildPetInfoRow('Breed', widget.pet.breed, size),
-                                _buildPetInfoRow('Age', '${widget.pet.age} years', size),
+                                _buildPetInfoRow('Birthday', _formatBirthday(widget.pet.birthday), size),
                                 _buildPetInfoRow('Weight', '${widget.pet.weight} lbs', size),
                               ],
                             ),

@@ -286,7 +286,10 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         age: (result['age'] is int)
             ? result['age'] as int
             : int.tryParse(result['age']?.toString() ?? '') ?? 0,
-        weight: result['weight'] ?? 0.0,
+        birthday: result['birthday'] as String? ?? '',
+        weight: (result['weight'] is num)
+          ? (result['weight'] as num).toDouble()
+          : double.tryParse(result['weight']?.toString() ?? '') ?? 0.0,
         imageUrl: result['imageUrl'] as String? ?? '',
         savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
         savedMedications:
@@ -353,7 +356,11 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         species: originalPet.species, // Preserve existing species
         breed: result['breed'] ?? originalPet.breed,
         age: result['age'] ?? originalPet.age,
-        weight: result['weight'] ?? originalPet.weight,
+        birthday: result['birthday'] as String? ?? originalPet.birthday,
+        weight: (result['weight'] is num)
+            ? (result['weight'] as num).toDouble()
+            : double.tryParse(result['weight']?.toString() ?? '') ??
+                originalPet.weight,
         imageUrl: finalImageUrl, // Use the public URL, not local path
         savedMeals: originalPet.savedMeals,
         savedMedications: originalPet.savedMedications,

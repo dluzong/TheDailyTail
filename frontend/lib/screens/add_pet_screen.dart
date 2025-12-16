@@ -3,6 +3,7 @@ import '../shared/app_layout.dart';
 import '../shared/starting_widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 
 class AddPetScreen extends StatefulWidget {
@@ -21,6 +22,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
   final TextEditingController _weightController = TextEditingController();
   String? _imagePath;
   final ImagePicker _picker = ImagePicker();
+
+  // Formats birthday as mm/dd/yyyy while the user types digits only
+  static const _dateInputFormatter = _DateSlashFormatter();
 
   @override
   void dispose() {
@@ -53,6 +57,58 @@ class _AddPetScreenState extends State<AddPetScreen> {
     }
   }
 
+  bool _isValidDate(String dateStr) {
+    if (dateStr.length != 10) return false;
+    
+    final parts = dateStr.split('/');
+    if (parts.length != 3) return false;
+    
+    final month = int.tryParse(parts[0]);
+    final day = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    
+    if (month == null || day == null || year == null) return false;
+    
+    // Check month range
+    if (month < 1 || month > 12) return false;
+    
+    // Check year range (reasonable years for pets)
+    if (year < 1900 || year > DateTime.now().year) return false;
+    
+    // Check day range based on month
+    final daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    
+    // Adjust for leap year
+    if (month == 2) {
+      final isLeapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+      if (isLeapYear && day > 29) return false;
+      if (!isLeapYear && day > 28) return false;
+    } else {
+      if (day < 1 || day > daysInMonth[month - 1]) return false;
+    }
+    
+    return true;
+  }
+
+  int _calcAgeYears(String dateStr) {
+    try {
+      final parts = dateStr.split('/');
+      if (parts.length != 3) return 0;
+      final month = int.parse(parts[0]);
+      final day = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
+      final birthDate = DateTime(year, month, day);
+      final now = DateTime.now();
+      int years = now.year - birthDate.year;
+      if (DateTime(now.year, month, day).isAfter(now)) {
+        years -= 1;
+      }
+      return years < 0 ? 0 : years;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   void _save() {
     final name = _nameController.text.trim();
     final breed = _breedController.text.trim();
@@ -60,7 +116,24 @@ class _AddPetScreenState extends State<AddPetScreen> {
     final weight = _weightController.text.trim();
     if (name.isEmpty || breed.isEmpty || born.isEmpty || weight.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a pet name')));
+          const SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
+    // Require full mm/dd/yyyy length
+    if (born.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter birthday as mm/dd/yyyy')));
+      return;
+    }
+
+    // Validate date
+    if (!_isValidDate(born)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Birthday is not valid. Please enter a valid date.'),
+            backgroundColor: Colors.red,
+          ));
       return;
     }
 
@@ -69,7 +142,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
       'name': name,
       'type': _species, // Use selected species
       'breed': _breedController.text.trim(),
-      'age': 0,
+      'age': _calcAgeYears(born),
+      'birthday': born,
+      'weight': double.tryParse(weight) ?? 0.0,
       'imageUrl': _imagePath ?? '',
     };
 
@@ -278,9 +353,42 @@ class _AddPetScreenState extends State<AddPetScreen> {
               ),
             ),
             FractionallySizedBox(
-                widthFactor: 0.9,
-                child: buildAppTextField(
-                    hint: 'Born (mm/dd/yy)', controller: _bornController, context: context)),
+              widthFactor: 0.9,
+              child: TextField(
+                controller: _bornController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _dateInputFormatter,
+                ],
+                style: GoogleFonts.inknutAntiqua(
+                  fontSize: 16,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'mm/dd/yyyy',
+                  hintStyle: GoogleFonts.inknutAntiqua(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3A3A3A)
+                      : Colors.grey[200],
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 20,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 12),
 
@@ -355,9 +463,41 @@ class _AddPetScreenState extends State<AddPetScreen> {
               ),
             ),
             FractionallySizedBox(
-                widthFactor: 0.9,
-                child: buildAppTextField(
-                    hint: 'Weight (lbs)', controller: _weightController, context: context)),
+              widthFactor: 0.9,
+              child: TextField(
+                controller: _weightController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                ],
+                style: GoogleFonts.inknutAntiqua(
+                  fontSize: 16,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Weight (lbs)',
+                  hintStyle: GoogleFonts.inknutAntiqua(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3A3A3A)
+                      : Colors.grey[200],
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 20,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 24),
             // Add pet button
@@ -389,6 +529,98 @@ class _AddPetScreenState extends State<AddPetScreen> {
         ),
         ),
       ),
+    );
+  }
+}
+
+/// Ensures birthday input stays in mm/dd/yyyy with auto-padding and slashes.
+class _DateSlashFormatter extends TextInputFormatter {
+  const _DateSlashFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    
+    // Extract only digits and slashes
+    String filtered = text.replaceAll(RegExp(r'[^0-9/]'), '');
+    
+    // Extract just the digits
+    String digits = filtered.replaceAll('/', '');
+    if (digits.length > 8) {
+      digits = digits.substring(0, 8);
+    }
+    
+    // Check if user just typed a slash - if so, auto-pad previous section
+    bool userTypedSlash = text.endsWith('/') && !oldValue.text.endsWith('/');
+    
+    StringBuffer buffer = StringBuffer();
+    int digitIndex = 0;
+    
+    // Month
+    if (digitIndex < digits.length) {
+      if (digitIndex + 1 < digits.length) {
+        // Have 2+ digits, use first 2
+        buffer.write(digits.substring(digitIndex, digitIndex + 2));
+        digitIndex += 2;
+      } else {
+        // Only 1 digit
+        if (userTypedSlash || (filtered.contains('/') && filtered.indexOf('/') <= 2)) {
+          // User typed slash or there's a slash nearby, pad with 0
+          buffer.write('0${digits[digitIndex]}');
+          digitIndex += 1;
+        } else {
+          // Just show the single digit
+          buffer.write(digits[digitIndex]);
+          digitIndex += 1;
+        }
+      }
+      
+      // Add slash after month if there are more digits or user typed one
+      if (digitIndex < digits.length || (userTypedSlash && buffer.length <= 2)) {
+        buffer.write('/');
+      }
+    }
+    
+    // Day
+    if (digitIndex < digits.length) {
+      int dayStart = digitIndex;
+      if (digitIndex + 1 < digits.length) {
+        // Have 2+ digits for day
+        buffer.write(digits.substring(digitIndex, digitIndex + 2));
+        digitIndex += 2;
+      } else {
+        // Only 1 digit for day
+        int slashCount = filtered.split('/').length - 1;
+        if (slashCount >= 2 || (userTypedSlash && buffer.toString().contains('/'))) {
+          // User typed second slash or there are 2 slashes, pad with 0
+          buffer.write('0${digits[digitIndex]}');
+          digitIndex += 1;
+        } else {
+          buffer.write(digits[digitIndex]);
+          digitIndex += 1;
+        }
+      }
+      
+      // Add slash after day if there are more digits or user typed one
+      if (digitIndex < digits.length || (userTypedSlash && digitIndex > dayStart)) {
+        buffer.write('/');
+      }
+    }
+    
+    // Year
+    if (digitIndex < digits.length) {
+      buffer.write(digits.substring(digitIndex));
+    }
+
+    final formatted = buffer.toString();
+    int cursorPosition = formatted.length;
+    
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: cursorPosition),
     );
   }
 }
