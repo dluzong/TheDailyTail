@@ -114,6 +114,8 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                               children: [
                                 Text(
                                   widget.pet.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.inknutAntiqua(
                                     fontSize: size.width * 0.045,
                                     fontWeight: FontWeight.bold,
@@ -136,7 +138,7 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
               if (!_isExpanded) ...[
                 SizedBox(height: size.height * 0.01),
                 Text(
-                  widget.pet.name,
+                  widget.pet.name.length > 12 ? '${widget.pet.name.substring(0, 12)}...' : widget.pet.name,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inknutAntiqua(
                     fontSize: size.width * 0.04,
@@ -172,6 +174,8 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
           Expanded(
             child: Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.lato(
                 fontSize: size.width * 0.035,
                 color: Theme.of(context).brightness == Brightness.dark

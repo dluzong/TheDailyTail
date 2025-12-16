@@ -41,6 +41,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         leading: Padding(
@@ -211,6 +213,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -219,6 +223,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                                             color: Colors.grey,
                                             fontSize: 12,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
@@ -229,6 +235,8 @@ class _ExploreOrgsScreenState extends State<ExploreOrgsScreen> {
                               Text(
                                 org['description'] ?? '',
                                 style: GoogleFonts.lato(),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),

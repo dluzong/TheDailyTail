@@ -10,6 +10,7 @@ class AllPetsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String displayName = name.length > 15 ? '${name.substring(0, 15)}...' : name;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -21,13 +22,30 @@ class AllPetsScreen extends StatelessWidget {
         toolbarHeight: 90,
         title: Padding(
           padding: const EdgeInsets.only(top: 30),
-          child: Text(
-            "$name's Pets",
-            style: GoogleFonts.inknutAntiqua(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  displayName,
+                  style: GoogleFonts.inknutAntiqua(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                "'s Pets",
+                style: GoogleFonts.inknutAntiqua(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
         leading: Padding(

@@ -359,7 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 birthday:
                   (petMap['dob'] ?? petMap['birthday'])?.toString() ?? '',
                 weight: (petMap['weight'] as num?)?.toDouble() ?? 0.0,
-                imageUrl: petMap['imageUrl']?.toString() ?? '',
+                imageUrl: (petMap['image_url'] ?? petMap['imageUrl'])?.toString() ?? '',
                 status: petMap['status']?.toString() ?? 'owned',
                 savedMeals: [],
                 savedMedications: [],
@@ -431,15 +431,16 @@ class _ProfileScreenState extends State<ProfileScreen>
     final size = MediaQuery.of(context).size;
     return Consumer<PostsProvider>(
       builder: (context, postsProvider, _) {
-        final currentUsername =
-            context.read<UserProvider>().user?.username ?? '';
-        final targetAuthorName =
-            _isOwnProfile ? currentUsername : (widget.otherUsername ?? '');
+      final currentUser = context.read<UserProvider>().user;
+      final targetUserId = _isOwnProfile
+        ? (currentUser?.userId ?? '')
+        : (_otherUserData?['user_id']?.toString() ?? '');
 
-        // Only show posts where author name matches
-        final userPosts = postsProvider.posts
-            .where((post) => post.authorName == targetAuthorName)
-            .toList();
+      final userPosts = targetUserId.isEmpty
+        ? <Post>[]
+        : postsProvider.posts
+          .where((post) => post.userId == targetUserId)
+          .toList();
 
         if (userPosts.isEmpty) {
           return Center(
@@ -484,6 +485,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ? Colors.white
                             : const Color(0xFF394957),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: size.height * 0.01),
                     Text(
@@ -729,15 +732,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                name,
+                                name.length > 15 ? '${name.substring(0, 15)}...' : name,
                                 style: GoogleFonts.inknutAntiqua(
                                   fontSize: 20 * textScale,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                username,
+                                username.length > 25 ? '${username.substring(0, 25)}...' : username,
                                 style: GoogleFonts.inknutAntiqua(
                                   fontSize: 16 * textScale,
                                   color: Theme.of(context).brightness ==
@@ -745,6 +750,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       ? Colors.grey.shade300
                                       : Colors.black,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
                               LayoutBuilder(
@@ -1224,10 +1231,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                               username,
                               style: GoogleFonts.inknutAntiqua(
                                   fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Text(
                               name,
                               style: GoogleFonts.lato(color: Colors.grey[600]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           );
                         },
@@ -1383,10 +1394,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                               username,
                               style: GoogleFonts.inknutAntiqua(
                                   fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Text(
                               name,
                               style: GoogleFonts.lato(color: Colors.grey[600]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           );
                         },

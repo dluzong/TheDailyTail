@@ -479,6 +479,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           leading: Padding(
