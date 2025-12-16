@@ -192,9 +192,23 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Column(
           children: [
             ...List.generate(pets.length, (index) {
-              final petMap = pets[index] as Map<String, dynamic>;
-              // Create a Pet object from the database response
-              final displayPet = pet_provider.Pet.fromMap(petMap);
+              final petMap = pets[index];
+              // Create a temporary Pet object with safe defaults in case data is missing
+              final displayPet = pet_provider.Pet(
+                petId: 'mock_$index',
+                userId: 'mock_user',
+                name: (petMap['name'] ?? 'Unknown').toString(),
+                species: (petMap['species'] ?? 'Dog').toString(),
+                breed: (petMap['breed'] ?? 'Unknown').toString(),
+                age: (petMap['age'] as num?)?.toInt() ?? 0,
+                birthday:
+                  (petMap['dob'] ?? petMap['birthday'])?.toString() ?? '',
+                weight: (petMap['weight'] as num?)?.toDouble() ?? 0.0,
+                imageUrl: petMap['imageUrl']?.toString() ?? '',
+                status: petMap['status']?.toString() ?? 'owned',
+                savedMeals: [],
+                savedMedications: [],
+              );
 
               return Padding(
                 padding: EdgeInsets.only(bottom: size.height * 0.02),
