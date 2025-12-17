@@ -126,6 +126,12 @@ class AppUser {
   }
 }
 
+class GoogleSignInResult {
+  final bool authenticated;
+  final bool hasProfile;
+  GoogleSignInResult({required this.authenticated, required this.hasProfile});
+}
+
 class UserProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
@@ -357,6 +363,30 @@ class UserProvider extends ChangeNotifier {
     await prefs.remove(_cacheKey);
   }
 
+  Future<void> logout() async {
+    try {
+      await _supabase.auth.signOut();
+    } catch (e) {
+      debugPrint('Sign out error: $e');
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cacheKey);
+      for (final k in prefs.getKeys()) {
+        if (k.startsWith('user_') ||
+            k.startsWith('profile_') ||
+            k.startsWith('session_')) {
+          await prefs.remove(k);
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed clearing SharedPreferences: $e');
+    }
+
+    clearUser();
+  }
+
   Future<void> updateUserProfile({
     required String username,
     required String name,
@@ -389,6 +419,54 @@ class UserProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('ERROR: Failed to update user profile: $e');
       rethrow;
+    }
+  }
+
+  Future<GoogleSignInResult> signInWithGoogle() async {
+    try {
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'com.example.thedailytail://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+        queryParams: const {
+          'access_type': 'offline',
+          'prompt': 'consent',
+        },
+      );
+
+      if (response == false) {
+        return GoogleSignInResult(authenticated: false, hasProfile: false);
+      }
+
+      await fetchUser();
+      final session = _supabase.auth.currentSession;
+      if (session == null) {
+        return GoogleSignInResult(authenticated: false, hasProfile: false);
+      }
+
+      bool hasProfile = false;
+      try {
+        final u = _user;
+        hasProfile = u != null && (u.username.isNotEmpty);
+        if (!hasProfile) {
+          final res = await _supabase
+              .from('users')
+              .select('username')
+              .eq('user_id', session.user.id)
+              .maybeSingle();
+          final username = (res != null && res['username'] is String)
+              ? (res['username'] as String)
+              : '';
+          hasProfile = username.isNotEmpty;
+        }
+      } catch (e) {
+        debugPrint('ERROR: checking profile info failed: $e');
+      }
+
+      return GoogleSignInResult(authenticated: true, hasProfile: hasProfile);
+    } catch (e) {
+      debugPrint('Google OAuth error: $e');
+      return GoogleSignInResult(authenticated: false, hasProfile: false);
     }
   }
 }

@@ -12,7 +12,6 @@ import '../pet_provider.dart' as pet_provider;
 import '../theme_provider.dart';
 import 'dart:io';
 
-
 class UserSettingsScreen extends StatefulWidget {
   const UserSettingsScreen({super.key});
 
@@ -24,7 +23,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     with SingleTickerProviderStateMixin {
   // We can access Supabase directly for auth actions like signOut
   final _supabase = Supabase.instance.client;
-  
+
   late AnimationController _fadeController;
 
   String _name = '';
@@ -55,7 +54,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     _nameController = TextEditingController();
     _usernameController = TextEditingController();
     _bioController = TextEditingController();
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -121,7 +120,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
           .select('user_id')
           .eq('username', username)
           .maybeSingle();
-      return response == null; // True if available (no user found), false if taken
+      return response ==
+          null; // True if available (no user found), false if taken
     } catch (e) {
       debugPrint('Error checking username availability: $e');
       return false; // Fail safely, preventing a user from taking a username that might exist
@@ -191,9 +191,12 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     _bio = _bioController.text.trim();
 
     // Regex check
-    if (_username != _username.replaceAll(RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]'), '')) {
+    if (_username !=
+        _username.replaceAll(RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]'), '')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username has special characters. Failed to update.')),
+        const SnackBar(
+            content:
+                Text('Username has special characters. Failed to update.')),
       );
       return;
     }
@@ -202,12 +205,15 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
       // 2. HANDLE IMAGE UPLOAD)
       String? finalPhotoUrl = _profilePicturePath;
 
-      if (_profilePicturePath != null && !_profilePicturePath!.startsWith('http')) {
+      if (_profilePicturePath != null &&
+          !_profilePicturePath!.startsWith('http')) {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         final String oldPhotoUrl = userProvider.user?.photoUrl ?? '';
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+          const SnackBar(
+              content: Text('Uploading image...'),
+              duration: Duration(seconds: 1)),
         );
 
         final file = File(_profilePicturePath!);
@@ -216,7 +222,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         if (uploadedUrl == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Image upload failed.'), backgroundColor: Colors.red),
+              const SnackBar(
+                  content: Text('Image upload failed.'),
+                  backgroundColor: Colors.red),
             );
           }
           return;
@@ -229,7 +237,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         finalPhotoUrl = uploadedUrl;
 
         // Update local state to the web URL
-        if(mounted) setState(() => _profilePicturePath = finalPhotoUrl);
+        if (mounted) setState(() => _profilePicturePath = finalPhotoUrl);
       }
 
       // 3. UPDATE DATABASE
@@ -247,7 +255,10 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         setState(() => _isDirty = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated!'), backgroundColor: Color(0xFF72C9B6), duration: Duration(seconds: 1)),
+          const SnackBar(
+              content: Text('Profile updated!'),
+              backgroundColor: Color(0xFF72C9B6),
+              duration: Duration(seconds: 1)),
         );
 
         // 4. HANDLE NAVIGATION (Logic from _saveSettings)
@@ -282,12 +293,12 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         birthday: result['birthday'] as String? ?? '',
         sex: (result['sex'] as String? ?? '').toLowerCase(),
         weight: (result['weight'] is num)
-          ? (result['weight'] as num).toDouble()
-          : double.tryParse(result['weight']?.toString() ?? '') ?? 0.0,
+            ? (result['weight'] as num).toDouble()
+            : double.tryParse(result['weight']?.toString() ?? '') ?? 0.0,
         imageUrl: result['imageUrl'] as String? ?? '',
         savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
         savedMedications:
-        result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
+            result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
         status: result['status'] as String? ?? 'owned',
       );
 
@@ -308,7 +319,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
       }
     }
   }
-
 
   Future<void> _editPetInfo(pet_provider.Pet originalPet) async {
     debugPrint(
@@ -362,7 +372,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
       );
       debugPrint(
           "DEBUG: Sending Update for ID: ${updatedPet.petId}"); // Check this too
-
 
       await context.read<pet_provider.PetProvider>().updatePet(updatedPet);
 
@@ -507,132 +516,144 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
                     // Settings Tiles
 
-              _buildSettingsTile(
-                icon: Icons.person_outline,
-                title: 'Account Information',
-                onTap: () => _showAccountInfoDialog(),
-              ),
-              const SizedBox(height: 8),
-              _buildSettingsTile(
-                icon: Icons.account_circle,
-                title: 'Profile Picture',
-                onTap: () => _showProfilePictureDialog(),
-              ),
-              const SizedBox(height: 8),
-              _buildSettingsTile(
-                icon: Icons.note_outlined,
-                title: 'Edit About',
-                onTap: () => _showAboutDialog(),
-              ),
-              const SizedBox(height: 8),
-              _buildSettingsTile(
-                icon: Icons.label_outlined,
-                title: 'User Tags',
-                onTap: () => _showTagsDialog(),
-              ),
-              const SizedBox(height: 8),
-              _buildSettingsTile(
-                icon: Icons.pets,
-                title: 'My Pets',
-                onTap: () => _showPetsDialog(),
-              ),
-              const SizedBox(height: 8),
-              Consumer<ThemeProvider>(
-                builder: (context, themeProvider, _) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF2A2A2A)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF3A3A3A)
-                            : const Color(0xFFBCD9EC),
-                      ),
+                    _buildSettingsTile(
+                      icon: Icons.person_outline,
+                      title: 'Account Information',
+                      onTap: () => _showAccountInfoDialog(),
                     ),
-                    child: ListTile(
-                      leading: Icon(
-                        themeProvider.isDarkMode
-                            ? Icons.light_mode
-                            : Icons.dark_mode,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF7FA8C7)
-                            : const Color(0xFF7496B3),
-                        size: 32,
-                      ),
-                      title: Text(
-                        themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
-                        style: GoogleFonts.lato(
-                          fontSize: 18,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : const Color(0xFF394957),
-                        ),
-                      ),
-                      trailing: Switch(
-                        value: themeProvider.isDarkMode,
-                        onChanged: (_) => themeProvider.toggleTheme(),
-                        activeColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF4A6B85)
-                            : const Color(0xFF7496B3),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    const SizedBox(height: 8),
+                    _buildSettingsTile(
+                      icon: Icons.account_circle,
+                      title: 'Profile Picture',
+                      onTap: () => _showProfilePictureDialog(),
                     ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Logout
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: SizedBox(
-                    width: 190,
-                    height: 60,
-                    child: OutlinedButton(
-                      onPressed: () => _handleLogout(),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF7FA8C7)
-                              : const Color(0xFF7496B3),
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.logout,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF7FA8C7)
-                                : const Color(0xFF7496B3),
-                            size: 28,
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Log Out',
-                            style: GoogleFonts.lato(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF7FA8C7)
-                                  : const Color(0xFF7496B3),
+                    const SizedBox(height: 8),
+                    _buildSettingsTile(
+                      icon: Icons.note_outlined,
+                      title: 'Edit About',
+                      onTap: () => _showAboutDialog(),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSettingsTile(
+                      icon: Icons.label_outlined,
+                      title: 'User Tags',
+                      onTap: () => _showTagsDialog(),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSettingsTile(
+                      icon: Icons.pets,
+                      title: 'My Pets',
+                      onTap: () => _showPetsDialog(),
+                    ),
+                    const SizedBox(height: 8),
+                    Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, _) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 4),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF2A2A2A)
+                                    : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? const Color(0xFF3A3A3A)
+                                  : const Color(0xFFBCD9EC),
                             ),
                           ),
-                        ],
+                          child: ListTile(
+                            leading: Icon(
+                              themeProvider.isDarkMode
+                                  ? Icons.light_mode
+                                  : Icons.dark_mode,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? const Color(0xFF7FA8C7)
+                                  : const Color(0xFF7496B3),
+                              size: 32,
+                            ),
+                            title: Text(
+                              themeProvider.isDarkMode
+                                  ? 'Light Mode'
+                                  : 'Dark Mode',
+                              style: GoogleFonts.lato(
+                                fontSize: 18,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : const Color(0xFF394957),
+                              ),
+                            ),
+                            trailing: Switch(
+                              value: themeProvider.isDarkMode,
+                              onChanged: (_) => themeProvider.toggleTheme(),
+                              activeColor: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? const Color(0xFF4A6B85)
+                                  : const Color(0xFF7496B3),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 8),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Logout
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: SizedBox(
+                          width: 190,
+                          height: 60,
+                          child: OutlinedButton(
+                            onPressed: () => _handleLogout(),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFF7FA8C7)
+                                    : const Color(0xFF7496B3),
+                                width: 2,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.logout,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? const Color(0xFF7FA8C7)
+                                      : const Color(0xFF7496B3),
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 16),
+                                Text(
+                                  'Log Out',
+                                  style: GoogleFonts.lato(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? const Color(0xFF7FA8C7)
+                                        : const Color(0xFF7496B3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -781,7 +802,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     final should = await UserSettingsDialogs.showLogoutDialog(context);
 
     if (should == true) {
-      await Supabase.instance.client.auth.signOut();
+      // Use provider's robust logout to clear session and cache
+      await context.read<UserProvider>().logout();
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Logged out')));

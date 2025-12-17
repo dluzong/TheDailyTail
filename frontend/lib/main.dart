@@ -63,6 +63,13 @@ class MyApp extends StatelessWidget {
             primarySwatch: Colors.blue,
           ),
           themeMode: themeProvider.themeMode,
+          onGenerateRoute: (settings) {
+            if (settings.name != null &&
+                settings.name!.contains('login-callback')) {
+              return null;
+            }
+            return null;
+          },
           home: Consumer<UserProvider>(
             builder: (context, userProvider, _) {
               if (userProvider.isAuthenticated) {

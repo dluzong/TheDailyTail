@@ -5,6 +5,7 @@ import '../shared/starting_widgets.dart';
 import 'package:provider/provider.dart';
 import '../user_provider.dart';
 import 'onboarding_screen.dart';
+import 'dashboard_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -23,25 +24,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _confirmPassword = TextEditingController();
   final _supabase = Supabase.instance.client;
   bool _isLoading = false;
+  StreamSubscription<AuthState>? _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedIn) {
+        try {
+          // Refresh user in provider
+          await context.read<UserProvider>().fetchUser();
+          final session = _supabase.auth.currentSession;
+          if (session == null) return;
+          // Check if profile exists
+          bool hasProfile = false;
+          try {
+            final res = await _supabase
+                .from('users')
+                .select('user_id')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+            hasProfile = res != null;
+          } catch (_) {}
+
+          if (!mounted) return;
+          if (hasProfile) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const DashboardScreen()),
+              (route) => false,
+            );
+          } else {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+              (route) => false,
+            );
+          }
+        } catch (e) {
+          debugPrint('Signup auth listener error: $e');
+        }
+      }
+    });
+  }
 
   Future<void> signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      const webClientId = '712045869643-qrs87u2dmfj2kt7nuvo078bavjdkq6kg.apps.googleusercontent.com';
-      const iosClientId = '712045869643-66ts83vskvkgsvnd15g3t4ft59hsuldb.apps.googleusercontent.com';
-
-      final response = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'io.supabase.flutter://login-callback',
-          queryParams: {
-            'access_type': 'offline',
-            'prompt': 'consent',
-            'client_id': webClientId,
-          },
-      );
-
-      // Handle SDK differences: some versions return bool, others return an object
-      if (response == false) {
+      final result = await context.read<UserProvider>().signInWithGoogle();
+      if (!result.authenticated) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -50,22 +82,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         return;
       }
-      // response == true -> continue
-
-      // Attempt to load user/profile after OAuth flow
-      try {
-        await context.read<UserProvider>().fetchUser();
-      } catch (e) {
-        debugPrint('fetchUser after Google sign-in failed: $e');
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Signed in with Google')));
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
+        // If profile already exists, treat signup as login and go to dashboard.
+        if (result.hasProfile) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            (route) => false,
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            (route) => false,
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -150,7 +184,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       debugPrint('Sign-Up Response: $res');
 
-      // Safely try to get the created user
       dynamic user;
       try {
         user = (res as dynamic).user ?? (res as dynamic).data?['user'];
@@ -159,7 +192,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       if (user == null) {
-        // Extract an error/message safely for user feedback
         String message =
             'Sign up did not complete. The email may already be registered.';
         try {
@@ -171,67 +203,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
-        return; // Exit early
-      }
-
-      if (_supabase.auth.currentSession == null) {
-        if (!mounted) return;
-        showDialog(
-          context: context,
-          barrierDismissible: false, // User cannot click away
-          builder: (BuildContext context) {
-            return const AlertDialog(
-              title: Text("Verification Required"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                      "A verification email has been sent. Please click the link in your email to continue."),
-                  SizedBox(height: 20),
-                  CircularProgressIndicator(), // Show they are waiting
-                ],
-              ),
-            );
-          },
-        );
-
-        // 2. Start a loop that tries to log in every 3 seconds
-        bool loggedIn = false;
-        int attempts = 0;
-
-        // Try for 3 mins (36 attempts * 5 secs = 180 secs)
-        while (!loggedIn && attempts < 36) {
-          await Future.delayed(const Duration(seconds: 5));
-          attempts++;
-
-          try {
-            // Attempt to sign in. This will succeed ONLY after they click the email link.
-            await _supabase.auth.signInWithPassword(
-              email: _email.text.trim(),
-              password: _password.text,
-            );
-
-            // If we get here, no error was thrown -> We are logged in!
-            loggedIn = true;
-            if (mounted) Navigator.pop(context); // Close the dialog
-          } catch (e) {
-            // Still not verified, keep waiting...
-            debugPrint("Waiting for verification... Attempt $attempts");
-          }
-        }
-
-        // 3. Handle timeout (User didn't click link in 60 seconds)
-        if (!loggedIn) {
-          if (mounted) Navigator.pop(context); // Close dialog
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text(
-                      'Verification timed out. Please try logging in manually.')),
-            );
-          }
-          return;
-        }
+        return;
       }
 
       try {
@@ -269,6 +241,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _fullName.dispose();
     _username.dispose();
     _email.dispose();
@@ -306,9 +279,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
-                        buildAppTitle(),
-                        const SizedBox(height: 20), // Adjusted spacing after logo
-                        buildAppTextField(
+                      buildAppTitle(),
+                      const SizedBox(height: 20), // Adjusted spacing after logo
+                      buildAppTextField(
                           hint: "Full Name",
                           controller: _fullName,
                           context: context,
@@ -321,7 +294,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           forceLightMode: true),
                       const SizedBox(height: 24),
                       buildAppTextField(
-                          hint: "Email", controller: _email, context: context, forceLightMode: true),
+                          hint: "Email",
+                          controller: _email,
+                          context: context,
+                          forceLightMode: true),
                       const SizedBox(height: 24),
                       buildAppTextField(
                         hint: "Password",
