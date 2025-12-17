@@ -120,17 +120,43 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     showDialog(
       context: context,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: const Text('Event Details'),
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Event Details',
+            style: GoogleFonts.inknutAntiqua(
+              color: isDark ? const Color(0xFF7FA8C7) : const Color(0xFF7496B3),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Title: ${event['title']}'),
+              Text(
+                'Title: ${event['title']}',
+                style: GoogleFonts.lato(
+                  color: isDark ? Colors.white : const Color(0xFF394957),
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Description: ${event['desc']}'),
+              Text(
+                'Description: ${event['desc']}',
+                style: GoogleFonts.lato(
+                  color: isDark ? Colors.white : const Color(0xFF394957),
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Date: ${event['date']}'),
+              Text(
+                'Date: ${event['date']}',
+                style: GoogleFonts.lato(
+                  color: isDark ? Colors.white : const Color(0xFF394957),
+                ),
+              ),
             ],
           ),
           actions: [
@@ -139,7 +165,13 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 Navigator.pop(context); // close details dialog
                 _showEditEventDialog(event, category); // open edit dialog
               },
-              child: const Text('Edit'),
+              child: Text(
+                'Edit',
+                style: GoogleFonts.lato(
+                  color: const Color(0xFF7496B3),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
@@ -152,11 +184,23 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
                 if (mounted) Navigator.pop(context);
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              child: Text(
+                'Delete',
+                style: GoogleFonts.lato(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
+              child: Text(
+                'Close',
+                style: GoogleFonts.lato(
+                  color: const Color(0xFF7496B3),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         );
@@ -173,86 +217,209 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Event'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'Edit Event',
+                style: GoogleFonts.inknutAntiqua(
+                  color: isDark
+                      ? const Color(0xFF7FA8C7)
+                      : const Color(0xFF7496B3),
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: descController,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                ),
-                const SizedBox(height: 8),
-                Row(
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Date: '),
-                    TextButton(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: eventDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
-                        );
-                        if (picked != null) {
-                          // Update local state for the dialog only
-                          // (In a real app, use a StatefulBuilder for dialog content)
-                          eventDate = picked;
-                        }
-                      },
-                      child: Text(
-                        '${eventDate.year}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}',
+                    TextField(
+                      controller: titleController,
+                      style: GoogleFonts.lato(
+                        color: isDark ? Colors.white : Colors.black,
                       ),
+                      decoration: InputDecoration(
+                        labelText: 'Title',
+                        labelStyle: GoogleFonts.lato(
+                          color: isDark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3),
+                        ),
+                        filled: true,
+                        fillColor:
+                            isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF4A4A4A)
+                                : Colors.grey[300]!,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF7496B3), width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descController,
+                      style: GoogleFonts.lato(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Description',
+                        labelStyle: GoogleFonts.lato(
+                          color: isDark
+                              ? const Color(0xFF7FA8C7)
+                              : const Color(0xFF7496B3),
+                        ),
+                        filled: true,
+                        fillColor:
+                            isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF4A4A4A)
+                                : Colors.grey[300]!,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF7496B3), width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Text(
+                          'Date: ',
+                          style: GoogleFonts.lato(
+                            color:
+                                isDark ? Colors.white : const Color(0xFF394957),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: eventDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: isDark
+                                        ? const ColorScheme.dark(
+                                            primary: Color(0xFF7496B3),
+                                            onPrimary: Colors.white,
+                                            surface: Color(0xFF1E1E1E),
+                                            onSurface: Colors.white,
+                                          )
+                                        : const ColorScheme.light(
+                                            primary: Color(0xFF7496B3),
+                                            onPrimary: Colors.white,
+                                            surface: Colors.white,
+                                            onSurface: Color(0xFF394957),
+                                          ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                eventDate = picked;
+                              });
+                            }
+                          },
+                          child: Text(
+                            '${eventDate.year}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}',
+                            style: GoogleFonts.lato(
+                              color: const Color(0xFF7496B3),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.lato(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final petId =
+                        this.context.read<PetProvider>().selectedPetId;
+                    final logId = event['id'];
+
+                    if (petId != null && logId != null) {
+                      // 1. Delete old
+                      await this
+                          .context
+                          .read<LogProvider>()
+                          .deleteLog(logId, petId);
+
+                      // 2. Add new
+                      // Map UI Category back to DB type
+                      String dbType = category.toLowerCase();
+                      if (dbType.endsWith('s')) {
+                        dbType = dbType.substring(0, dbType.length - 1);
+                      }
+
+                      await this.context.read<LogProvider>().addLog(
+                        petId: petId,
+                        type: dbType,
+                        date: eventDate,
+                        details: {
+                          'title': titleController.text,
+                          'desc': descController.text
+                        },
+                      );
+                    }
+
+                    if (mounted) Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Save',
+                    style: GoogleFonts.lato(
+                      color: const Color(0xFF7496B3),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final petId = context.read<PetProvider>().selectedPetId;
-                final logId = event['id'];
-
-                if (petId != null && logId != null) {
-                  // 1. Delete old
-                  await context.read<LogProvider>().deleteLog(logId, petId);
-
-                  // 2. Add new
-                  // Map UI Category back to DB type
-                  String dbType = category.toLowerCase();
-                  if (dbType.endsWith('s')) {
-                    dbType = dbType.substring(0, dbType.length - 1);
-                  }
-
-                  await context.read<LogProvider>().addLog(
-                    petId: petId,
-                    type: dbType,
-                    date: eventDate,
-                    details: {
-                      'title': titleController.text,
-                      'desc': descController.text
-                    },
-                  );
-                }
-
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -302,7 +469,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                         DropdownButton<String>(
                           value: selectedPetId,
                           items: pets.map((p) {
-                            final displayName = p.name.length > 12 ? '${p.name.substring(0, 12)}...' : p.name;
+                            final displayName = p.name.length > 12
+                                ? '${p.name.substring(0, 12)}...'
+                                : p.name;
                             return DropdownMenuItem(
                               value: p.petId,
                               child: Text(
