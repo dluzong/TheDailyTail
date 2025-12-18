@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'dashboard_screen.dart';
 import 'loading_screen.dart';
-import '../user_provider.dart';
 
 class AuthCheckScreen extends StatefulWidget {
   final bool isNewSignup;
@@ -18,7 +16,6 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   void initState() {
     super.initState();
     if (widget.isNewSignup) {
-      // Show loading screen for 3 seconds, then navigate to dashboard
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -27,7 +24,6 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
         }
       });
     } else {
-      // If not new signup, go straight to dashboard
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -41,7 +37,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   @override
   Widget build(BuildContext context) {
     return widget.isNewSignup
-        ? LoadingScreen(
+        ? const LoadingScreen(
             gifAsset: 'assets/lottie/dog_roles.json',
             loadingText: 'Setting up your profile...',
           )

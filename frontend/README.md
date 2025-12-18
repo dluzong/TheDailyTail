@@ -1,4 +1,4 @@
-# capstone
+# The Daily Tail
 
 A new Flutter project.
 

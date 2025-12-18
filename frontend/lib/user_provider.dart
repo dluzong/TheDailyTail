@@ -126,6 +126,12 @@ class AppUser {
   }
 }
 
+class GoogleSignInResult {
+  final bool authenticated;
+  final bool hasProfile;
+  GoogleSignInResult({required this.authenticated, required this.hasProfile});
+}
+
 class UserProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
@@ -357,6 +363,30 @@ class UserProvider extends ChangeNotifier {
     await prefs.remove(_cacheKey);
   }
 
+  Future<void> logout() async {
+    try {
+      await _supabase.auth.signOut();
+    } catch (e) {
+      debugPrint('Sign out error: $e');
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cacheKey);
+      for (final k in prefs.getKeys()) {
+        if (k.startsWith('user_') ||
+            k.startsWith('profile_') ||
+            k.startsWith('session_')) {
+          await prefs.remove(k);
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed clearing SharedPreferences: $e');
+    }
+
+    clearUser();
+  }
+
   Future<void> updateUserProfile({
     required String username,
     required String name,
@@ -389,6 +419,80 @@ class UserProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('ERROR: Failed to update user profile: $e');
       rethrow;
+    }
+  }
+
+  Future<GoogleSignInResult> signInWithGoogle() async {
+    try {
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'com.example.thedailytail://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+        queryParams: const {
+          'access_type': 'offline',
+          'prompt': 'consent',
+        },
+      );
+
+      if (response == false) {
+        return GoogleSignInResult(authenticated: false, hasProfile: false);
+      }
+
+      await fetchUser();
+      final session = _supabase.auth.currentSession;
+      if (session == null) {
+        return GoogleSignInResult(authenticated: false, hasProfile: false);
+      }
+
+      final hasProfile = await this.hasProfile(forUserId: session.user.id);
+      return GoogleSignInResult(authenticated: true, hasProfile: hasProfile);
+    } catch (e) {
+      debugPrint('Google OAuth error: $e');
+      return GoogleSignInResult(authenticated: false, hasProfile: false);
+    }
+  }
+
+  Future<bool> hasProfile(
+      {String? forUserId, bool assumeExistsOnForbidden = false}) async {
+    final userId = forUserId ?? _supabase.auth.currentSession?.user.id;
+    if (userId == null || userId.isEmpty) return false;
+    try {
+      final params = forUserId != null
+          ? {'in_user_id': userId}
+          : const <String, dynamic>{};
+      final result = await _supabase.rpc('user_has_profile', params: params);
+
+      if (result is bool) return result;
+      if (result is int) return result != 0;
+      if (result is String) {
+        final s = result.toLowerCase();
+        return s == 'true' || s == 't' || s == '1';
+      }
+      if (result is Map && result.containsKey('user_has_profile')) {
+        final v = result['user_has_profile'];
+        if (v is bool) return v;
+        if (v is int) return v != 0;
+        if (v is String) {
+          final s = v.toLowerCase();
+          return s == 'true' || s == 't' || s == '1';
+        }
+      }
+      debugPrint(
+          'WARN: user_has_profile returned unexpected type: ${result.runtimeType}');
+      return false;
+    } catch (e) {
+      try {
+        final isForbidden = (e is PostgrestException &&
+            (e.code == '403' ||
+                e.message.toLowerCase().contains('permission denied')));
+        if (isForbidden && assumeExistsOnForbidden) {
+          debugPrint(
+              'WARN: hasProfile RPC forbidden; assuming profile exists for userId=${forUserId ?? '(current)'}');
+          return true;
+        }
+      } catch (_) {}
+      debugPrint('ERROR: hasProfile RPC failed: $e');
+      return false;
     }
   }
 }
