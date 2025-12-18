@@ -209,27 +209,26 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
-  // 2. New method to handle liking a post that isn't in the global feed list
+  // --- LIKE LOGIC (for posts NOT in the global feed) ---
   Future<Post> toggleLikeForPost(Post post) async {
     final currentUserId = _supabase.auth.currentUser?.id;
-    if (currentUserId == null) return post;
-
-    final newLikesArray = List<String>.from(post.likesArray);
+    if (currentUserId == null) return post;final newLikesArray = List<String>.from(post.likesArray);
     final bool newLikedState = !post.isLiked;
 
+    // 1. Calculate new state locally
     if (newLikedState) {
       newLikesArray.add(currentUserId);
     } else {
       newLikesArray.remove(currentUserId);
     }
 
-    // Update DB
+    // 2. Use the WORKING RPC method
     try {
-      await _supabase
-          .from('posts')
-          .update({'likes': newLikesArray}).eq('post_id', post.postId);
+      await _supabase.rpc('toggle_like', params: {
+        'target_post_id': post.postId // Ensure this matches your SQL parameter name
+      });
 
-      // Return updated model so UI can update locally
+      // 3. Return the updated model so the UI can update
       return post.copyWith(
         isLiked: newLikedState,
         likesCount: newLikesArray.length,
@@ -237,48 +236,53 @@ class PostsProvider extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint("Like failed: $e");
-      return post; // Return original if failed
+      return post; // Return original if failed (reverts the UI)
     }
   }
 
 
-  // --- LIKE LOGIC ---
-
+  // --- LIKE LOGIC (for posts in the global feed) ---
   Future<void> toggleLike(int index) async {
+    // Safety check for index bounds
+    if (index < 0 || index >= _posts.length) return;
+
     final post = _posts[index];
     final currentUserId = _supabase.auth.currentUser?.id;
     if (currentUserId == null) return;
 
     final newLikesArray = List<String>.from(post.likesArray);
-    final bool newLikedState = !post.isLiked;
+    final bool isCurrentlyLiked = post.isLiked;
 
     // 1. Optimistic Calculation
-    if (newLikedState) {
-      newLikesArray.add(currentUserId);
-    } else {
+    if (isCurrentlyLiked) {
       newLikesArray.remove(currentUserId);
+    } else {
+      newLikesArray.add(currentUserId);
     }
 
-    // 2. Update Local State Immediately
+    // 2. Update Local State Immediately (Optimistic UI)
     _posts[index] = post.copyWith(
-      isLiked: newLikedState,
+      isLiked: !isCurrentlyLiked,
       likesCount: newLikesArray.length,
       likesArray: newLikesArray,
     );
     notifyListeners();
 
-    // 3. Sync to DB
+    // 3. Sync to DB using RPC
     try {
-      await _supabase
-          .from('posts')
-          .update({'likes': newLikesArray}).eq('post_id', post.postId);
+      await _supabase.rpc('toggle_like', params: {
+        'target_post_id': post.postId
+      });
     } catch (e) {
       debugPrint("Like failed, reverting: $e");
-      // Revert locally if DB fails
-      _posts[index] = post; // Reverts to original object
+      // 4. Revert locally if DB fails
+      _posts[index] = post;
       notifyListeners();
+
+      // Optional: Show error to user via a callback or toast if you have context access
     }
   }
+
 
   // --- COMMENT LOGIC ---
 
