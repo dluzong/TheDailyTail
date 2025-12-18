@@ -107,27 +107,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     super.dispose();
   }
 
-  Future<bool> isUsernameAvailable(String username) async {
-    final currentUser = Provider.of<UserProvider>(context, listen: false).user;
-    if (currentUser?.username == username) {
-      return true; // The username is the user's own, so it's "available"
-    }
-
-    // Check if the username exists for any other user
-    try {
-      final response = await _supabase
-          .from('users')
-          .select('user_id')
-          .eq('username', username)
-          .maybeSingle();
-      return response ==
-          null; // True if available (no user found), false if taken
-    } catch (e) {
-      debugPrint('Error checking username availability: $e');
-      return false; // Fail safely, preventing a user from taking a username that might exist
-    }
-  }
-
   /// Uploads the local file to Supabase Storage and returns the Public URL
   Future<String?> _uploadProfileImage(File imageFile) async {
     try {

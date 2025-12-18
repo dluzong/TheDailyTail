@@ -90,6 +90,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  Future<bool> _isEmailTaken(String email) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('email')
+          .eq('email', email)
+          .maybeSingle();
+      return response != null;
+    } catch (e) {
+      debugPrint('Error checking email: $e');
+      // Default to true to prevent accidental overwrites on error
+      return true;
+    }
+  }
+
   Future<void> _signUp() async {
     final ctx = context;
     final messenger = ScaffoldMessenger.of(ctx);
@@ -113,6 +128,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Username validation
     final username = _username.text.trim();
     String usernameString = _username.text.toString();
+    String emailString = _email.text.toString();
+
     if (username.isEmpty) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Username cannot be empty.')),
@@ -135,6 +152,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
         const SnackBar(
             content: Text(
                 'Username contains invalid characters. Do not include special characters.')),
+      );
+      return;
+    }
+
+    final isTakenEmail = await _isEmailTaken(emailString);
+    if (!mounted || !context.mounted) return;
+    if (isTakenEmail) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('This email address is already linked to an existing account. To continue, log in.')),
       );
       return;
     }
