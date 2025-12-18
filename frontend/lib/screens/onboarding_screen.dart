@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import '../user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -45,7 +44,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       "title": "Tell us who you are",
       "showPaw": true,
-      "subtitle": "Choose the role that fits you best: Pet Owner, Organizer Leader, or Foster",
+      "subtitle":
+          "Choose the role that fits you best: Pet Owner, Organizer Leader, or Foster",
       "roles": ["Owner", "Organizer", "Foster"],
       "animation": "assets/lottie/dog_roles.json",
     },
@@ -81,7 +81,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final file = File(localPath);
       final fileExt = file.path.split('.').last;
       // Create a unique path: user_id/timestamp.ext
-      final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final fileName =
+          '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
       // Upload to the 'avatars' bucket (or 'pet_images' if you have a specific one)
       await Supabase.instance.client.storage
@@ -90,7 +91,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       // Get and return the Public URL
       debugPrint('Pet image uploaded successfully! ${fileName}');
-      return Supabase.instance.client.storage.from('avatars').getPublicUrl(fileName);
+      return Supabase.instance.client.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
     } catch (e) {
       debugPrint('Upload error: $e');
       return null;
@@ -100,7 +103,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _goToAddPet() async {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
-      MaterialPageRoute(builder: (context) => const AddPetScreen()),
+      MaterialPageRoute(
+          builder: (context) => const AddPetScreen(useAppLayout: false)),
     );
     if (result == null) return;
 
@@ -142,8 +146,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ? (result['weight'] as num).toDouble()
               : double.tryParse(result['weight']?.toString() ?? '') ?? 0.0,
           imageUrl: finalCloudUrl, // <--- Use the new variable
-          savedMeals: result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
-          savedMedications: result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
+          savedMeals:
+              result['saved_meals'] as List<Map<String, dynamic>>? ?? [],
+          savedMedications:
+              result['saved_medications'] as List<Map<String, dynamic>>? ?? [],
           status: result['status'] as String? ?? 'owned',
         );
 
@@ -167,11 +173,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       try {
         final userId = Supabase.instance.client.auth.currentUser?.id;
         if (userId != null) {
-          final rolesToSave = selectedRoles.map((r) => r.toLowerCase()).toList();
+          final rolesToSave =
+              selectedRoles.map((r) => r.toLowerCase()).toList();
           await Supabase.instance.client
               .from('users')
-              .update({'role': rolesToSave})
-              .eq('user_id', userId);
+              .update({'role': rolesToSave}).eq('user_id', userId);
 
           // Sync UserProvider
           if (context.mounted) {
@@ -206,258 +212,262 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // Logo header
-          Container(
-            width: double.infinity,
-            color: Colors.white,
-            padding: const EdgeInsets.only(top: 50, bottom: 10),
-            child: Center(
-              child: Image.asset(
-                'assets/dailytail-logotype-blue.png',
-                height: 80,
-                fit: BoxFit.contain,
+        body: Column(
+          children: [
+            // Logo header
+            Container(
+              width: double.infinity,
+              color: Colors.white,
+              padding: const EdgeInsets.only(top: 50, bottom: 10),
+              child: Center(
+                child: Image.asset(
+                  'assets/dailytail-logotype-blue.png',
+                  height: 80,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
 
-          // Sliding content
-          Expanded(
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: _pages.length,
-                      onPageChanged: (index) {
-                        setState(() => _currentPage = index);
-                      },
-                      itemBuilder: (context, index) {
-                        final page = _pages[index];
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: page["animation"]
-                                      .toString()
-                                      .contains("journaling.json")
-                                  ? Transform.translate(
-                                      offset: const Offset(30, 0),
-                                      child: Lottie.asset(
+            // Sliding content
+            Expanded(
+              child: Container(
+                color: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: _pages.length,
+                        onPageChanged: (index) {
+                          setState(() => _currentPage = index);
+                        },
+                        itemBuilder: (context, index) {
+                          final page = _pages[index];
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: page["animation"]
+                                        .toString()
+                                        .contains("journaling.json")
+                                    ? Transform.translate(
+                                        offset: const Offset(30, 0),
+                                        child: Lottie.asset(
+                                          page["animation"],
+                                          fit: BoxFit.contain,
+                                        ),
+                                      )
+                                    : Lottie.asset(
                                         page["animation"],
                                         fit: BoxFit.contain,
                                       ),
-                                    )
-                                  : Lottie.asset(
-                                      page["animation"],
-                                      fit: BoxFit.contain,
-                                    ),
-                            ),
-                            const SizedBox(height: 20),
+                              ),
+                              const SizedBox(height: 20),
 
-                            // 🔹 Titles (paw only for roles screen)
-                            page["showPaw"] == true
-                                ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        page["title"] ?? "",
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
+                              // 🔹 Titles (paw only for roles screen)
+                              page["showPaw"] == true
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          page["title"] ?? "",
+                                          style: GoogleFonts.inknutAntiqua(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: titleColor,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Icon(
+                                          Icons.pets,
+                                          size: 26,
                                           color: titleColor,
                                         ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Icon(
-                                        Icons.pets,
-                                        size: 26,
+                                      ],
+                                    )
+                                  : Text(
+                                      page["title"] ?? "",
+                                      style: GoogleFonts.inknutAntiqua(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
                                         color: titleColor,
                                       ),
-                                    ],
-                                  )
-                                : Text(
-                                    page["title"] ?? "",
-                                    style: GoogleFonts.inknutAntiqua(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: titleColor,
+                                      textAlign: TextAlign.center,
                                     ),
-                                    textAlign: TextAlign.center,
-                                  ),
 
-                            const SizedBox(height: 10),
-                            Text(
-                              page["subtitle"] ?? "",
-                              style: GoogleFonts.inknutAntiqua(
-                                fontSize: 16,
-                                height: 1.5,
-                                color: titleColor,
+                              const SizedBox(height: 10),
+                              Text(
+                                page["subtitle"] ?? "",
+                                style: GoogleFonts.inknutAntiqua(
+                                  fontSize: 16,
+                                  height: 1.5,
+                                  color: titleColor,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 25),
+                              const SizedBox(height: 25),
 
-                            // Role buttons (for role slide) — select/highlight only
-                            if (page["roles"] != null)
-                              Column(                                children:
-                              (page["roles"] as List<String>).map((role) {
+                              // Role buttons (for role slide) — select/highlight only
+                              if (page["roles"] != null)
+                                Column(
+                                  children: (page["roles"] as List<String>)
+                                      .map((role) {
+                                    // CHANGED: Check if list contains the role
+                                    final isSelected =
+                                        selectedRoles.contains(role);
 
-                                // CHANGED: Check if list contains the role
-                                final isSelected = selectedRoles.contains(role);
-
-                                return Padding(
-                                  padding:
-                                  const EdgeInsets.symmetric(vertical: 8),
-                                  child: SizedBox(
-                                    width: 220,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                        isSelected ? titleColor : buttonBlue,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                          BorderRadius.circular(20),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 14),
-                                      ),
-                                      onPressed: () {
-                                        // CHANGED: Toggle logic (Add/Remove) locally only
-                                        setState(() {
-                                          if (isSelected) {
-                                            selectedRoles.remove(role);
-                                          } else {
-                                            selectedRoles.add(role);
-                                          }
-                                        });
-                                      },
-                                      child: Text(
-                                        role,
-                                        style: const TextStyle(
-                                          fontFamily: 'Georgia',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8),
+                                      child: SizedBox(
+                                        width: 220,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: isSelected
+                                                ? titleColor
+                                                : buttonBlue,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 14),
+                                          ),
+                                          onPressed: () {
+                                            // CHANGED: Toggle logic (Add/Remove) locally only
+                                            setState(() {
+                                              if (isSelected) {
+                                                selectedRoles.remove(role);
+                                              } else {
+                                                selectedRoles.add(role);
+                                              }
+                                            });
+                                          },
+                                          child: Text(
+                                            role,
+                                            style: const TextStyle(
+                                              fontFamily: 'Georgia',
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // Bottom controls
-                  // Page indicator (shown on all pages)
-                  Center(
-                    child: SmoothPageIndicator(
-                      controller: _pageController,
-                      count: _pages.length,
-                      effect: const WormEffect(
-                        activeDotColor: Color(0xFF5F7C94),
-                        dotColor: Colors.grey,
-                        dotHeight: 8,
-                        dotWidth: 8,
+                                    );
+                                  }).toList(),
+                                ),
+                            ],
+                          );
+                        },
                       ),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 20),
 
-                  if (_pages[_currentPage]["isAddPetPrompt"] == true)
-                    // Show Skip -> move to "You're all set" page, and Add Pet
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            // go to the final "You're all set!" page
-                            _pageController.animateToPage(
-                              _pages.length - 1,
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.easeInOut,
-                            );
-                          },
-                          child: const Text("Skip for now"),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _goToAddPet(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: buttonBlue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 10),
-                          ),
-                          child: const Text("Add Pet"),
-                        ),
-                      ],
-                    )
-                  else if (_currentPage == _pages.length - 1)
-                    // Final page: Get Started
+                    const SizedBox(height: 30),
+
+                    // Bottom controls
+                    // Page indicator (shown on all pages)
                     Center(
-                      child: ElevatedButton(
-                        onPressed: _finishOnboarding,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: buttonBlue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 40, vertical: 14),
-                        ),
-                        child: const Text(
-                          "Get Started",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                      child: SmoothPageIndicator(
+                        controller: _pageController,
+                        count: _pages.length,
+                        effect: const WormEffect(
+                          activeDotColor: Color(0xFF5F7C94),
+                          dotColor: Colors.grey,
+                          dotHeight: 8,
+                          dotWidth: 8,
                         ),
                       ),
-                    )
-                  else
-                    // Default controls: Skip, Page Indicator, Next
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    if (_pages[_currentPage]["isAddPetPrompt"] == true)
+                      // Show Skip -> move to "You're all set" page, and Add Pet
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              // go to the final "You're all set!" page
+                              _pageController.animateToPage(
+                                _pages.length - 1,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                            child: const Text("Skip for now"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => _goToAddPet(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: buttonBlue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 10),
+                            ),
+                            child: const Text("Add Pet"),
+                          ),
+                        ],
+                      )
+                    else if (_currentPage == _pages.length - 1)
+                      // Final page: Get Started
+                      Center(
+                        child: ElevatedButton(
                           onPressed: _finishOnboarding,
-                          child: const Text("Skip"),
-                        ),
-                        ElevatedButton(
-                          onPressed: _nextPage,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: buttonBlue,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(25),
                             ),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 10),
+                                horizontal: 40, vertical: 14),
                           ),
-                          child: const Text("Next"),
+                          child: const Text(
+                            "Get Started",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                ],
+                      )
+                    else
+                      // Default controls: Skip, Page Indicator, Next
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: _finishOnboarding,
+                            child: const Text("Skip"),
+                          ),
+                          ElevatedButton(
+                            onPressed: _nextPage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: buttonBlue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 10),
+                            ),
+                            child: const Text("Next"),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
