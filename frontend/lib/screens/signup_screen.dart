@@ -45,7 +45,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         final navigator = Navigator.of(ctx);
         final currentId = _supabase.auth.currentSession?.user.id;
         final lateOauth = (_lastUserId != currentId);
-        if (!_oauthInProgress && !lateOauth) {
+        // Only handle OAuth-completed flows here; ignore email sign-in polling results.
+        if (!_oauthInProgress) {
           return;
         }
         // Update last seen user id
@@ -170,7 +171,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return;
       }
 
-      // Block onboarding until email is verified.
+      // If email verification is required (session is null or email not confirmed),
+      // show a blocking dialog and poll login every 5s for up to 5 minutes.
       bool isEmailVerified = false;
       try {
         isEmailVerified = (user.emailConfirmedAt != null);
@@ -181,10 +183,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } catch (_) {}
       if (session == null || !isEmailVerified) {
         if (!mounted || !context.mounted) return;
-        messenger.showSnackBar(const SnackBar(
-            content: Text(
-                'Check your email to verify your account. After verifying, return and Log In to continue onboarding.')));
-        return;
+        showDialog(
+          context: ctx,
+          barrierDismissible: false,
+          builder: (BuildContext dctx) {
+            return const AlertDialog(
+              title: Text('Verification Required'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                      'A verification email has been sent. Please click the link in your email to continue.'),
+                  SizedBox(height: 20),
+                  CircularProgressIndicator(),
+                ],
+              ),
+            );
+          },
+        );
+
+        bool loggedIn = false;
+        int attempts = 0;
+        const maxAttempts = 60; // 5 minutes @ 5s
+        while (!loggedIn && attempts < maxAttempts) {
+          await Future.delayed(const Duration(seconds: 5));
+          attempts++;
+          try {
+            await _supabase.auth.signInWithPassword(
+              email: _email.text.trim(),
+              password: _password.text,
+            );
+            loggedIn = true;
+          } catch (_) {
+            // Still not verified; continue polling
+          }
+        }
+
+        if (!mounted || !context.mounted) return;
+        Navigator.of(ctx).pop(); // close dialog
+
+        if (!loggedIn) {
+          messenger.showSnackBar(const SnackBar(
+              content: Text(
+                  'Verification timed out. Check your email for the link and try logging in.')));
+          return;
+        }
       }
 
       try {

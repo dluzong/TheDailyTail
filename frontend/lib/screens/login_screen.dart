@@ -23,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _supabase = Supabase.instance.client;
 
   bool _oauthInProgress = false;
+  bool _emailLoginInProgress = false;
   String? _lastUserId;
   StreamSubscription<AuthState>? _authSubscription;
   Timer? _oauthTimeout;
@@ -34,6 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
       final event = data.event;
       if (event == AuthChangeEvent.signedIn) {
+        if (_emailLoginInProgress) {
+          return;
+        }
         final ctx = context;
         final messenger = ScaffoldMessenger.of(ctx);
         final navigator = Navigator.of(ctx);
@@ -61,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _oauthInProgress = false;
         });
         messenger.showSnackBar(
-          const SnackBar(content: Text('Signed in with Google')),
+          const SnackBar(content: Text('Signed in successfully')),
         );
         if (hasProfile) {
           navigator.pushAndRemoveUntil(
@@ -91,6 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final ctx = context;
     final messenger = ScaffoldMessenger.of(ctx);
     final navigator = Navigator.of(ctx);
+    _emailLoginInProgress = true;
     setState(() => _isLoading = true);
     try {
       final res = await _supabase.auth.signInWithPassword(
@@ -102,6 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user == null) {
         if (!mounted || !context.mounted) return;
         messenger.showSnackBar(const SnackBar(content: Text('Login failed')));
+        _emailLoginInProgress = false;
         return;
       }
 
@@ -123,6 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
         try {
           await _supabase.auth.signOut();
         } catch (_) {}
+        _emailLoginInProgress = false;
         return;
       }
 
@@ -146,11 +153,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       messenger.showSnackBar(const SnackBar(content: Text('Logged in')));
       if (hasProfile) {
+        _emailLoginInProgress = false;
         navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const DashboardScreen()),
           (Route<dynamic> route) => false,
         );
       } else {
+        _emailLoginInProgress = false;
         navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const OnboardingScreen()),
           (Route<dynamic> route) => false,
@@ -160,6 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final msg = err is AuthException ? err.message : err.toString();
       if (!mounted || !context.mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(msg)));
+      _emailLoginInProgress = false;
     }
     if (mounted) setState(() => _isLoading = false);
   }
