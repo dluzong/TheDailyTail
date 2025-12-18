@@ -444,29 +444,55 @@ class UserProvider extends ChangeNotifier {
         return GoogleSignInResult(authenticated: false, hasProfile: false);
       }
 
-      bool hasProfile = false;
-      try {
-        final u = _user;
-        hasProfile = u != null && (u.username.isNotEmpty);
-        if (!hasProfile) {
-          final res = await _supabase
-              .from('users')
-              .select('username')
-              .eq('user_id', session.user.id)
-              .maybeSingle();
-          final username = (res != null && res['username'] is String)
-              ? (res['username'] as String)
-              : '';
-          hasProfile = username.isNotEmpty;
-        }
-      } catch (e) {
-        debugPrint('ERROR: checking profile info failed: $e');
-      }
-
+      final hasProfile = await this.hasProfile(forUserId: session.user.id);
       return GoogleSignInResult(authenticated: true, hasProfile: hasProfile);
     } catch (e) {
       debugPrint('Google OAuth error: $e');
       return GoogleSignInResult(authenticated: false, hasProfile: false);
+    }
+  }
+
+  Future<bool> hasProfile(
+      {String? forUserId, bool assumeExistsOnForbidden = false}) async {
+    final userId = forUserId ?? _supabase.auth.currentSession?.user.id;
+    if (userId == null || userId.isEmpty) return false;
+    try {
+      final params = forUserId != null
+          ? {'in_user_id': userId}
+          : const <String, dynamic>{};
+      final result = await _supabase.rpc('user_has_profile', params: params);
+
+      if (result is bool) return result;
+      if (result is int) return result != 0;
+      if (result is String) {
+        final s = result.toLowerCase();
+        return s == 'true' || s == 't' || s == '1';
+      }
+      if (result is Map && result.containsKey('user_has_profile')) {
+        final v = result['user_has_profile'];
+        if (v is bool) return v;
+        if (v is int) return v != 0;
+        if (v is String) {
+          final s = v.toLowerCase();
+          return s == 'true' || s == 't' || s == '1';
+        }
+      }
+      debugPrint(
+          'WARN: user_has_profile returned unexpected type: ${result.runtimeType}');
+      return false;
+    } catch (e) {
+      try {
+        final isForbidden = (e is PostgrestException &&
+            (e.code == '403' ||
+                e.message.toLowerCase().contains('permission denied')));
+        if (isForbidden && assumeExistsOnForbidden) {
+          debugPrint(
+              'WARN: hasProfile RPC forbidden; assuming profile exists for userId=${forUserId ?? '(current)'}');
+          return true;
+        }
+      } catch (_) {}
+      debugPrint('ERROR: hasProfile RPC failed: $e');
+      return false;
     }
   }
 }

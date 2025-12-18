@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -5,7 +6,7 @@ import '../shared/starting_widgets.dart';
 import 'package:provider/provider.dart';
 import '../user_provider.dart';
 import 'onboarding_screen.dart';
-import 'dashboard_screen.dart';
+// import 'dashboard_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -24,92 +25,53 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _confirmPassword = TextEditingController();
   final _supabase = Supabase.instance.client;
   bool _isLoading = false;
+  // Track OAuth flow to handle browser return deterministically.
+  bool _oauthInProgress = false;
   StreamSubscription<AuthState>? _authSubscription;
+  String? _lastUserId;
+  Timer? _oauthTimeout;
 
   @override
   void initState() {
     super.initState();
+    _lastUserId = _supabase.auth.currentSession?.user.id;
+    // Listen for auth changes to capture Google OAuth return and navigate once.
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
       final event = data.event;
-      if (event == AuthChangeEvent.signedIn) {
-        try {
-          // Refresh user in provider
-          await context.read<UserProvider>().fetchUser();
-          final session = _supabase.auth.currentSession;
-          if (session == null) return;
-          // Check if profile exists
-          bool hasProfile = false;
-          try {
-            final res = await _supabase
-                .from('users')
-                .select('user_id')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-            hasProfile = res != null;
-          } catch (_) {}
 
-          if (!mounted) return;
-          if (hasProfile) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const DashboardScreen()),
-              (route) => false,
-            );
-          } else {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-              (route) => false,
-            );
-          }
-        } catch (e) {
-          debugPrint('Signup auth listener error: $e');
+      if (event == AuthChangeEvent.signedIn) {
+        final ctx = context;
+        final messenger = ScaffoldMessenger.of(ctx);
+        final navigator = Navigator.of(ctx);
+        final currentId = _supabase.auth.currentSession?.user.id;
+        final lateOauth = (_lastUserId != currentId);
+        if (!_oauthInProgress && !lateOauth) {
+          return;
         }
+        // Update last seen user id
+        _lastUserId = currentId;
+        // We consider this as OAuth completion.
+        try {
+          await context.read<UserProvider>().fetchUser();
+        } catch (_) {}
+
+        if (!mounted || !context.mounted) return;
+        // For SignUp flow, always proceed to Onboarding regardless of profile state
+
+        _oauthTimeout?.cancel();
+        setState(() {
+          _isLoading = false;
+          _oauthInProgress = false;
+        });
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Signed in with Google')),
+        );
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          (route) => false,
+        );
       }
     });
-  }
-
-  Future<void> signInWithGoogle() async {
-    setState(() => _isLoading = true);
-    try {
-      final result = await context.read<UserProvider>().signInWithGoogle();
-      if (!result.authenticated) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Google sign-in failed or was cancelled')),
-          );
-        }
-        return;
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Signed in with Google')));
-        // If profile already exists, treat signup as login and go to dashboard.
-        if (result.hasProfile) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            (route) => false,
-          );
-        } else {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-            (route) => false,
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-      debugPrint('Google sign-in error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   Future<bool> _isUsernameTaken(String username) async {
@@ -128,17 +90,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
+    final ctx = context;
+    final messenger = ScaffoldMessenger.of(ctx);
+    final navigator = Navigator.of(ctx);
     // Basic validation
     if (_password.text != _confirmPassword.text) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted || !context.mounted) return;
+      messenger.showSnackBar(
         const SnackBar(content: Text('Passwords do not match.')),
       );
       return; // Exit early
     }
     if (_email.text.isEmpty || !_email.text.contains('@')) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted || !context.mounted) return;
+      messenger.showSnackBar(
         const SnackBar(content: Text('Please enter a valid email.')),
       );
       return; // Exit early
@@ -148,14 +113,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final username = _username.text.trim();
     String usernameString = _username.text.toString();
     if (username.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Username cannot be empty.')),
       );
       return;
     }
 
-    if (await _isUsernameTaken(usernameString)) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    final isTaken = await _isUsernameTaken(usernameString);
+    if (!mounted || !context.mounted) return;
+    if (isTaken) {
+      messenger.showSnackBar(
         const SnackBar(content: Text('Username is already taken.')),
       );
       return;
@@ -163,7 +130,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     final invalidChars = RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]');
     if (invalidChars.hasMatch(username)) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
             content: Text(
                 'Username contains invalid characters. Do not include special characters.')),
@@ -173,7 +140,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => _isLoading = true);
     try {
-      debugPrint('Attempting sign up with email=${_email.text}');
       final res = await _supabase.auth.signUp(
         email: _email.text,
         password: _password.text,
@@ -182,7 +148,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           'name': _fullName.text,
         },
       );
-      debugPrint('Sign-Up Response: $res');
 
       dynamic user;
       try {
@@ -200,18 +165,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
               (res as dynamic).errorMessage;
           if (maybeErr != null) message = maybeErr.toString();
         } catch (_) {}
-        if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
+        if (!mounted || !context.mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
+
+      // Block onboarding until email is verified.
+      bool isEmailVerified = false;
+      try {
+        isEmailVerified = (user.emailConfirmedAt != null);
+      } catch (_) {}
+      dynamic session;
+      try {
+        session = (res as dynamic).session;
+      } catch (_) {}
+      if (session == null || !isEmailVerified) {
+        if (!mounted || !context.mounted) return;
+        messenger.showSnackBar(const SnackBar(
+            content: Text(
+                'Check your email to verify your account. After verifying, return and Log In to continue onboarding.')));
         return;
       }
 
       try {
         await context.read<UserProvider>().fetchUser();
       } catch (e) {
-        debugPrint('fetchUser after signup failed: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
                 content:
                     Text('Signup succeeded but failed to load profile: $e')),
@@ -219,21 +199,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Signed up')));
+      if (!mounted || !context.mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('Signed up')));
       // Navigate to OnboardingScreen after successful signup
-      Navigator.push(
-        context,
+      navigator.push(
         MaterialPageRoute(
           builder: (context) => const OnboardingScreen(),
         ),
       );
     } catch (err) {
       final message = err is AuthException ? err.message : err.toString();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
-      debugPrint('Sign up error: $err');
+      if (!mounted || !context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -241,6 +218,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
+    _oauthTimeout?.cancel();
     _authSubscription?.cancel();
     _fullName.dispose();
     _username.dispose();
@@ -269,7 +247,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 padding: const EdgeInsets.only(top: 48), // Match login_screen
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Color(0xFF7496B3)),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
                 ),
               ),
             ),
@@ -360,7 +340,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 15),
                       OutlinedButton.icon(
-                        onPressed: _isLoading ? null : signInWithGoogle,
+                        onPressed: _isLoading
+                            ? null
+                            : () async {
+                                // Start OAuth flow; rely on auth listener to finish navigation.
+                                final messenger = ScaffoldMessenger.of(context);
+                                setState(() {
+                                  _isLoading = true;
+                                  _oauthInProgress = true;
+                                });
+                                // Set a timeout to avoid getting stuck if deep link never returns.
+                                _oauthTimeout?.cancel();
+                                _oauthTimeout =
+                                    Timer(const Duration(seconds: 30), () {
+                                  if (!mounted || !context.mounted) return;
+                                  if (_oauthInProgress) {
+                                    setState(() {
+                                      _oauthInProgress = false;
+                                      _isLoading = false;
+                                    });
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Google sign-in not completed. Please try again.')),
+                                    );
+                                  }
+                                });
+                                try {
+                                  await context
+                                      .read<UserProvider>()
+                                      .signInWithGoogle();
+                                  // Do not clear state here; wait for onAuthStateChange(signedIn).
+                                } catch (e) {
+                                  if (mounted) {
+                                    _oauthInProgress = false;
+                                    setState(() => _isLoading = false);
+                                    messenger.showSnackBar(
+                                        SnackBar(content: Text(e.toString())));
+                                  }
+                                }
+                              },
                         icon: const Icon(Icons.login, color: Color(0xFF7496B3)),
                         label: Text(
                             _isLoading

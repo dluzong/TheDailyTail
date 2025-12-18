@@ -1,6 +1,8 @@
+// ignore_for_file: use_build_context_synchronously
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/dashboard_screen.dart';
-import 'onboarding_screen.dart';
+import 'package:frontend/screens/onboarding_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../shared/starting_widgets.dart';
 import 'package:provider/provider.dart';
@@ -20,89 +22,144 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   final _supabase = Supabase.instance.client;
 
-  Future<void> signInWithGoogle() async {
-    setState(() => _isLoading = true);
-    try {
-      final result = await context.read<UserProvider>().signInWithGoogle();
-      if (!result.authenticated) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Google sign-in failed or was cancelled')),
+  bool _oauthInProgress = false;
+  String? _lastUserId;
+  StreamSubscription<AuthState>? _authSubscription;
+  Timer? _oauthTimeout;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastUserId = _supabase.auth.currentSession?.user.id;
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedIn) {
+        final ctx = context;
+        final messenger = ScaffoldMessenger.of(ctx);
+        final navigator = Navigator.of(ctx);
+        final currentId = _supabase.auth.currentSession?.user.id;
+        final lateOauth = (_lastUserId != currentId);
+        if (!_oauthInProgress && !lateOauth) {
+          return;
+        }
+        _lastUserId = currentId;
+        try {
+          await context.read<UserProvider>().fetchUser();
+        } catch (e) {
+          // Ignore fetch error; navigation continues
+        }
+        if (!mounted || !context.mounted) return;
+        // Determine profile existence via provider single source of truth
+        // Use optimistic fallback on 403 (RLS) for returning users
+        bool hasProfile = await context
+            .read<UserProvider>()
+            .hasProfile(assumeExistsOnForbidden: true);
+        if (!mounted || !context.mounted) return;
+        _oauthTimeout?.cancel();
+        setState(() {
+          _isLoading = false;
+          _oauthInProgress = false;
+        });
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Signed in with Google')),
+        );
+        if (hasProfile) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            (route) => false,
+          );
+        } else {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            (route) => false,
           );
         }
-        return;
       }
+    });
+  }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Signed in with Google')));
-      // If no profile exists, take user through onboarding even from login.
-      if (!result.hasProfile) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-          (route) => false,
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-      debugPrint('Google sign-in error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  @override
+  void dispose() {
+    _oauthTimeout?.cancel();
+    _authSubscription?.cancel();
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
   }
 
   Future<void> _signIn() async {
+    final ctx = context;
+    final messenger = ScaffoldMessenger.of(ctx);
+    final navigator = Navigator.of(ctx);
     setState(() => _isLoading = true);
     try {
-      debugPrint('Attempting sign in with email=${_email.text}');
       final res = await _supabase.auth.signInWithPassword(
         email: _email.text,
         password: _password.text,
       );
 
       final user = res.user;
-      debugPrint('signIn response: $res');
       if (user == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Login failed')));
+        if (!mounted || !context.mounted) return;
+        messenger.showSnackBar(const SnackBar(content: Text('Login failed')));
+        return;
+      }
+
+      // If email isn't verified yet, block navigation and prompt verification.
+      bool isEmailVerified = false;
+      try {
+        isEmailVerified = (user.emailConfirmedAt != null);
+      } catch (_) {}
+      dynamic session;
+      try {
+        session = (res as dynamic).session;
+      } catch (_) {}
+      if (session == null || !isEmailVerified) {
+        if (!mounted || !context.mounted) return;
+        messenger.showSnackBar(const SnackBar(
+            content: Text(
+                'Please verify your email first. Check your inbox for the verification link.')));
+        // Ensure we don't leave a partial session around.
+        try {
+          await _supabase.auth.signOut();
+        } catch (_) {}
         return;
       }
 
       try {
         await context.read<UserProvider>().fetchUser();
       } catch (e) {
-        debugPrint('fetchUser failed: $e');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        if (!mounted || !context.mounted) return;
+        messenger.showSnackBar(
           SnackBar(content: Text('Failed to load user: $e')),
         );
       }
 
-      if (!mounted) return;
+      if (!mounted || !context.mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Logged in')));
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        (Route<dynamic> route) => false,
-      );
+      // Determine profile existence via provider single source of truth
+      // Use optimistic fallback on 403 (RLS) for returning users
+      bool hasProfile = await context
+          .read<UserProvider>()
+          .hasProfile(forUserId: user.id, assumeExistsOnForbidden: true);
+      if (!mounted || !context.mounted) return;
+
+      messenger.showSnackBar(const SnackBar(content: Text('Logged in')));
+      if (hasProfile) {
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
     } catch (err) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(err.toString())));
-      debugPrint('Log in error: $err');
+      final msg = err is AuthException ? err.message : err.toString();
+      if (!mounted || !context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -184,7 +241,45 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
-                            onPressed: _isLoading ? null : signInWithGoogle,
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    setState(() {
+                                      _isLoading = true;
+                                      _oauthInProgress = true;
+                                    });
+                                    _oauthTimeout?.cancel();
+                                    _oauthTimeout =
+                                        Timer(const Duration(seconds: 30), () {
+                                      if (!mounted || !context.mounted) return;
+                                      if (_oauthInProgress) {
+                                        setState(() {
+                                          _oauthInProgress = false;
+                                          _isLoading = false;
+                                        });
+                                        final messenger =
+                                            ScaffoldMessenger.of(context);
+                                        messenger.showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Google sign-in not completed. Please try again.')));
+                                      }
+                                    });
+                                    try {
+                                      await context
+                                          .read<UserProvider>()
+                                          .signInWithGoogle();
+                                      // Do not navigate here; wait for auth listener.
+                                    } catch (e) {
+                                      if (mounted) {
+                                        _oauthInProgress = false;
+                                        setState(() => _isLoading = false);
+                                        final messenger =
+                                            ScaffoldMessenger.of(context);
+                                        messenger.showSnackBar(SnackBar(
+                                            content: Text(e.toString())));
+                                      }
+                                    }
+                                  },
                             icon: const Icon(Icons.login,
                                 color: Color(0xFF7496B3)),
                             label: Text(
