@@ -19,9 +19,7 @@ class UserSettingsScreen extends StatefulWidget {
   _UserSettingsScreenState createState() => _UserSettingsScreenState();
 }
 
-class _UserSettingsScreenState extends State<UserSettingsScreen>
-    with SingleTickerProviderStateMixin {
-  // We can access Supabase directly for auth actions like signOut
+class _UserSettingsScreenState extends State<UserSettingsScreen> with SingleTickerProviderStateMixin {
   final _supabase = Supabase.instance.client;
 
   late AnimationController _fadeController;
@@ -31,7 +29,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
   bool _isDirty = false;
 
-  // User tags/roles selection (local state; persisted in future)
   final List<String> _availableTags = const [
     'owner',
     'organizer',
