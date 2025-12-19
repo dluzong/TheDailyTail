@@ -155,7 +155,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     );
   }
 
-  /// Opens modal to add a new meal or save to favorites
+  /// Add a new meal or save to list
   void _openMealPopup() {
     final petId = context.read<PetProvider>().selectedPetId;
     if (petId == null) {
@@ -230,8 +230,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 6),
-
-                  /// Header: Back button and month/year display
                   Row(
                     children: [
                       GestureDetector(
@@ -313,7 +311,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   const SizedBox(height: 8),
 
-                  /// Main content: List of meals logged for selected date
+                  //List of meals logged for selected date
                   Expanded(
                     child: Consumer<LogProvider>(
                       builder: (context, logProvider, child) {
@@ -467,7 +465,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               ),
             ),
 
-            /// Floating action button to add new meal
+            // Add meal button
             Positioned(
               right: 16,
               bottom: 16 + MediaQuery.of(context).padding.bottom,

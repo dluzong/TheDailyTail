@@ -48,9 +48,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
         MapEntry(key, isDarkMode ? value['dark']! : value['light']!));
   }
 
-  // HELPER METHODS - UTILITIES
+  //Helper functions
 
-  /// Convert UI category to database type
+
   String _getCategoryDbType(String uiCategory) {
     String dbType = uiCategory.toLowerCase();
     if (dbType.endsWith('s')) {
@@ -59,7 +59,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     return dbType;
   }
 
-  /// Get theme-adjusted background colors for UI elements
   Map<String, dynamic> _getElementColors(String category, BuildContext context) {
     final tabColors = getTabColors(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -81,7 +80,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     };
   }
 
-  /// Build input field decoration with theme-aware styling
   InputDecoration _buildTextFieldDecoration({
     required String labelText,
     required bool isDark,
@@ -115,7 +113,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     );
   }
 
-  /// Build theme-aware ColorScheme for date picker
   ColorScheme _buildDatePickerColorScheme(bool isDark) {
     return isDark
         ? const ColorScheme.dark(
@@ -469,12 +466,21 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
+                  
+                  Text(
+                    'Daily Logs',
+                    style: GoogleFonts.inknutAntiqua(
+                      fontSize: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Divider(thickness: 2),
+                  const SizedBox(height: 16),
 
                   // ---- Pet Dropdown ----
                   Row(
                     children: [
-                      const Text('Pet: ', style: TextStyle(fontSize: 18)),
-                      const SizedBox(width: 10),
+                      Text('Pet: ', style: GoogleFonts.lato(fontSize: 20, fontWeight: FontWeight.bold)),                      const SizedBox(width: 10),
                       // Only show dropdown if we have pets
                       if (pets.isEmpty)
                         const Text("No pets")

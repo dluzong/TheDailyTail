@@ -17,6 +17,7 @@ class _AddEventPageState extends State<AddEventPage> {
   DateTime? _selectedDate;
   String _selectedCategory = 'Appointments';
 
+// bright colors for light mode & muted colors for dark mode
   final Map<String, Map<String, Color>> colorSchemes = {
     'Appointments': {
       'light': const Color(0xFF34D399),
@@ -36,18 +37,14 @@ class _AddEventPageState extends State<AddEventPage> {
     },
   };
 
-  // ============================================================================
   // HELPER METHODS
-  // ============================================================================
 
-  /// Get theme-appropriate colors for all categories
   Map<String, Color> getTabColors(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return colorSchemes.map((key, value) =>
         MapEntry(key, isDarkMode ? value['dark']! : value['light']!));
   }
 
-  /// Get theme-adjusted colors for UI elements
   Map<String, dynamic> _getElementColors(String category, BuildContext context) {
     final tabColors = getTabColors(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -70,7 +67,6 @@ class _AddEventPageState extends State<AddEventPage> {
     };
   }
 
-  /// Build theme-aware ColorScheme for date picker
   ColorScheme _buildDatePickerColorScheme() {
     return const ColorScheme.light(
       primary: Color(0xFF7496B3),

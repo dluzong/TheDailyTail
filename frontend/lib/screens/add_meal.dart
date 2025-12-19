@@ -37,10 +37,8 @@ class _AddMealState extends State<AddMeal> {
 
   // HELPER METHODS
 
-  /// Check if dark mode is enabled
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
-  /// Get input field container decoration
   BoxDecoration _getInputDecoration() {
     return BoxDecoration(
       color: _isDark ? darkInput : lightBg,
@@ -48,15 +46,12 @@ class _AddMealState extends State<AddMeal> {
     );
   }
 
-  /// Get text style for current theme
   TextStyle? _getTextStyle() {
     return _isDark ? const TextStyle(color: Colors.white) : null;
   }
 
-  /// Get hint style (always grey)
   TextStyle get _hintStyle => const TextStyle(color: Colors.grey);
 
-  /// Build a divider with theme-aware colors
   Widget _buildDivider() {
     return Divider(
       color: _isDark
@@ -66,7 +61,6 @@ class _AddMealState extends State<AddMeal> {
     );
   }
 
-  /// Build section title
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -78,7 +72,6 @@ class _AddMealState extends State<AddMeal> {
     );
   }
 
-  /// Build text input field
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -100,7 +93,6 @@ class _AddMealState extends State<AddMeal> {
     );
   }
 
-  /// Build meal item card
   Widget _buildMealItem(int index, Map<String, String> meal) {
     final isSelected = highlightedIndex == index;
 
@@ -217,7 +209,7 @@ class _AddMealState extends State<AddMeal> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: MediaQuery.of(context).viewInsets, // PUSHES ABOVE KEYBOARD
+      padding: MediaQuery.of(context).viewInsets, // pushes view above keyboard
       child: SingleChildScrollView(
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.65,

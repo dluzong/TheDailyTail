@@ -57,7 +57,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
-  /// Navigate to user profile - own profile or other user's profile
+  /// Navigate to user profiles 
   void _navigateToProfile(String username) {
     final currentUserUsername =
         context.read<UserProvider>().user?.username;
@@ -80,24 +80,13 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     }
   }
 
-  /// Build AppBar with consistent styling
+  /// Appbar
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: _isDark ? darkAppBar : lightAppBar,
       foregroundColor: Colors.white,
       toolbarHeight: 90,
       centerTitle: true,
-      title: Padding(
-        padding: const EdgeInsets.only(top: 30),
-        child: Text(
-          "Comments",
-          style: GoogleFonts.inknutAntiqua(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
       leading: Padding(
         padding: const EdgeInsets.only(top: 30),
         child: IconButton(
@@ -106,6 +95,46 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(top: 30, right: 16),
+          child: Consumer<UserProvider>(
+            builder: (context, userProvider, _) {
+              final photoUrl = userProvider.user?.photoUrl;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: accentBlue,
+                    backgroundImage:
+                        (photoUrl != null && photoUrl.isNotEmpty)
+                            ? NetworkImage(photoUrl)
+                            : null,
+                    child: (photoUrl == null || photoUrl.isEmpty)
+                        ? const Icon(Icons.person, color: Colors.white)
+                        : null,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

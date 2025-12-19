@@ -234,7 +234,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                     final name = nameController.text.trim();
                     if (name.isEmpty) return;
 
-                    // Save to Pet Profile (Definition)
+                    // Save to Pet Profile 
                     await context
                         .read<PetProvider>()
                         .addSavedMedication(petId, {
@@ -350,7 +350,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
 
     final selectedPetId = petProvider.selectedPetId;
 
-    // 1. Get Saved Definitions (From Pet)
+    // 1. Get Saved Definitions 
     List<Map<String, dynamic>> savedMeds = [];
     if (selectedPetId != null && petProvider.pets.isNotEmpty) {
       try {
