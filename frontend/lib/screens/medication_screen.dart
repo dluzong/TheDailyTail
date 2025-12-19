@@ -15,6 +15,17 @@ class MedicationScreen extends StatefulWidget {
 }
 
 class _MedicationScreenState extends State<MedicationScreen> {
+  // Color Constants
+  static const Color darkBg = Color(0xFF2A2A2A);
+  static const Color darkInput = Color(0xFF3A3A3A);
+  static const Color darkBorder = Color(0xFF505050);
+  static const Color darkCard = Color(0xFF3A5A75);
+  static const Color darkCardAlt = Color(0xFF4A6B85);
+  static const Color darkBorder2 = Color(0xFF8AB4D5);
+  static const Color accentColor = Color(0xFF7AA9C8);
+  static const Color lightCard = Color(0xFFD9E8F5);
+  static const Color lightBgAlt = Color(0xFFEDF7FF);
+
   DateTime selectedDate = DateTime.now();
   final int totalDays = 4000;
   late int todayIndex;
@@ -27,10 +38,135 @@ class _MedicationScreenState extends State<MedicationScreen> {
     _scrollController = FixedExtentScrollController(initialItem: todayIndex);
   }
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
+  // Helper to build input field with consistent styling
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String labelText,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _isDark ? darkInput : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _isDark ? darkBorder : Colors.grey.shade300,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        style: _isDark ? const TextStyle(color: Colors.white) : null,
+        decoration: InputDecoration(
+          labelText: labelText,
+          labelStyle: TextStyle(
+            color: _isDark ? Colors.white70 : Colors.grey,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  // Helper to build AlertDialog with theme-aware styling
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String message,
+    String cancelText = 'Cancel',
+    String confirmText = 'Yes',
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: _isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          content: Text(
+            message,
+            style: TextStyle(
+              color: _isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                cancelText,
+                style: TextStyle(
+                  color: _isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isDark ? darkCard : accentColor,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Yes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
   DateTime dateFromIndex(int index) =>
       DateTime.now().add(Duration(days: index - todayIndex));
 
-  // 1. Add New Medication Definition (Prescription) to Pet Profile
+  /// Builds a theme-aware calendar date item widget
+  /// Returns a container with day and day-of-week, responding to tap gestures
+  Widget _buildDateItem({
+    required DateTime date,
+    required bool selected,
+    required Function() onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 55,
+        height: 70,
+        decoration: BoxDecoration(
+          color: selected
+              ? (_isDark ? darkCardAlt : accentColor)
+              : (_isDark ? darkBg : lightBgAlt),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              DateFormat('d').format(date),
+              style: GoogleFonts.inknutAntiqua(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: selected
+                    ? Colors.white
+                    : (_isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+            Text(
+              DateFormat('E').format(date),
+              style: GoogleFonts.inknutAntiqua(
+                fontSize: 12,
+                color: selected
+                    ? Colors.white
+                    : (_isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _openAddMedicationSheet() {
     final petId = context.read<PetProvider>().selectedPetId;
 
@@ -82,103 +218,17 @@ class _MedicationScreenState extends State<MedicationScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(sheetContext).brightness == Brightness.dark 
-                    ? const Color(0xFF3A3A3A)
-                    : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Theme.of(sheetContext).brightness == Brightness.dark
-                      ? const Color(0xFF505050)
-                      : Colors.grey.shade300,
-                  ),
-                ),
-                child: TextField(
-                  controller: nameController,
-                  style: Theme.of(sheetContext).brightness == Brightness.dark 
-                    ? const TextStyle(color: Colors.white) 
-                    : null,
-                  decoration: InputDecoration(
-                    labelText: 'Medication Name',
-                    labelStyle: TextStyle(
-                      color: Theme.of(sheetContext).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.grey,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                ),
-              ),
+              _buildInputField(controller: nameController, labelText: 'Medication Name'),
               const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(sheetContext).brightness == Brightness.dark 
-                    ? const Color(0xFF3A3A3A)
-                    : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Theme.of(sheetContext).brightness == Brightness.dark
-                      ? const Color(0xFF505050)
-                      : Colors.grey.shade300,
-                  ),
-                ),
-                child: TextField(
-                  controller: doseController,
-                  style: Theme.of(sheetContext).brightness == Brightness.dark 
-                    ? const TextStyle(color: Colors.white) 
-                    : null,
-                  decoration: InputDecoration(
-                    labelText: 'Dose / Notes',
-                    labelStyle: TextStyle(
-                      color: Theme.of(sheetContext).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.grey,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                ),
-              ),
+              _buildInputField(controller: doseController, labelText: 'Dose / Notes'),
               const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(sheetContext).brightness == Brightness.dark 
-                    ? const Color(0xFF3A3A3A)
-                    : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Theme.of(sheetContext).brightness == Brightness.dark
-                      ? const Color(0xFF505050)
-                      : Colors.grey.shade300,
-                  ),
-                ),
-                child: TextField(
-                  controller: freqController,
-                  style: Theme.of(sheetContext).brightness == Brightness.dark 
-                    ? const TextStyle(color: Colors.white) 
-                    : null,
-                  decoration: InputDecoration(
-                    labelText: 'Frequency (e.g. 2x/day)',
-                    labelStyle: TextStyle(
-                      color: Theme.of(sheetContext).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.grey,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                ),
-              ),
+              _buildInputField(controller: freqController, labelText: 'Frequency (e.g. 2x/day)'),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(sheetContext).brightness == Brightness.dark
-                        ? const Color(0xFF3A5A75)
-                        : const Color(0xFF7AA9C8),
+                    backgroundColor: _isDark ? darkCardAlt : accentColor,
                   ),
                   onPressed: () async {
                     final name = nameController.text.trim();
@@ -208,7 +258,6 @@ class _MedicationScreenState extends State<MedicationScreen> {
     );
   }
 
-  // 2. Log a Medication as "Taken" for Today
   void _promptLogForToday(Map<String, dynamic> medData) {
     final petId = context.read<PetProvider>().selectedPetId;
     if (petId == null) return;
@@ -220,25 +269,18 @@ class _MedicationScreenState extends State<MedicationScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1E1E1E)
-              : Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: _isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Log Medication',
             style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
+              color: _isDark ? Colors.white : Colors.black,
             ),
           ),
           content: Text(
             "Mark '$name' as taken for $friendlyDate?",
             style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white70
-                  : Colors.black87,
+              color: _isDark ? Colors.white70 : Colors.black87,
             ),
           ),
           actions: [
@@ -247,17 +289,14 @@ class _MedicationScreenState extends State<MedicationScreen> {
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black87,
+                  color: _isDark ? Colors.white : Colors.black87,
                 ),
               ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                    ? const Color(0xFF4A6B85)
-                    : const Color(0xFF7AA9C8)),
+                backgroundColor: _isDark ? darkCardAlt : accentColor,
+              ),
               onPressed: () {
                 final now = DateTime.now();
                 final logDate = DateTime(
@@ -296,65 +335,6 @@ class _MedicationScreenState extends State<MedicationScreen> {
     );
   }
 
-  Future<bool> _confirmDialog({
-    required String title,
-    required String message,
-    String cancelText = 'Cancel',
-    String confirmText = 'Delete',
-  }) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1E1E1E)
-              : Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            title,
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
-            ),
-          ),
-          content: Text(
-            message,
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white70
-                  : Colors.black87,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(
-                cancelText,
-                style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black87,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF3A5A75)
-                      : const Color(0xFF7AA9C8)),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Yes', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-    return result ?? false;
-  }
-
-  // 3. Remove a Log Entry
   void _removeLog(String logId) {
     final petId = context.read<PetProvider>().selectedPetId;
     if (petId != null) {
@@ -417,9 +397,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                       },
                       child: Icon(Icons.arrow_back,
                           size: 24, 
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black),
+                          color: _isDark ? Colors.white : Colors.black),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -433,84 +411,43 @@ class _MedicationScreenState extends State<MedicationScreen> {
                 ),
               ),
 
-              // Calendar scroller
+              /// Horizontal date scroller - wheel picker for selecting dates
               SizedBox(
-                height: 94,
+                height: 85,
                 child: RotatedBox(
                   quarterTurns: -1,
                   child: ListWheelScrollView.useDelegate(
                     controller: _scrollController,
+                    itemExtent: 60,
+                    diameterRatio: 2.2,
+                    magnification: 1.1,
+                    useMagnifier: true,
                     physics: const FixedExtentScrollPhysics(),
-                    itemExtent: 72,
-                    onSelectedItemChanged: (index) {
-                      setState(() {
-                        selectedDate = dateFromIndex(index);
-                      });
+                    onSelectedItemChanged: (i) {
+                      final date = dateFromIndex(i);
+                      setState(() => selectedDate = date);
                     },
                     childDelegate: ListWheelChildBuilderDelegate(
                       childCount: totalDays,
                       builder: (context, index) {
                         final date = dateFromIndex(index);
-                        final selected =
-                            DateUtils.isSameDay(date, selectedDate);
+                        final selected = date.day == selectedDate.day &&
+                            date.month == selectedDate.month &&
+                            date.year == selectedDate.year;
+
                         return RotatedBox(
                           quarterTurns: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                _scrollController.animateToItem(
-                                  index,
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeOut,
-                                );
-                                setState(() {
-                                  selectedDate = date;
-                                });
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? (Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF4A6B85)
-                                          : const Color(0xFF7AA9C8))
-                                      : (Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF2A2A2A)
-                                          : const Color(0xFFEDF7FF)),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                padding: const EdgeInsets.all(8),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      DateFormat('d').format(date),
-                                      style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: selected
-                                            ? Colors.white
-                                            : (Theme.of(context).brightness == Brightness.dark
-                                                ? Colors.white70
-                                                : Colors.black87),
-                                      ),
-                                    ),
-                                    Text(
-                                      DateFormat('E').format(date),
-                                      style: GoogleFonts.inknutAntiqua(
-                                        fontSize: 12,
-                                        color: selected
-                                            ? Colors.white
-                                            : (Theme.of(context).brightness == Brightness.dark
-                                                ? Colors.white70
-                                                : Colors.black87),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          child: _buildDateItem(
+                            date: date,
+                            selected: selected,
+                            onTap: () {
+                              _scrollController.animateToItem(
+                                index,
+                                curve: Curves.easeInOut,
+                                duration: const Duration(milliseconds: 250),
+                              );
+                              setState(() => selectedDate = date);
+                            },
                           ),
                         );
                       },
@@ -566,7 +503,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                   const Icon(Icons.delete, color: Colors.white),
                             ),
                             confirmDismiss: (_) async {
-                              return _confirmDialog(
+                              return _showConfirmDialog(
                                 title: 'Remove Log',
                                 message: "Remove this entry from history?",
                                 confirmText: 'Yes',
@@ -577,17 +514,13 @@ class _MedicationScreenState extends State<MedicationScreen> {
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF4A6B85)
-                                    : const Color(0xFFD9E8F5),
+                                color: _isDark ? darkCardAlt : lightCard,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
                                 children: [
                                   Icon(Icons.check_circle,
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white
-                                          : const Color(0xFF7AA9C8)),
+                                      color: _isDark ? Colors.white : accentColor),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -605,9 +538,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                           "Taken at ${DateFormat('h:mm a').format(log.loggedAt ?? log.date)}",
                                           style: GoogleFonts.inknutAntiqua(
                                               fontSize: 12,
-                                              color: Theme.of(context).brightness == Brightness.dark
-                                                  ? Colors.white70
-                                                  : Colors.grey),
+                                              color: _isDark ? Colors.white70 : Colors.grey),
                                         ),
                                       ],
                                     ),
@@ -655,7 +586,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                               child: const Icon(Icons.delete, color: Colors.white),
                             ),
                             confirmDismiss: (_) async {
-                              return _confirmDialog(
+                              return _showConfirmDialog(
                                 title: 'Delete medication?',
                                 message: "Remove '${med['name'] ?? 'medication'}' from your list?",
                                 confirmText: 'Delete',
@@ -676,14 +607,10 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                 margin: const EdgeInsets.symmetric(vertical: 8),
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? const Color(0xFF3A5A75)
-                                      : const Color(0xFFD9E8F5),
+                                  color: _isDark ? darkCard : lightCard,
                                   borderRadius: BorderRadius.circular(14),
                                   border:
-                                      Border.all(color: Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF8AB4D5)
-                                          : const Color(0xFF7496B3)),
+                                      Border.all(color: _isDark ? darkBorder2 : const Color(0xFF7496B3)),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withValues(alpha: 0.05),
@@ -719,17 +646,13 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                               'Freq: ${med['frequency']}',
                                               style: GoogleFonts.lato(
                                                   fontSize: 12,
-                                                  color: Theme.of(context).brightness == Brightness.dark 
-                                                    ? Colors.white70 
-                                                    : Colors.grey),
+                                                  color: _isDark ? Colors.white70 : Colors.grey),
                                             ),
                                         ],
                                       ),
                                     ),
                                     Icon(Icons.add_circle_outline,
-                                        color: Theme.of(context).brightness == Brightness.dark 
-                                          ? Colors.white 
-                                          : const Color(0xFF7AA9C8)),
+                                        color: _isDark ? Colors.white : accentColor),
                                   ],
                                 ),
                               ),
@@ -745,9 +668,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF4A6B85)
-                              : const Color(0xFF7AA9C8),
+                          backgroundColor: _isDark ? darkCardAlt : accentColor,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

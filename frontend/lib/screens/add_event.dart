@@ -17,36 +17,67 @@ class _AddEventPageState extends State<AddEventPage> {
   DateTime? _selectedDate;
   String _selectedCategory = 'Appointments';
 
-  final Map<String, Color> tabColors = {
-    'Appointments': const Color(0xFF34D399),
-    'Vaccinations': const Color(0xFF8B5CF6),
-    'Events': const Color(0xFF60A5FA),
-    'Other': const Color(0xFFFBBF24),
-  };
-
   final Map<String, Map<String, Color>> colorSchemes = {
     'Appointments': {
-      'light': const Color(0xFF34D399), // teal
-      'dark': const Color(0xFF059669), // muted teal for dark mode
+      'light': const Color(0xFF34D399),
+      'dark': const Color(0xFF059669),
     },
     'Vaccinations': {
-      'light': const Color(0xFF8B5CF6), // purple
-      'dark': const Color(0xFF6D28D9), // muted purple for dark mode
+      'light': const Color(0xFF8B5CF6),
+      'dark': const Color(0xFF6D28D9),
     },
     'Events': {
-      'light': const Color(0xFF60A5FA), // blue
-      'dark': const Color(0xFF2563EB), // muted blue for dark mode
+      'light': const Color(0xFF60A5FA),
+      'dark': const Color(0xFF2563EB),
     },
     'Other': {
-      'light': const Color(0xFFFBBF24), // yellow/gold
-      'dark': const Color(0xFFD97706), // muted yellow for dark mode
+      'light': const Color(0xFFFBBF24),
+      'dark': const Color(0xFFD97706),
     },
   };
 
+  // ============================================================================
+  // HELPER METHODS
+  // ============================================================================
+
+  /// Get theme-appropriate colors for all categories
   Map<String, Color> getTabColors(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return colorSchemes.map((key, value) =>
         MapEntry(key, isDarkMode ? value['dark']! : value['light']!));
+  }
+
+  /// Get theme-adjusted colors for UI elements
+  Map<String, dynamic> _getElementColors(String category, BuildContext context) {
+    final tabColors = getTabColors(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = tabColors[category] ?? Colors.grey;
+
+    final pastelColor = Color.alphaBlend(
+      baseColor.withValues(alpha: 0.2),
+      Colors.white,
+    );
+    final darkColor = Color.alphaBlend(
+      baseColor.withValues(alpha: 0.15),
+      const Color(0xFF1A1A1A),
+    );
+
+    return {
+      'selectedBg': isDarkMode ? darkColor : pastelColor,
+      'unselectedBg': isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey.shade200,
+      'lightModeColor': colorSchemes[category]?['light'] ?? Colors.grey,
+      'isDark': isDarkMode,
+    };
+  }
+
+  /// Build theme-aware ColorScheme for date picker
+  ColorScheme _buildDatePickerColorScheme() {
+    return const ColorScheme.light(
+      primary: Color(0xFF7496B3),
+      onPrimary: Colors.white,
+      onSurface: Colors.black87,
+      surface: Colors.white,
+    );
   }
 
   @override
@@ -62,15 +93,9 @@ class _AddEventPageState extends State<AddEventPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       builder: (context, child) {
-        // theme to select date in form
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF7496B3),
-              onPrimary: Colors.white,
-              onSurface: Colors.black87,
-              surface: Colors.white,
-            ),
+            colorScheme: _buildDatePickerColorScheme(),
             dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
@@ -236,27 +261,11 @@ class _AddEventPageState extends State<AddEventPage> {
                   runSpacing: 10,
                   children: getTabColors(context).keys.map((category) {
                     final isSelected = _selectedCategory == category;
-                    final tabColors = getTabColors(context);
-                    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-                    final baseColor = tabColors[category] ?? Colors.grey;
-                    
-                    // Get light mode colors for display
-                    final lightModeColor = colorSchemes[category]?['light'] ?? Colors.grey;
-                    
-                    // Calculate pastel color for light mode
-                    final pastelColor = Color.alphaBlend(
-                      baseColor.withValues(alpha: 0.2),
-                      Colors.white,
-                    );
-                    
-                    // Calculate dark color for dark mode
-                    final darkColor = Color.alphaBlend(
-                      baseColor.withValues(alpha: 0.15),
-                      const Color(0xFF1A1A1A),
-                    );
-                    
-                    final selectedBgColor = isDarkMode ? darkColor : pastelColor;
-                    final unselectedBgColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey.shade200;
+                    final elementColors = _getElementColors(category, context);
+                    final isDarkMode = elementColors['isDark'] as bool;
+                    final selectedBgColor = elementColors['selectedBg'] as Color;
+                    final unselectedBgColor = elementColors['unselectedBg'] as Color;
+                    final lightModeColor = elementColors['lightModeColor'] as Color;
                     
                     return GestureDetector(
                       onTap: () =>
