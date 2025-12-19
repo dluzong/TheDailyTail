@@ -300,15 +300,15 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           children: [
                                             Text(
                                               'No meals logged yet!',
-                                              style: GoogleFonts.inknutAntiqua(
-                                                fontSize: 16,
+                                              style: GoogleFonts.lato(
+                                                fontSize: 18,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                             const SizedBox(height: 6),
                                             Text(
                                               'Tap the + button to add one.',
-                                              style: GoogleFonts.inknutAntiqua(
+                                              style: GoogleFonts.lato(
                                                 fontSize: 14,
                                                 color: Theme.of(context).brightness == Brightness.dark
                                                     ? Colors.white70

@@ -100,7 +100,7 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                   TextButton(
                     onPressed: _resetFilters,
                     child: Text('Reset',
-                        style: GoogleFonts.inknutAntiqua(
+                        style: GoogleFonts.lato(
                             color: const Color(0xFF7496B3))),
                   ),
                 ],
@@ -190,7 +190,7 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                             checkColor: Colors.white,
                           ),
                           Text(c,
-                              style: GoogleFonts.inknutAntiqua(
+                              style: GoogleFonts.lato(
                               
                                   color: Theme.of(context).brightness == Brightness.dark
                                   ? Colors.white
@@ -223,7 +223,7 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       });
                     },
                     child: Text('Save',
-                        style: GoogleFonts.inknutAntiqua(
+                        style: GoogleFonts.lato(
                             color: Colors.white, fontWeight: FontWeight.w600)),
                   ),
                 ),
@@ -276,7 +276,7 @@ class RadioGroup<T> extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(label,
                    
-                    style: GoogleFonts.inknutAntiqua(
+                    style: GoogleFonts.lato(
                         
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.white

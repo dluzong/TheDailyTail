@@ -376,18 +376,56 @@ class _EditPetPopupState extends State<EditPetPopup> {
                         widthFactor: 1.0,
                         child: DropdownButtonFormField<String>(
                           initialValue: _sex,
-                          items: const [
-                            DropdownMenuItem(value: 'Male', child: Text('Male')),
-                            DropdownMenuItem(value: 'Female', child: Text('Female')),
+                          hint: Text(
+                            'Sex',
+                            style: GoogleFonts.inknutAntiqua(
+                              fontSize: 16,
+                              height: 1.2,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'Male',
+                              child: Text(
+                                'Male',
+                                style: GoogleFonts.inknutAntiqua(
+                                  fontSize: 16,
+                                  height: 1.2,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Female',
+                              child: Text(
+                                'Female',
+                                style: GoogleFonts.inknutAntiqua(
+                                  fontSize: 16,
+                                  height: 1.2,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ),
                           ],
-                          style: TextStyle(
+                          style: GoogleFonts.inknutAntiqua(
+                            fontSize: 16,
+                            height: 1.15,
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? Colors.white
                                 : Colors.black87,
                           ),
                           decoration: InputDecoration(
+                            isDense: false,
                             hintText: 'Sex',
-                            hintStyle: TextStyle(
+                            hintStyle: GoogleFonts.inknutAntiqua(
+                              height: 1.2,
                               color: Theme.of(context).brightness == Brightness.dark
                                   ? Colors.grey[400]
                                   : Colors.grey[600],
@@ -400,7 +438,7 @@ class _EditPetPopupState extends State<EditPetPopup> {
                                 borderRadius: BorderRadius.circular(15),
                                 borderSide: BorderSide.none),
                             contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
+                              vertical: 14,
                               horizontal: 15,
                             ),
                           ),

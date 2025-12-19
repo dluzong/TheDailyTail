@@ -102,11 +102,11 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
           ),
           title: Text(
             'Create Organization',
-            style: GoogleFonts.lato(
+            style: GoogleFonts.inknutAntiqua(
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
                   : const Color(0xFF5F7C94),
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -138,7 +138,7 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
                     controller: _nameController,
                     enabled: !_isLoading,
                     decoration: InputDecoration(
-                      hintText: 'organization name',
+                      hintText: 'Organization Name',
                       hintStyle: GoogleFonts.lato(color: Colors.grey[400]),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -168,7 +168,7 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
                     enabled: !_isLoading,
                     maxLines: 6,
                     decoration: InputDecoration(
-                      hintText: 'write about your organization...',
+                      hintText: 'Write about your organization...',
                       hintStyle: GoogleFonts.lato(color: Colors.grey[400]),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
