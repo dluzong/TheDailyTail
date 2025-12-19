@@ -19,8 +19,7 @@ class UserSettingsScreen extends StatefulWidget {
   _UserSettingsScreenState createState() => _UserSettingsScreenState();
 }
 
-class _UserSettingsScreenState extends State<UserSettingsScreen>
-    with SingleTickerProviderStateMixin {
+class _UserSettingsScreenState extends State<UserSettingsScreen> with SingleTickerProviderStateMixin {
   final _supabase = Supabase.instance.client;
 
   late AnimationController _fadeController;
@@ -30,7 +29,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
   bool _isDirty = false;
 
-  // User Tags
   final List<String> _availableTags = const [
     'owner',
     'organizer',

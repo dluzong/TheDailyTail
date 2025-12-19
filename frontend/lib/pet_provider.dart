@@ -38,7 +38,7 @@ class Pet {
       petId: map['pet_id'] ?? '',
       userId: map['user_id'] ?? '',
       name: map['name'] ?? 'Unnamed',
-      species: map['species'] ?? 'Dog', // Default to Dog
+      species: map['species'] ?? 'Dog',
       breed: map['breed'] ?? 'Unknown',
       birthday: map['dob'] ?? map['birthday'] ?? '',
       sex: map['sex'] ?? '',
@@ -50,6 +50,7 @@ class Pet {
     );
   }
 
+  // HELPER: parse list of maps from dynamic input
   static List<Map<String, dynamic>> _parseList(dynamic input) {
     if (input == null) return [];
     if (input is List) {
@@ -63,7 +64,7 @@ class Pet {
   }
 }
 
-// --- PROVIDER ---
+// --- PET PROVIDER ---
 class PetProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
   StreamSubscription<AuthState>? _authSubscription;
@@ -91,7 +92,6 @@ class PetProvider extends ChangeNotifier {
           await fetchPets();
           break;
         default:
-          // no-op
           break;
       }
     });
