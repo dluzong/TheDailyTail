@@ -117,7 +117,7 @@ class OrganizationProvider extends ChangeNotifier {
         final newOrg = Map<String, dynamic>.from(response[0]);
         final String orgId = newOrg['organization_id'] as String;
 
-        // 2) Add creator as owner in organization_members
+        // make the creator an owner
         try {
           await _supabase.from('organization_members').insert({
             'organization_id': orgId,
@@ -125,14 +125,12 @@ class OrganizationProvider extends ChangeNotifier {
             'role': 'owner',
           });
         } catch (e) {
-          // If membership insert fails, still add org but with 0 count
           debugPrint('Warning: failed to add owner membership: $e');
         }
 
         newOrg['name'] = newOrg['name'] ?? name;
         newOrg['description'] = newOrg['description'] ?? description;
 
-        // Seed local member count as 1 (creator)
         newOrg['organization_members'] = [
           {'count': 1}
         ];
@@ -175,7 +173,6 @@ class OrganizationProvider extends ChangeNotifier {
       rethrow;
     }
 
-    // Update local cache
     final idx =
         _allOrgs.indexWhere((o) => (o['organization_id'] as String?) == orgId);
     if (idx != -1) {
@@ -204,7 +201,6 @@ class OrganizationProvider extends ChangeNotifier {
   }
 
   void _subscribeToRealtime() {
-    // keep counts in sync with server using realtime DB changes
     _orgMembersChannel = _supabase
         .channel('realtime:organization_members')
         .onPostgresChanges(
@@ -215,7 +211,6 @@ class OrganizationProvider extends ChangeNotifier {
             final data = payload.newRecord;
             final String? orgId = data['organization_id'] as String?;
             if (orgId == null) return;
-            // If we already applied optimistic update for this join, skip
             if (_pendingJoin.remove(orgId)) return;
             _adjustMemberCount(orgId, 1);
             notifyListeners();

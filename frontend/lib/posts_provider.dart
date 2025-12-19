@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-// --- MODEL ---
+// --- POST MODEL ---
 
 class Post {
   final int postId;
@@ -16,7 +16,6 @@ class Post {
   final bool isLiked;
   final int likesCount;
   final int commentCount;
-  // We keep the raw array for optimistic updates
   final List<String> likesArray;
 
   Post({
@@ -51,13 +50,11 @@ class Post {
 
     final authorData = map['users'] as Map<String, dynamic>?;
 
-    // Parse Likes (Array of UUIDs)
     final List<dynamic> rawLikes = map['likes'] ?? [];
     final List<String> likesList = rawLikes.map((e) => e.toString()).toList();
     final bool liked =
         currentUserId != null && likesList.contains(currentUserId);
 
-    // Parse Comments count from joined table
     final commentsData = map['comments'] as List<dynamic>?;
     final int commentCount = commentsData != null && commentsData.isNotEmpty
         ? (commentsData[0] is Map ? (commentsData[0]['count'] as int? ?? 0) : 0)
@@ -82,7 +79,6 @@ class Post {
     );
   }
 
-  // Helper for optimistic updates
   Post copyWith({
     bool? isLiked,
     int? likesCount,
@@ -113,15 +109,13 @@ class PostsProvider extends ChangeNotifier {
 
   List<Post> _posts = [];
   bool _isLoading = false;
-  bool _hasMore = true; // For pagination
+  bool _hasMore = true;
 
   List<Post> get posts => _posts;
   bool get isLoading => _isLoading;
 
-  // Pagination constants
   static const int _pageSize = 10;
 
-  // Fetch initial posts (Refresh)
   Future<void> fetchPosts() async {
     _isLoading = true;
     _hasMore = true;
@@ -139,7 +133,7 @@ class PostsProvider extends ChangeNotifier {
       ''')
           .filter('visibility', 'is', null)
           .order('created_ts', ascending: false)
-          .range(0, _pageSize - 1); // Fetch first 10
+          .range(0, _pageSize - 1);
 
       final data = List<Map<String, dynamic>>.from(response);
       _posts = data.map((m) => Post.fromMap(m, currentUserId)).toList();
@@ -151,7 +145,6 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
-  // Load More (Infinite Scroll)
   Future<void> loadMorePosts() async {
     if (!_hasMore || _isLoading) return;
 
@@ -186,7 +179,7 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch posts for a specific user profile (not limited to global feed list)
+  // Fetch posts for a specific user
   Future<List<Post>> fetchPostsByUserId(String targetUserId) async {
     final currentUserId = _supabase.auth.currentUser?.id;
 
@@ -209,26 +202,24 @@ class PostsProvider extends ChangeNotifier {
     }
   }
 
-  // --- LIKE LOGIC (for posts NOT in the global feed) ---
+  // --- LIKE LOGIC ---
+  // For posts outside of the main feed (e.g., in user profiles)
   Future<Post> toggleLikeForPost(Post post) async {
     final currentUserId = _supabase.auth.currentUser?.id;
-    if (currentUserId == null) return post;final newLikesArray = List<String>.from(post.likesArray);
+    if (currentUserId == null) return post;
+    final newLikesArray = List<String>.from(post.likesArray);
     final bool newLikedState = !post.isLiked;
 
-    // 1. Calculate new state locally
     if (newLikedState) {
       newLikesArray.add(currentUserId);
     } else {
       newLikesArray.remove(currentUserId);
     }
 
-    // 2. Use the WORKING RPC method
     try {
-      await _supabase.rpc('toggle_like', params: {
-        'target_post_id': post.postId // Ensure this matches your SQL parameter name
-      });
+      await _supabase
+          .rpc('toggle_like', params: {'target_post_id': post.postId});
 
-      // 3. Return the updated model so the UI can update
       return post.copyWith(
         isLiked: newLikedState,
         likesCount: newLikesArray.length,
@@ -236,12 +227,11 @@ class PostsProvider extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint("Like failed: $e");
-      return post; // Return original if failed (reverts the UI)
+      return post;
     }
   }
 
-
-  // --- LIKE LOGIC (for posts in the global feed) ---
+  // for posts in the main feed
   Future<void> toggleLike(int index) async {
     // Safety check for index bounds
     if (index < 0 || index >= _posts.length) return;
@@ -253,14 +243,12 @@ class PostsProvider extends ChangeNotifier {
     final newLikesArray = List<String>.from(post.likesArray);
     final bool isCurrentlyLiked = post.isLiked;
 
-    // 1. Optimistic Calculation
     if (isCurrentlyLiked) {
       newLikesArray.remove(currentUserId);
     } else {
       newLikesArray.add(currentUserId);
     }
 
-    // 2. Update Local State Immediately (Optimistic UI)
     _posts[index] = post.copyWith(
       isLiked: !isCurrentlyLiked,
       likesCount: newLikesArray.length,
@@ -268,21 +256,15 @@ class PostsProvider extends ChangeNotifier {
     );
     notifyListeners();
 
-    // 3. Sync to DB using RPC
     try {
-      await _supabase.rpc('toggle_like', params: {
-        'target_post_id': post.postId
-      });
+      await _supabase
+          .rpc('toggle_like', params: {'target_post_id': post.postId});
     } catch (e) {
       debugPrint("Like failed, reverting: $e");
-      // 4. Revert locally if DB fails
       _posts[index] = post;
       notifyListeners();
-
-      // Optional: Show error to user via a callback or toast if you have context access
     }
   }
-
 
   // --- COMMENT LOGIC ---
 
@@ -318,11 +300,9 @@ class PostsProvider extends ChangeNotifier {
       'comments': [],
     });
 
-    // Refresh to show the new post at the top
     await fetchPosts();
   }
 
-  // Create a post scoped to an organization via visibility
   Future<void> createPostForOrg(
       {required String orgId,
       required String title,
@@ -342,7 +322,7 @@ class PostsProvider extends ChangeNotifier {
     });
   }
 
-  // Fetch posts for a specific organization (does not mutate main feed list)
+  // Fetch posts for a specific organization
   Future<List<Post>> fetchOrgPosts(String orgId) async {
     final currentUserId = _supabase.auth.currentUser?.id;
     final response = await _supabase.from('posts').select('''
@@ -366,7 +346,6 @@ class PostsProvider extends ChangeNotifier {
         'category': categories,
       }).eq('post_id', postId);
 
-      // Refresh to show updated post
       await fetchPosts();
     } catch (e) {
       debugPrint('Error updating post: $e');
@@ -378,13 +357,10 @@ class PostsProvider extends ChangeNotifier {
 
   Future<void> deletePost(int postId) async {
     try {
-      // Delete comments first (in case of foreign key constraints)
       await _supabase.from('comments').delete().eq('post_id', postId);
 
-      // Then delete the post
       await _supabase.from('posts').delete().eq('post_id', postId);
 
-      // Remove from local list immediately
       _posts.removeWhere((post) => post.postId == postId);
       notifyListeners();
     } catch (e) {

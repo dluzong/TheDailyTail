@@ -56,7 +56,6 @@ class AppUser {
         }
       }
     } else if (map['organization_roles'] != null) {
-      // Handle cache restoration
       parsedOrgRoles = Map<String, String>.from(map['organization_roles']);
     }
 
@@ -422,6 +421,7 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  // --- GOOGLE SIGN-IN LOGIC ---
   Future<GoogleSignInResult> signInWithGoogle() async {
     try {
       final response = await _supabase.auth.signInWithOAuth(
