@@ -21,12 +21,22 @@ class CommunityPostScreen extends StatefulWidget {
 }
 
 class _CommunityPostScreenState extends State<CommunityPostScreen> {
+  // Color Constants
+  static const Color darkBg = Color(0xFF121212);
+  static const Color darkAppBar = Color(0xFF2A4A65);
+  static const Color darkCardBg = Color(0xFF2A2A2A);
+  static const Color darkInputBg = Color(0xFF3A3A3A);
+  static const Color darkBorder = Color(0xFF3A5A75);
+  static const Color darkBorderAlt = Color(0xFF4A6B85);
+  static const Color lightAppBar = Color(0xFF7496B3);
+  static const Color lightCardBg = Color(0xFFEEF7FB);
+  static const Color lightBorder = Color(0xFFBCD9EC);
+  static const Color accentBlue = Color(0xFF7496B3);
+  static const Color innerBlue = Color(0xFF5F7C94);
+
   final TextEditingController commentCtrl = TextEditingController();
   final FocusNode commentFocus = FocusNode();
   final _supabase = Supabase.instance.client;
-
-  final Color outerBlue = const Color(0xFF7496B3);
-  final Color innerBlue = const Color(0xFF5F7C94);
 
   List<Map<String, dynamic>> _comments = [];
   bool _loadingComments = true;
@@ -43,6 +53,89 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
         }
       });
     }
+  }
+
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
+  /// Navigate to user profiles 
+  void _navigateToProfile(String username) {
+    final currentUserUsername =
+        context.read<UserProvider>().user?.username;
+    if (username == currentUserUsername) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ProfileScreen(),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileScreen(
+            otherUsername: username,
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Appbar
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: _isDark ? darkAppBar : lightAppBar,
+      foregroundColor: Colors.white,
+      toolbarHeight: 90,
+      centerTitle: true,
+      leading: Padding(
+        padding: const EdgeInsets.only(top: 30),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          iconSize: 28,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(top: 30, right: 16),
+          child: Consumer<UserProvider>(
+            builder: (context, userProvider, _) {
+              final photoUrl = userProvider.user?.photoUrl;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: accentBlue,
+                    backgroundImage:
+                        (photoUrl != null && photoUrl.isNotEmpty)
+                            ? NetworkImage(photoUrl)
+                            : null,
+                    child: (photoUrl == null || photoUrl.isEmpty)
+                        ? const Icon(Icons.person, color: Colors.white)
+                        : null,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _fetchComments() async {
@@ -87,7 +180,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     if (user == null) return;
 
     try {
-      // 1. Insert into DB
+      // Insert into DB
       await _supabase.from('comments').insert({
         'post_id': post.postId,
         'user_id': user.userId,
@@ -101,10 +194,10 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
         FocusScope.of(context).unfocus();
       }
 
-      // 2. Refresh Comments List
+      // Refresh Comments List
       await _fetchComments();
 
-      // 3. Update local post state to reflect new comment count
+      // Update local post state to reflect new comment count
       postsProvider.incrementCommentCount(widget.postIndex);
     } catch (e) {
       debugPrint('Error adding comment: $e');
@@ -165,33 +258,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     // Handle case where post might not exist (e.g. deleted while viewing)
     if (widget.postIndex >= postsProvider.posts.length) {
       return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF2A4A65)
-              : const Color(0xFF7496B3),
-          foregroundColor: Colors.white,
-          toolbarHeight: 90,
-          centerTitle: true,
-          title: Padding(
-            padding: const EdgeInsets.only(top: 30),
-            child: Text(
-              "Comments",
-              style: GoogleFonts.inknutAntiqua(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          leading: Padding(
-            padding: const EdgeInsets.only(top: 30),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              iconSize: 28,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-        ),
+        appBar: _buildAppBar(),
         body: const Center(child: Text("Post not found")),
       );
     }
@@ -200,36 +267,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF121212)
-          : Colors.white,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF2A4A65)
-            : const Color(0xFF7496B3),
-        foregroundColor: Colors.white,
-        toolbarHeight: 90,
-        centerTitle: true,
-        title: Padding(
-          padding: const EdgeInsets.only(top: 30),
-          child: Text(
-            "Comments",
-            style: GoogleFonts.inknutAntiqua(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        leading: Padding(
-          padding: const EdgeInsets.only(top: 30),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            iconSize: 28,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-      ),
+      backgroundColor: _isDark ? darkBg : Colors.white,
+      appBar: _buildAppBar(),
       body: Column(
         children: [
           // Post content
@@ -251,27 +290,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     const SizedBox(width: 10),
                     GestureDetector(
                       onTap: () {
-                        final currentUserUsername =
-                            context.read<UserProvider>().user?.username;
-                        if (post.authorName == currentUserUsername) {
-                          // Navigate to own profile
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ProfileScreen(),
-                            ),
-                          );
-                        } else {
-                          // Navigate to other user's profile
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProfileScreen(
-                                otherUsername: post.authorName,
-                              ),
-                            ),
-                          );
-                        }
+                        _navigateToProfile(post.authorName);
                       },
                       child: Text(
                         post.authorName,
@@ -279,10 +298,8 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                           fontWeight: FontWeight.bold,
                           color: post.authorName !=
                                   context.read<UserProvider>().user?.username
-                              ? const Color(0xFF7496B3)
-                              : (Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black),
+                              ? accentBlue
+                              : (_isDark ? Colors.white : Colors.black),
                         ),
                       ),
                     ),
@@ -314,21 +331,15 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF2A4A65)
-                                : const Color(0xFFEEF7FB),
+                            color: _isDark ? darkBorder : lightCardBg,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF3A5A75)
-                                    : const Color(0xFFBCD9EC)),
+                                color: _isDark ? darkBorderAlt : lightBorder),
                           ),
                           child: Text(
                             cat,
                             style: GoogleFonts.lato(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : const Color(0xFF7496B3),
+                              color: _isDark ? Colors.white : accentBlue,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -398,38 +409,15 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: () {
-                                    final currentUserUsername = context
-                                        .read<UserProvider>()
-                                        .user
-                                        ?.username;
-                                    if (username == currentUserUsername) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ProfileScreen(),
-                                        ),
-                                      );
-                                    } else {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ProfileScreen(
-                                            otherUsername: username,
-                                          ),
-                                        ),
-                                      );
-                                    }
+                                    _navigateToProfile(username);
                                   },
                                   child: Text(
                                     username,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: username != 'You'
-                                          ? const Color(0xFF7496B3)
-                                          : (Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white
-                                              : Colors.black),
+                                          ? accentBlue
+                                          : (_isDark ? Colors.white : Colors.black),
                                     ),
                                   ),
                                 ),
@@ -455,7 +443,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
             ),
           ),
 
-          // Comment input
+          /// Comment input field
           Container(
               padding: EdgeInsets.only(
                 left: 12,
@@ -464,14 +452,10 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 bottom: 12 + MediaQuery.of(context).padding.bottom,
               ),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF2A2A2A)
-                    : Colors.grey.shade200,
+                color: _isDark ? darkCardBg : Colors.grey.shade200,
                 border: Border(
                   top: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF3A5A75)
-                        : const Color(0xFF4A6B85),
+                    color: _isDark ? darkBorder : darkBorderAlt,
                     width: 2,
                   ),
                 ),
@@ -487,20 +471,16 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                       minLines: 1,
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline,
-                      style: Theme.of(context).brightness == Brightness.dark
-                          ? const TextStyle(color: Colors.white)
-                          : null,
+                      style: _isDark ? const TextStyle(color: Colors.white) : null,
                       decoration: InputDecoration(
                         hintText: "Write a comment....",
                         hintStyle: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
+                          color: _isDark
                               ? Colors.grey.shade600
                               : Colors.grey.shade400,
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF3A3A3A)
-                            : Colors.white,
+                        fillColor: _isDark ? darkInputBg : Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none,
@@ -508,7 +488,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         counterStyle: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
+                          color: _isDark
                               ? Colors.grey.shade600
                               : Colors.grey.shade500,
                           fontSize: 11,

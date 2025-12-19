@@ -82,6 +82,8 @@ class _OrgScreenState extends State<OrgScreen> {
     }
   }
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   Widget _buildActionButton(BuildContext context) {
     if (_isAdmin) {
       return ElevatedButton(
@@ -674,12 +676,14 @@ class _OrgScreenState extends State<OrgScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF7FB),
+                    color: _isDark ? const Color(0xFF3A5A75) : const Color(0xFFEEF7FB),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text('admin',
-                      style:
-                          GoogleFonts.lato(color: const Color(0xFF7496B3), fontSize: 12)),
+                      style: GoogleFonts.lato(
+                        color: _isDark ? Colors.white : const Color(0xFF7496B3),
+                        fontSize: 12,
+                      )),
                 ),
                 if (isOwnPost)
                   PopupMenuButton<String>(

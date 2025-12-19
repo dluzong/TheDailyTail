@@ -24,20 +24,20 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   // Base colors that will be adjusted based on theme
   final Map<String, Map<String, Color>> colorSchemes = {
     'Appointments': {
-      'light': const Color(0xFF34D399), // teal
-      'dark': const Color(0xFF059669), // muted teal for dark mode
+      'light': const Color(0xFF34D399), 
+      'dark': const Color(0xFF059669), 
     },
     'Vaccinations': {
-      'light': const Color(0xFF8B5CF6), // purple
-      'dark': const Color(0xFF6D28D9), // muted purple for dark mode
+      'light': const Color(0xFF8B5CF6), 
+      'dark': const Color(0xFF6D28D9), 
     },
     'Events': {
-      'light': const Color(0xFF60A5FA), // blue
-      'dark': const Color(0xFF2563EB), // muted blue for dark mode
+      'light': const Color(0xFF60A5FA), 
+      'dark': const Color(0xFF2563EB), 
     },
     'Other': {
-      'light': const Color(0xFFFBBF24), // yellow/gold
-      'dark': const Color(0xFFD97706), // muted yellow for dark mode
+      'light': const Color(0xFFFBBF24), 
+      'dark': const Color(0xFFD97706),
     },
   };
 
@@ -46,6 +46,87 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return colorSchemes.map((key, value) =>
         MapEntry(key, isDarkMode ? value['dark']! : value['light']!));
+  }
+
+  //Helper functions
+
+
+  String _getCategoryDbType(String uiCategory) {
+    String dbType = uiCategory.toLowerCase();
+    if (dbType.endsWith('s')) {
+      dbType = dbType.substring(0, dbType.length - 1);
+    }
+    return dbType;
+  }
+
+  Map<String, dynamic> _getElementColors(String category, BuildContext context) {
+    final tabColors = getTabColors(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = tabColors[category] ?? Colors.grey;
+
+    final pastelColor = Color.alphaBlend(
+      baseColor.withValues(alpha: 0.2),
+      Colors.white,
+    );
+    final darkColor = Color.alphaBlend(
+      baseColor.withValues(alpha: 0.15),
+      const Color(0xFF1A1A1A),
+    );
+
+    return {
+      'backgroundColor': isDarkMode ? darkColor : pastelColor,
+      'baseColor': baseColor,
+      'isDark': isDarkMode,
+    };
+  }
+
+  InputDecoration _buildTextFieldDecoration({
+    required String labelText,
+    required bool isDark,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      labelStyle: GoogleFonts.lato(
+        color: isDark
+            ? const Color(0xFF7FA8C7)
+            : const Color(0xFF7496B3),
+      ),
+      filled: true,
+      fillColor: isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: isDark
+              ? const Color(0xFF4A4A4A)
+              : Colors.grey[300]!,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+            color: Color(0xFF7496B3), width: 1.5),
+      ),
+    );
+  }
+
+  ColorScheme _buildDatePickerColorScheme(bool isDark) {
+    return isDark
+        ? const ColorScheme.dark(
+            primary: Color(0xFF7496B3),
+            onPrimary: Colors.white,
+            surface: Color(0xFF1E1E1E),
+            onSurface: Colors.white,
+          )
+        : const ColorScheme.light(
+            primary: Color(0xFF7496B3),
+            onPrimary: Colors.white,
+            surface: Colors.white,
+            onSurface: Color(0xFF394957),
+          );
   }
 
   // --- GET EVENTS FROM DB ---
@@ -98,13 +179,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     );
 
     if (newEvent != null) {
-      // Convert UI category (e.g. 'Events') to DB type (e.g. 'event')
-      // Simple logic: lowercase and remove trailing 's' if present
-      String uiCategory = newEvent['category'].toString();
-      String dbType = uiCategory.toLowerCase();
-      if (dbType.endsWith('s')) {
-        dbType = dbType.substring(0, dbType.length - 1);
-      }
+      String dbType = _getCategoryDbType(newEvent['category'].toString());
 
       await context.read<LogProvider>().addLog(
         petId: petId,
@@ -115,7 +190,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
     }
   }
 
-  // --- SHOW DETAILS / DELETE ---
+  // --- Show event dialog with edit and delete ---
   void _showEventDialog(Map<String, String> event, String category) {
     showDialog(
       context: context,
@@ -176,7 +251,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
             TextButton(
               onPressed: () async {
                 final petId = context.read<PetProvider>().selectedPetId;
-                final logId = event['id']; // This comes from LogProvider now
+                final logId = event['id']; 
 
                 if (petId != null && logId != null) {
                   await context.read<LogProvider>().deleteLog(logId, petId);
@@ -209,7 +284,6 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
   }
 
   // --- EDIT EVENT ---
-  // Since we don't have an 'updateLog' yet, we will Delete Old + Add New
   void _showEditEventDialog(Map<String, String> event, String category) {
     final titleController = TextEditingController(text: event['title']);
     final descController = TextEditingController(text: event['desc']);
@@ -244,33 +318,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       style: GoogleFonts.lato(
                         color: isDark ? Colors.white : Colors.black,
                       ),
-                      decoration: InputDecoration(
+                      decoration: _buildTextFieldDecoration(
                         labelText: 'Title',
-                        labelStyle: GoogleFonts.lato(
-                          color: isDark
-                              ? const Color(0xFF7FA8C7)
-                              : const Color(0xFF7496B3),
-                        ),
-                        filled: true,
-                        fillColor:
-                            isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF4A4A4A)
-                                : Colors.grey[300]!,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF7496B3), width: 1.5),
-                        ),
+                        isDark: isDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -279,33 +329,9 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       style: GoogleFonts.lato(
                         color: isDark ? Colors.white : Colors.black,
                       ),
-                      decoration: InputDecoration(
+                      decoration: _buildTextFieldDecoration(
                         labelText: 'Description',
-                        labelStyle: GoogleFonts.lato(
-                          color: isDark
-                              ? const Color(0xFF7FA8C7)
-                              : const Color(0xFF7496B3),
-                        ),
-                        filled: true,
-                        fillColor:
-                            isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF4A4A4A)
-                                : Colors.grey[300]!,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF7496B3), width: 1.5),
-                        ),
+                        isDark: isDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -328,19 +354,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                               builder: (context, child) {
                                 return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: isDark
-                                        ? const ColorScheme.dark(
-                                            primary: Color(0xFF7496B3),
-                                            onPrimary: Colors.white,
-                                            surface: Color(0xFF1E1E1E),
-                                            onSurface: Colors.white,
-                                          )
-                                        : const ColorScheme.light(
-                                            primary: Color(0xFF7496B3),
-                                            onPrimary: Colors.white,
-                                            surface: Colors.white,
-                                            onSurface: Color(0xFF394957),
-                                          ),
+                                    colorScheme: _buildDatePickerColorScheme(isDark),
                                   ),
                                   child: child!,
                                 );
@@ -383,18 +397,14 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                     final logId = event['id'];
 
                     if (petId != null && logId != null) {
-                      // 1. Delete old
+                      // Delete old event
                       await this
                           .context
                           .read<LogProvider>()
                           .deleteLog(logId, petId);
 
-                      // 2. Add new
-                      // Map UI Category back to DB type
-                      String dbType = category.toLowerCase();
-                      if (dbType.endsWith('s')) {
-                        dbType = dbType.substring(0, dbType.length - 1);
-                      }
+                      // Add new event with updated details
+                      String dbType = _getCategoryDbType(category);
 
                       await this.context.read<LogProvider>().addLog(
                         petId: petId,
@@ -456,7 +466,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
-
+                  
                   Text(
                     'Daily Logs',
                     style: GoogleFonts.inknutAntiqua(
@@ -470,8 +480,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                   // ---- Pet Dropdown ----
                   Row(
                     children: [
-                      Text('Pet: ', style: GoogleFonts.lato(fontSize: 20, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 10),
+                      Text('Pet: ', style: GoogleFonts.lato(fontSize: 20, fontWeight: FontWeight.bold)),                      const SizedBox(width: 10),
                       // Only show dropdown if we have pets
                       if (pets.isEmpty)
                         const Text("No pets")
@@ -557,30 +566,11 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       'Other'
                     ].map((tab) {
                       final isSelected = _selectedTabs.contains(tab);
-                      final tabColors = getTabColors(context);
-                      final isDarkMode =
-                          Theme.of(context).brightness == Brightness.dark;
-                      final baseColor = tabColors[tab] ?? Colors.grey;
-
-                      // Get light mode colors for the dots (always bright)
+                      final elementColors = _getElementColors(tab, context);
+                      final isDarkMode = elementColors['isDark'] as bool;
                       final lightModeColor =
                           colorSchemes[tab]?['light'] ?? Colors.grey;
-
-                      // Calculate pastel color for light mode (matches widget background)
-                      final pastelColor = Color.alphaBlend(
-                        baseColor.withValues(alpha: 0.2),
-                        Colors.white,
-                      );
-
-                      // Calculate dark color for dark mode (matches widget background)
-                      final darkColor = Color.alphaBlend(
-                        baseColor.withValues(alpha: 0.15),
-                        const Color(0xFF1A1A1A),
-                      );
-
-                      // When selected, use the same color as widgets; otherwise use inactive state
-                      final selectedBgColor =
-                          isDarkMode ? darkColor : pastelColor;
+                      final selectedBgColor = elementColors['backgroundColor'] as Color;
                       final unselectedBgColor = isDarkMode
                           ? const Color(0xFF2A2A2A)
                           : Colors.grey[200]!;
@@ -738,23 +728,10 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                       _getEventsForDay(_selectedDay ?? DateTime.now());
                   final event = eventList[index];
                   final category = event['category']!;
-                  final tabColors = getTabColors(context);
-                  final baseColor = tabColors[category] ?? Colors.grey;
-                  final isDarkMode =
-                      Theme.of(context).brightness == Brightness.dark;
-
-                  // In light mode: pastel color. In dark mode: use muted dark color
-                  final pastelColor = Color.alphaBlend(
-                    baseColor.withValues(alpha: 0.2),
-                    Colors.white,
-                  );
-                  final darkColor = Color.alphaBlend(
-                    baseColor.withValues(alpha: 0.15),
-                    const Color(0xFF1A1A1A),
-                  );
-
-                  final cardColor = isDarkMode ? darkColor : pastelColor;
-                  final dotColor = baseColor;
+                  final elementColors = _getElementColors(category, context);
+                  final cardColor = elementColors['backgroundColor'] as Color;
+                  final dotColor = elementColors['baseColor'] as Color;
+                  final isDarkMode = elementColors['isDark'] as bool;
 
                   return GestureDetector(
                     onTap: () => _showEventDialog(event, category),
@@ -813,8 +790,7 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
             ),
             child: Icon(icon,
                 size: 28,
-                color:
-                    isDark ? const Color(0xFF7496B3) : const Color(0xFF7496B3)),
+                color: const Color(0xFF7496B3)),
           ),
           const SizedBox(height: 4),
           Text(label,
