@@ -39,7 +39,7 @@ class _AppLayoutState extends State<AppLayout> {
   void initState() {
     super.initState();
     currentIndex = widget.currentIndex;
-    // Precache logo images to prevent loading delay
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       precacheImage(
         const AssetImage('assets/dailytail-logotype-white.png'),
@@ -74,7 +74,6 @@ class _AppLayoutState extends State<AppLayout> {
 
     if (destination != null) {
       if (index == 4 && widget.isProfilePage && widget.isOwnProfilePage) {
-        // Already on own profile; no-op to avoid duplicate rebuilds
         return;
       }
       Navigator.pushReplacement(
@@ -89,7 +88,6 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   void _openProfile() {
-    // If already on own profile, avoid pushing another instance
     if (currentIndex == 4 && widget.isProfilePage && widget.isOwnProfilePage) {
       return;
     }
@@ -105,8 +103,6 @@ class _AppLayoutState extends State<AppLayout> {
     );
     setState(() => currentIndex = 4);
   }
-
-  // Removed unused _openSettings to satisfy analyzer
 
   @override
   Widget build(BuildContext context) {
@@ -127,19 +123,8 @@ class _AppLayoutState extends State<AppLayout> {
           children: [
             Container(
               height: 50,
-              // color: Theme.of(context).brightness == Brightness.dark
-              //     ? const Color(0xFF3A5A75)
-              //     : outerBlue,
             ),
 
-            // Top bar
-            // Container(
-            //   height: 100,
-            //   width: double.infinity,
-            //   color: Theme.of(context).brightness == Brightness.dark
-            //       ? const Color(0xFF4A6B85)
-            //       : innerBlue,
-            //   padding: const EdgeInsets.symmetric(horizontal: 16),
             Stack(
               alignment: Alignment.center,
               children: [
@@ -166,12 +151,11 @@ class _AppLayoutState extends State<AppLayout> {
                   ),
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 15), // Add top padding
+                    padding: const EdgeInsets.only(top: 15),
                     child: ClipRect(
                       child: Align(
-                        alignment: Alignment.topCenter, // Crop from bottom
-                        heightFactor:
-                            0.8, // Show only top 70% of image (adjust 0.5-1.0)
+                        alignment: Alignment.topCenter,
+                        heightFactor: 0.8,
                         child: Image.asset(
                           Theme.of(context).brightness == Brightness.dark
                               ? 'assets/dailytail-logotype-white.png'
@@ -194,8 +178,7 @@ class _AppLayoutState extends State<AppLayout> {
                       return GestureDetector(
                         onTap: _openProfile,
                         child: Padding(
-                          padding: const EdgeInsets.all(
-                              15.0), // Add padding around avatar
+                          padding: const EdgeInsets.all(15.0),
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
