@@ -156,89 +156,59 @@ class _OrgPostScreenState extends State<OrgPostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF121212)
-          : Colors.white,
-      body: Column(
-        children: [
-          Container(
-            height: 50,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF3A5A75)
-                : outerBlue,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
+      appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFF2A4A65) : outerBlue,
+        foregroundColor: Colors.white,
+        toolbarHeight: 90,
+        centerTitle: true,
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            iconSize: 28,
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          Container(
-            height: 60,
-            width: double.infinity,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF4A6B85)
-                : innerBlue,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Center(
-                  child: Text(
-                    "The Daily Tail",
-                    style: GoogleFonts.inknutAntiqua(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.white,
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(top: 30, right: 16),
+            child: Consumer<UserProvider>(
+              builder: (context, userProvider, _) {
+                final photoUrl = userProvider.user?.photoUrl;
+                return GestureDetector(
+                  onTap: _openProfile,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 22,
+                      backgroundColor: const Color(0xFF7496B3),
+                      backgroundImage:
+                          (photoUrl != null && photoUrl.isNotEmpty)
+                              ? NetworkImage(photoUrl)
+                              : null,
+                      child: (photoUrl == null || photoUrl.isEmpty)
+                          ? const Icon(Icons.person, color: Colors.white)
+                          : null,
                     ),
                   ),
-                ),
-                Positioned(
-                  right: 0,
-                  child: Consumer<UserProvider>(
-                    builder: (context, userProvider, _) {
-                      final photoUrl = userProvider.user?.photoUrl;
-                      return GestureDetector(
-                        onTap: _openProfile,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.black
-                                  : Colors.white,
-                              width: 2,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 22,
-                            backgroundColor: const Color(0xFF7496B3),
-                            backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                                ? NetworkImage(photoUrl)
-                                : null,
-                            child: (photoUrl == null || photoUrl.isEmpty)
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.white,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
-
+        ],
+      ),
+      body: Column(
+        children: [
           // Post content
           Expanded(
             child: ListView(

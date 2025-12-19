@@ -4,14 +4,31 @@ Fall '25 Capstone Project
 
 ## About
 
-The Daily Tail is a cross-platform Flutter application to help pet owners manage their pets' day-to-day care. Users can track health metrics, log daily activities, view medical history, and connect with the local pet community.
+The Daily Tail is a centralized, cross-platform mobile application that brings together dog and cat owners, fosters, adoption centers, and rescue organizations onto a single platform! Our app allows users to manage multiple pets by tracking medications, meals, appointments, and other important events. In addition to pet management tools, The Daily Tail features a community board where users can connect and socialize, as well as organization pages that allow shelters and rescue groups to share updates and important information. Users can join these organizations to stay informed, making The Daily Tail both a pet care management tool and a community-driven resource.
 
 ## Features
 
 - Manage multiple pet profiles (name, breed, age, weight, sex)
-- Daily logs for meals, medications, vaccinations
+- Daily logs for meals, medications, vaccinations 
 - Dashboard with quick pet overview and recent activity
-- Community board
+- Community board with global feed and organiztion specific feeds
+
+## Tech Stack / Tools Used
+
+- **Frontend:** Flutter (Dart)
+- **Backend & Auth:** Supabase
+- **Version Control:** Git & GitHub
+
+## Project Structure
+
+frontend/
+├── android/        # Android-specific files
+├── ios/            # iOS-specific files
+├── lib/            # Application source code
+│   ├── screens/    # UI screens
+│   └── shared/     # Shared resources
+├── ios/            # iOS-specific files
+└── pubspec.yaml    # Flutter dependencies
 
 ## Getting Started
 

@@ -23,6 +23,14 @@ class CommunityBoardScreen extends StatefulWidget {
 }
 
 class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
+  // Color Constants
+  static const Color darkAccent = Color(0xFF4A6B85);
+  static const Color lightText = Color(0xFF394957);
+  static const Color lightAccent = Color(0xFF7496B3);
+  static const Color accentBlue = Color(0xFF3A5A75);
+  static const Color accentLightBlue = Color(0xFFEEF7FB);
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchTerm = '';
   Timer? _searchDebounce;
@@ -241,9 +249,11 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           await userProvider.toggleFollow(userId);
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed: $e')),
-                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed: $e')),
+                            );
+                          }
                         }
                       },
                       style: TextButton.styleFrom(
@@ -251,10 +261,8 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                             ? const Color(0xFF7496B3)
                             : Colors.white,
                         backgroundColor: isFollowing
-                            ? (Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF3A5A75)
-                                : const Color(0xFFEEF7FB))
-                            : const Color(0xFF7496B3),
+                            ? (_isDark ? accentBlue : accentLightBlue)
+                            : lightAccent,
                       ),
                       child: Text(isFollowing ? 'Following' : 'Follow'),
                     ),
@@ -747,9 +755,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               'No posts found. :(',
               style: GoogleFonts.inknutAntiqua(
                 fontSize: 16,
-                color: Theme.of(context).brightness == Brightness.dark
+                color: _isDark
                     ? Colors.grey.shade400
-                    : const Color(0xFF394957),
+                    : lightText,
               ),
             ),
           );
@@ -1109,9 +1117,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                   IconButton(
                     icon: Icon(
                       Icons.add_circle,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF4A6B85)
-                          : const Color(0xFF7496B3),
+                      color: _isDark ? darkAccent : lightAccent,
                       size: 28,
                     ),
                     onPressed: () {
@@ -1124,12 +1130,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                           .then((success) async {
                         if (success == true) {
                           // Refresh orgs and user (membership/roles) after creation
-                          await context
-                              .read<OrganizationProvider>()
-                              .fetchOrganizations();
-                          await context
-                              .read<UserProvider>()
-                              .fetchUser(force: true);
+                          if (mounted) {
+                            await context
+                                .read<OrganizationProvider>()
+                                .fetchOrganizations();
+                            if (mounted) {
+                              await context
+                                  .read<UserProvider>()
+                                  .fetchUser(force: true);
+                            }
+                          }
                         }
                       });
                     },
@@ -1225,14 +1235,18 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFEEF7FB),
+                                              color: _isDark
+                                                  ? const Color(0xFF3A5A75)
+                                                  : const Color(0xFFEEF7FB),
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
                                             child: Text(
                                               'Admin',
                                               style: GoogleFonts.lato(
-                                                color: const Color(0xFF7496B3),
+                                                color: _isDark
+                                                    ? Colors.white
+                                                    : const Color(0xFF7496B3),
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -1264,7 +1278,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
             if (isOrganizer) ...[
               const SizedBox(height: 24),
               const Divider(),
@@ -1292,9 +1306,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     label: const Text('Explore'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF4A6B85)
-                              : const Color(0xFF7496B3),
+                          _isDark
+                              ? darkAccent
+                              : lightAccent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -1329,9 +1343,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         label: const Text('Explore organizations'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF4A6B85)
-                                  : const Color(0xFF7496B3),
+                              _isDark
+                                  ? darkAccent
+                                  : lightAccent,
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -1428,7 +1442,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
           ],
         );
       },
@@ -1454,10 +1468,10 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
         builder: (context, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.95,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
+            color: _isDark
                 ? const Color(0xFF121212)
                 : Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
           ),
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1473,9 +1487,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 children: [
                   IconButton(
                     icon: Icon(Icons.close,
-                        color: Theme.of(context).brightness == Brightness.dark
+                        color: _isDark
                             ? Colors.white
-                            : const Color(0xFF7496B3),
+                            : lightAccent,
                         size: 28),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -1483,23 +1497,25 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     onPressed: () async {
                       if (_contentController.text.isEmpty) return;
 
-                      if (post != null) {
-                        await context.read<PostsProvider>().updatePost(
-                              post.postId,
-                              _titleController.text.isEmpty
-                                  ? 'Untitled'
-                                  : _titleController.text,
-                              _contentController.text,
-                              _newPostCategories,
-                            );
-                      } else {
-                        await context.read<PostsProvider>().createPost(
-                              _titleController.text.isEmpty
-                                  ? 'Untitled'
-                                  : _titleController.text,
-                              _contentController.text,
-                              _newPostCategories,
-                            );
+                      if (mounted) {
+                        if (post != null) {
+                          await context.read<PostsProvider>().updatePost(
+                                post.postId,
+                                _titleController.text.isEmpty
+                                    ? 'Untitled'
+                                    : _titleController.text,
+                                _contentController.text,
+                                _newPostCategories,
+                              );
+                        } else {
+                          await context.read<PostsProvider>().createPost(
+                                _titleController.text.isEmpty
+                                    ? 'Untitled'
+                                    : _titleController.text,
+                                _contentController.text,
+                                _newPostCategories,
+                              );
+                        }
                       }
 
                       if (mounted) {
@@ -1508,9 +1524,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF4A6B85)
-                              : const Color(0xFF7496B3),
+                          _isDark
+                              ? darkAccent
+                              : lightAccent,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20)),
                     ),
@@ -1523,7 +1539,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 ],
               ),
               Divider(
-                color: Theme.of(context).brightness == Brightness.dark
+                color: _isDark
                     ? const Color(0xFF404040)
                     : Colors.grey.shade300,
               ),
@@ -1533,9 +1549,9 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                 'Select Categories:',
                 style: GoogleFonts.inknutAntiqua(
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark
+                  color: _isDark
                       ? Colors.white
-                      : const Color(0xFF394957),
+                      : lightText,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1557,16 +1573,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       });
                     },
                     selectedColor:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF3A5A75)
-                            : const Color(0xFFEEF7FB),
-                    checkmarkColor: const Color(0xFF7496B3),
+                        _isDark
+                            ? accentBlue
+                            : accentLightBlue,
+                    checkmarkColor: lightAccent,
                     labelStyle: TextStyle(
                       color: isSelected
-                          ? const Color(0xFF7496B3)
-                          : (Theme.of(context).brightness == Brightness.dark
+                          ? lightAccent
+                          : (_isDark
                               ? Colors.white
-                              : const Color(0xFF394957)),
+                              : lightText),
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -1577,24 +1593,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               TextField(
                 controller: _titleController,
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
+                  color: _isDark
                       ? Colors.white
                       : Colors.black,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Post Title',
                   hintStyle: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
+                    color: _isDark
                         ? Colors.grey.shade600
                         : Colors.grey,
                   ),
                   filled: true,
-                  fillColor: Theme.of(context).brightness == Brightness.dark
+                  fillColor: _isDark
                       ? const Color(0xFF1E1E1E)
                       : Colors.white,
                   border: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: Theme.of(context).brightness == Brightness.dark
+                      color: _isDark
                           ? const Color(0xFF404040)
                           : Colors.grey.shade300,
                     ),
@@ -1611,24 +1627,24 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     expands: true,
                     textAlignVertical: TextAlignVertical.top,
                     style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
+                      color: _isDark
                           ? Colors.white
                           : Colors.black,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Write your post here...',
                       hintStyle: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
+                        color: _isDark
                             ? Colors.grey.shade600
                             : Colors.grey,
                       ),
                       filled: true,
-                      fillColor: Theme.of(context).brightness == Brightness.dark
+                      fillColor: _isDark
                           ? const Color(0xFF1E1E1E)
                           : Colors.white,
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
-                          color: Theme.of(context).brightness == Brightness.dark
+                          color: _isDark
                               ? const Color(0xFF404040)
                               : Colors.grey.shade300,
                         ),
@@ -1689,8 +1705,10 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              await context.read<PostsProvider>().deletePost(postId);
-              if (mounted) Navigator.pop(context, true);
+              if (mounted) {
+                await context.read<PostsProvider>().deletePost(postId);
+                if (mounted) Navigator.pop(context, true);
+              }
             },
             child: const Text('Yes, delete'),
           ),

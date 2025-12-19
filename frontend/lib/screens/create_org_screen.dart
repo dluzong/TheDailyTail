@@ -228,7 +228,7 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white.withOpacity(0.7),
+                                      Colors.white.withValues(alpha: 0.7),
                                     ),
                                   ),
                                 )

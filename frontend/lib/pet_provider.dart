@@ -8,9 +8,9 @@ class Pet {
   final String petId;
   final String userId;
   final String name;
-  final String species; // Added species
+  final String species;
   final String breed;
-  final String birthday; // mm/dd/yyyy
+  final String birthday;
   final String sex;
   final double weight;
   final String imageUrl;
@@ -22,7 +22,7 @@ class Pet {
     required this.petId,
     required this.userId,
     required this.name,
-    required this.species, // Added species
+    required this.species,
     required this.breed,
     required this.birthday,
     required this.sex,
@@ -38,28 +38,24 @@ class Pet {
       petId: map['pet_id'] ?? '',
       userId: map['user_id'] ?? '',
       name: map['name'] ?? 'Unnamed',
-      species: map['species'] ?? 'Dog', // Default to Dog if missing
+      species: map['species'] ?? 'Dog',
       breed: map['breed'] ?? 'Unknown',
-      // Supabase column renamed to 'dob' (date of birth); keep fallback for legacy payloads
       birthday: map['dob'] ?? map['birthday'] ?? '',
       sex: map['sex'] ?? '',
       weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
       imageUrl: map['image_url'] ?? '',
       status: map['status'] ?? 'owned',
-      // Safe Parsing for Arrays (Handles both List<String> and List<JSON>)
       savedMeals: _parseList(map['saved_meals']),
       savedMedications: _parseList(map['saved_medications']),
     );
   }
 
-  // Helper to handle Postgres Arrays safely
+  // HELPER: parse list of maps from dynamic input
   static List<Map<String, dynamic>> _parseList(dynamic input) {
     if (input == null) return [];
     if (input is List) {
       return input.map((item) {
-        // If it's already a map (JSONB), use it
         if (item is Map) return Map<String, dynamic>.from(item);
-        // If it's a string (Text Array), wrap it in a map
         if (item is String) return {'name': item};
         return {'name': item.toString()};
       }).toList();
@@ -68,7 +64,7 @@ class Pet {
   }
 }
 
-// --- PROVIDER ---
+// --- PET PROVIDER ---
 class PetProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
   StreamSubscription<AuthState>? _authSubscription;
@@ -96,7 +92,6 @@ class PetProvider extends ChangeNotifier {
           await fetchPets();
           break;
         default:
-          // no-op
           break;
       }
     });
@@ -121,7 +116,7 @@ class PetProvider extends ChangeNotifier {
     await _persistSelectedPet();
   }
 
-  String _prefsKeyForUser(String userId) => 'selected_pet_' + userId;
+  String _prefsKeyForUser(String userId) => 'selected_pet_$userId';
 
   Future<void> _persistSelectedPet() async {
     final user = _supabase.auth.currentUser;
@@ -179,7 +174,6 @@ class PetProvider extends ChangeNotifier {
     final supabase = Supabase.instance.client;
 
     try {
-      // 1. Update Supabase
       await supabase.from('pets').update({
         'name': updatedPet.name,
         'species': updatedPet.species,
@@ -191,9 +185,8 @@ class PetProvider extends ChangeNotifier {
         'status': updatedPet.status,
         'saved_meals': updatedPet.savedMeals,
         'saved_medications': updatedPet.savedMedications,
-      }).eq('pet_id', updatedPet.petId); // CRITICAL: Use the ID to find the row
+      }).eq('pet_id', updatedPet.petId);
 
-      // 2. Update Local State
       final index = _pets.indexWhere((p) => p.petId == updatedPet.petId);
       if (index != -1) {
         _pets[index] = updatedPet;
@@ -201,20 +194,17 @@ class PetProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error updating pet: $e');
-      rethrow; // Pass error back to UI
+      rethrow;
     }
   }
 
   // --- DELETE PET LOGIC ---
   Future<void> deletePet(String petId) async {
     try {
-      // 1. Delete from Supabase
       await _supabase.from('pets').delete().eq('pet_id', petId);
 
-      // 2. Update Local State
       _pets.removeWhere((p) => p.petId == petId);
 
-      // If the selected pet was deleted, clear selection or select another
       if (_selectedPetId == petId) {
         _selectedPetId = _pets.isNotEmpty ? _pets.first.petId : null;
         await _persistSelectedPet();
@@ -234,8 +224,6 @@ class PetProvider extends ChangeNotifier {
     if (user == null) return;
 
     try {
-      // Insert the new pet into the database
-      // We exclude 'pet_id' so Postgres can generate a fresh UUID
       await _supabase.from('pets').insert({
         'user_id': user.id,
         'name': newPet.name,
@@ -246,13 +234,11 @@ class PetProvider extends ChangeNotifier {
         'weight': newPet.weight,
         'image_url': newPet.imageUrl,
         'status': newPet.status,
-        // Initialize empty arrays if not provided
         'saved_meals': newPet.savedMeals.isEmpty ? [] : newPet.savedMeals,
         'saved_medications':
             newPet.savedMedications.isEmpty ? [] : newPet.savedMedications,
       });
 
-      // Refresh the list so the new pet appears in the app immediately
       await fetchPets();
     } catch (e) {
       debugPrint('Error adding pet: $e');
@@ -264,19 +250,15 @@ class PetProvider extends ChangeNotifier {
 
   Future<void> addSavedMeal(String petId, Map<String, dynamic> mealData) async {
     try {
-      // 1. Get current list
       final pet = _pets.firstWhere((p) => p.petId == petId);
       final updatedList = List<Map<String, dynamic>>.from(pet.savedMeals);
 
-      // 2. Add new item
       updatedList.add(mealData);
 
-      // 3. Update Database
       await _supabase
           .from('pets')
           .update({'saved_meals': updatedList}).eq('pet_id', petId);
 
-      // 4. Refresh local state
       await fetchPets();
     } catch (e) {
       debugPrint("Error saving meal: $e");

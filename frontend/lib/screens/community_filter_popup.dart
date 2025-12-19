@@ -86,11 +86,8 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       'Filter',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inknutAntiqua(
-                          
                           fontSize: 22,
-                         
                           fontWeight: FontWeight.w600,
-                         
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white
                               : const Color(0xFF394957)),
@@ -110,13 +107,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Sort By Filtering
               Text('Sort By',
-                 
                   style: GoogleFonts.inknutAntiqua(
-                      
                       fontSize: 16,
-                     
                       fontWeight: FontWeight.w600,
-                     
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
                           : const Color(0xFF394957))),
@@ -133,13 +126,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Category Filtering
               Text('Category',
-                 
                   style: GoogleFonts.inknutAntiqua(
-                      
                       fontSize: 16,
-                     
                       fontWeight: FontWeight.w600,
-                     
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
                           : const Color(0xFF394957))),
@@ -190,7 +179,6 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                           ),
                           Text(c,
                               style: GoogleFonts.lato(
-                              
                                   color: Theme.of(context).brightness == Brightness.dark
                                   ? Colors.white
                                   : const Color(0xFF394957))),
@@ -273,10 +261,8 @@ class RadioGroup<T> extends StatelessWidget {
                   size: 30,
                 ),
                 const SizedBox(width: 10),
-                Text(label,
-                   
+                Text(label,  
                     style: GoogleFonts.lato(
-                        
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.white
                             : const Color(0xFF394957))),

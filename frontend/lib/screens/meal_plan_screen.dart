@@ -16,17 +16,19 @@ class MealPlanScreen extends StatefulWidget {
 }
 
 class _MealPlanScreenState extends State<MealPlanScreen> {
+  // Color Constants for theme consistency
+  static const Color darkBg = Color(0xFF2A2A2A);
+  static const Color darkCardAlt = Color(0xFF4A6B85);
+  static const Color accentColor = Color(0xFF7AA9C8);
+  static const Color lightCard = Color(0xFFD9E8F5);
+  static const Color lightBgAlt = Color(0xFFEDF7FF);
+  static const Color darkDialogBg = Color(0xFF1E1E1E);
+
   DateTime selectedDate = DateTime.now();
 
   final int totalDays = 20000;
   late int todayIndex;
   late FixedExtentScrollController _scrollController;
-
-  final List<Map<String, String>> recentMeals = [
-    {"name": "Chicken", "amount": "5 grams"},
-    {"name": "Salmon", "amount": "2 pounds"},
-    {"name": "Dry Kibble", "amount": "1 cup"},
-  ];
 
   @override
   void initState() {
@@ -43,10 +45,117 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     });
   }
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   DateTime dateFromIndex(int index) {
     return DateTime.now().add(Duration(days: index - todayIndex));
   }
 
+  DateTime _getLogDateTime() {
+    final now = DateTime.now();
+    return DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      now.hour,
+      now.minute,
+      now.second,
+      now.millisecond,
+      now.microsecond,
+    );
+  }
+
+  // Confirm before deleting a meal dialog
+  Future<bool?> _showConfirmDialog({
+    required String mealName,
+  }) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _isDark ? darkDialogBg : const Color(0xFF7496B3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            'Delete meal?',
+            style: GoogleFonts.inknutAntiqua(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          content: Text(
+            "Remove '$mealName' from this day?",
+            style: GoogleFonts.inknutAntiqua(
+              color: _isDark ? Colors.white70 : Colors.white,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: _isDark ? Colors.grey.shade300 : Colors.black87,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDateItem({
+    required DateTime date,
+    required bool selected,
+    required Function() onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 55,
+        height: 70,
+        decoration: BoxDecoration(
+          color: selected
+              ? (_isDark ? darkCardAlt : accentColor)
+              : (_isDark ? darkBg : lightBgAlt),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              DateFormat('d').format(date),
+              style: GoogleFonts.inknutAntiqua(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: selected
+                    ? Colors.white
+                    : (_isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+            Text(
+              DateFormat('E').format(date),
+              style: GoogleFonts.inknutAntiqua(
+                fontSize: 12,
+                color: selected
+                    ? Colors.white
+                    : (_isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Add a new meal or save to list
   void _openMealPopup() {
     final petId = context.read<PetProvider>().selectedPetId;
     if (petId == null) {
@@ -59,7 +168,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final currentPet =
         context.read<PetProvider>().pets.firstWhere((p) => p.petId == petId);
 
-    // Convert savedMeals (List<Map>) to List<Map<String, String>> for the UI
     final recentMeals = currentPet.savedMeals
         .map((m) => {
               "name": m['name'].toString(),
@@ -70,51 +178,26 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      // ...
       builder: (context) {
         return AddMeal(
           recentMeals: recentMeals,
-          // 1. Standard "Log Meal" button
           onSave: (name, amount) {
-            final now = DateTime.now();
-            final logDate = DateTime(
-              selectedDate.year,
-              selectedDate.month,
-              selectedDate.day,
-              now.hour,
-              now.minute,
-              now.second,
-              now.millisecond,
-              now.microsecond,
-            );
             Provider.of<LogProvider>(context, listen: false).addLog(
               petId: petId,
               type: 'meal',
-              date: logDate,
+              date: _getLogDateTime(),
               details: {'name': name, 'amount': amount},
             );
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Logged $name")),
             );
           },
-          // 2. New "Save List" button
           onSaveToFavorites: (name, amount) async {
-            final now = DateTime.now();
-            final logDate = DateTime(
-              selectedDate.year,
-              selectedDate.month,
-              selectedDate.day,
-              now.hour,
-              now.minute,
-              now.second,
-              now.millisecond,
-              now.microsecond,
-            );
             // Log it for the day
             Provider.of<LogProvider>(context, listen: false).addLog(
               petId: petId,
               type: 'meal',
-              date: logDate,
+              date: _getLogDateTime(),
               details: {'name': name, 'amount': amount},
             );
 
@@ -147,8 +230,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 6),
-
-                  /// MONTH + YEAR + BACK BUTTON
                   Row(
                     children: [
                       GestureDetector(
@@ -167,9 +248,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                           padding: const EdgeInsets.only(left: 8.0, right: 12.0),
                           child: Icon(Icons.arrow_back,
                               size: 26, 
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black),
+                            color: _isDark ? Colors.white : Colors.black),
                         ),
                       ),
                       Expanded(
@@ -186,7 +265,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   const SizedBox(height: 6),
 
-                  /// DATE SCROLLER
+                  /// Horizontal date scroller - wheel picker for selecting dates
                   SizedBox(
                     height: 85,
                     child: RotatedBox(
@@ -211,7 +290,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                             return RotatedBox(
                               quarterTurns: 1,
-                              child: GestureDetector(
+                              child: _buildDateItem(
+                                date: date,
+                                selected: selected,
                                 onTap: () {
                                   _scrollController.animateToItem(
                                     index,
@@ -220,49 +301,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   );
                                   setState(() => selectedDate = date);
                                 },
-                                child: Container(
-                                  width: 55,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    color: selected
-                                        ? (Theme.of(context).brightness == Brightness.dark
-                                            ? const Color(0xFF4A6B85)
-                                            : const Color(0xFF7AA9C8))
-                                        : (Theme.of(context).brightness == Brightness.dark
-                                            ? const Color(0xFF2A2A2A)
-                                            : const Color(0xFFEDF7FF)),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        DateFormat('d').format(date),
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: selected
-                                              ? Colors.white
-                                              : (Theme.of(context).brightness == Brightness.dark
-                                                  ? Colors.white70
-                                                  : Colors.black87),
-                                        ),
-                                      ),
-                                      Text(
-                                        DateFormat('E').format(date),
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontSize: 12,
-                                          color: selected
-                                              ? Colors.white
-                                              : (Theme.of(context).brightness == Brightness.dark
-                                                  ? Colors.white70
-                                                  : Colors.black87),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ),
                             );
                           },
@@ -273,16 +311,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   const SizedBox(height: 8),
 
-                  /// MEAL LIST
+                  //List of meals logged for selected date
                   Expanded(
                     child: Consumer<LogProvider>(
                       builder: (context, logProvider, child) {
                         final petId =
                             context.watch<PetProvider>().selectedPetId;
-                        if (petId == null)
+                        if (petId == null){
                           return const Center(
                               child: Text('Select a pet first'));
-
+                        }
                         final meals =
                             logProvider.getMealsForDate(petId, selectedDate);
 
@@ -310,7 +348,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                               'Tap the + button to add one.',
                                               style: GoogleFonts.lato(
                                                 fontSize: 14,
-                                                color: Theme.of(context).brightness == Brightness.dark
+                                                color: _isDark
                                                     ? Colors.white70
                                                     : Colors.black54,
                                               ),
@@ -321,7 +359,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           'Total meals: ${meals.length}',
                                           style: GoogleFonts.inknutAntiqua(
                                             fontSize: 14,
-                                            color: Theme.of(context).brightness == Brightness.dark
+                                            color: _isDark
                                                 ? Colors.white70
                                                 : Colors.black87,
                                           ),
@@ -339,57 +377,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                               // Confirm deletion
                               confirmDismiss: (direction) async {
-                                return await showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      backgroundColor: Theme.of(context).brightness == Brightness.dark
-                                          ? const Color(0xFF1E1E1E)
-                                          : const Color(0xFF7496B3),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      title: Text(
-                                        'Delete meal?',
-                                        style: GoogleFonts.inknutAntiqua(
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white
-                                              : Colors.white,
-                                        ),
-                                      ),
-                                      content: Text(
-                                        "Remove '${log.details['name'] ?? 'meal'}' from this day?",
-                                        style: GoogleFonts.inknutAntiqua(
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white70
-                                              : Colors.white,
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: Text(
-                                            'Cancel',
-                                            style: TextStyle(
-                                              color: Theme.of(context).brightness == Brightness.dark
-                                                  ? Colors.grey.shade300
-                                                  : Colors.black87,
-                                            ),
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: const Text(
-                                            'Delete',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                                return await _showConfirmDialog(
+                                  mealName: log.details['name'] ?? 'meal',
                                 );
                               },
 
@@ -422,9 +411,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                       horizontal: 16, vertical: 8),
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? const Color(0xFF4A6B85)
-                                        : const Color(0xFFD9E8F5),
+                                    color: _isDark ? darkCardAlt : lightCard,
                                     borderRadius: BorderRadius.circular(14),
                                     boxShadow: [
                                       BoxShadow(
@@ -461,9 +448,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         'Logged at: ${DateFormat('h:mm a').format(log.loggedAt ?? log.date)}',
                                         style: GoogleFonts.inknutAntiqua(
                                           fontSize: 12,
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white70
-                                              : Colors.grey,
+                                          color: _isDark ? Colors.white70 : Colors.grey,
                                         ),
                                       ),
                                     ],
@@ -480,15 +465,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               ),
             ),
 
-            /// ADD BUTTON
+            // Add meal button
             Positioned(
               right: 16,
               bottom: 16 + MediaQuery.of(context).padding.bottom,
               child: FloatingActionButton(
                 onPressed: _openMealPopup,
-                backgroundColor: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF4A6B85)
-                    : const Color(0xFF7AA9C8),
+                backgroundColor: _isDark ? darkCardAlt : accentColor,
                 child: const Icon(Icons.add, color: Colors.white),
               ),
             ),
