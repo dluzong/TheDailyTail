@@ -1,12 +1,13 @@
 import 'package:flutter/services.dart';
 
-/// Ensures birthday input stays in mm/dd/yyyy with auto-padding and slashes.
+// Format date input as MM/DD/YYYY
 class DateSlashFormatter extends TextInputFormatter {
-  const DateSlashFormatter();  @override
+  const DateSlashFormatter();
+  @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue,
-      ) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final text = newValue.text;
 
     String filtered = text.replaceAll(RegExp(r'[^0-9/]'), '');
@@ -25,7 +26,8 @@ class DateSlashFormatter extends TextInputFormatter {
         buffer.write(digits.substring(digitIndex, digitIndex + 2));
         digitIndex += 2;
       } else {
-        if (userTypedSlash || (filtered.contains('/') && filtered.indexOf('/') <= 2)) {
+        if (userTypedSlash ||
+            (filtered.contains('/') && filtered.indexOf('/') <= 2)) {
           buffer.write('0${digits[digitIndex]}');
           digitIndex += 1;
         } else {
@@ -34,7 +36,8 @@ class DateSlashFormatter extends TextInputFormatter {
         }
       }
 
-      if (digitIndex < digits.length || (userTypedSlash && buffer.length <= 2)) {
+      if (digitIndex < digits.length ||
+          (userTypedSlash && buffer.length <= 2)) {
         buffer.write('/');
       }
     }
@@ -46,7 +49,8 @@ class DateSlashFormatter extends TextInputFormatter {
         digitIndex += 2;
       } else {
         int slashCount = filtered.split('/').length - 1;
-        if (slashCount >= 2 || (userTypedSlash && buffer.toString().contains('/'))) {
+        if (slashCount >= 2 ||
+            (userTypedSlash && buffer.toString().contains('/'))) {
           buffer.write('0${digits[digitIndex]}');
           digitIndex += 1;
         } else {
@@ -55,7 +59,8 @@ class DateSlashFormatter extends TextInputFormatter {
         }
       }
 
-      if (digitIndex < digits.length || (userTypedSlash && digitIndex > dayStart)) {
+      if (digitIndex < digits.length ||
+          (userTypedSlash && digitIndex > dayStart)) {
         buffer.write('/');
       }
     }

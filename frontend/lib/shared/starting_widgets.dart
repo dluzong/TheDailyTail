@@ -16,15 +16,6 @@ Widget buildAppTitle() {
   );
 }
 
-// Widget buildDogIcon({double size = 120}) {
-//   return Image.asset(
-//     'assets/dog.png',
-//     width: size,
-//     height: size,
-//     fit: BoxFit.contain,
-//   );
-// }
-
 Widget buildAppButton({
   required String text,
   required VoidCallback onPressed,
