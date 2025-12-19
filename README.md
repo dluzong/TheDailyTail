@@ -4,7 +4,7 @@ Fall '25 Capstone Project
 
 ## About
 
-The Daily Tail is a centralized, cross-platform mobile application that brings together dog and cat owners, fosters, adoption centers, and rescue organizations onto a single platform! Our app allows users to manage multiple pets by tracking medications, meals, appointments, and other important events. In addition to pet management tools, The Daily Tail features a community board where users can connect and socialize, as well as organization pages that allow shelters and rescue groups to share updates and important information. Users can join these organizations to stay informed, making The Daily Tail both a pet care management tool and a community-driven resource.
+The Daily Tail is a cross-platform mobile application designed to help pet owners manage their pets’ daily care in one centralized place. The app simplifies tracking health records, meals, medications, and activities, while also fostering a sense of community among local pet owners, shelters, pet fosters and future pet owners. Ultimately, our team set out to create an all-in-one tool that we, as pet owners ourselves, would genuinely use.
 
 ## Features
 
@@ -23,6 +23,9 @@ The Daily Tail is a centralized, cross-platform mobile application that brings t
   - View posts and filter results (to friends, organizations, recents, topics)
   - Find new users to follow and/or view their profiles
   - Create/Find new organizations to join
+
+## Demo
+![app demo gif](https://github.com/dluzong/TheDailyTail/blob/main/demo.gif)
 
 ## Tech Stack / Tools Used
 
