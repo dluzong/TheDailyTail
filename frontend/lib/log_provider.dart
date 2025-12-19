@@ -44,8 +44,6 @@ class PetLog {
 class LogProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
-  // Cache: Map<PetId, List<Log>>
-  // We store logs by Pet ID so we don't mix up data if the user has multiple pets.
   final Map<String, List<PetLog>> _logs = {};
 
   bool _isLoading = false;
@@ -95,7 +93,6 @@ class LogProvider extends ChangeNotifier {
         'log_date': date.toIso8601String(),
         'log_details': enrichedDetails,
       });
-      // Refresh local state immediately
       await fetchLogs(petId);
     } catch (e) {
       debugPrint('Error adding log: $e');
@@ -106,24 +103,19 @@ class LogProvider extends ChangeNotifier {
   Future<void> deleteLog(String logId, String petId) async {
     try {
       await _supabase.from('logs').delete().eq('log_id', logId);
-      // Optimistically remove from local list
       _logs[petId]?.removeWhere((l) => l.logId == logId);
       notifyListeners();
     } catch (e) {
       debugPrint("Error deleting log: $e");
-      // Optionally re-fetch to ensure sync
       await fetchLogs(petId);
     }
   }
 
-  // --- UI HELPERS (Bridging the gap for your existing screens) ---
-
-  // 1. Generic Getter (For Dashboard)
+  // --- GETTERS FOR SCREENS ---
   List<PetLog> getLogsForPet(String petId) {
     return _logs[petId] ?? [];
   }
 
-  // 2. For MealPlanScreen: Get meals for a specific date
   List<PetLog> getMealsForDate(String petId, DateTime date) {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
     return (_logs[petId] ?? [])
@@ -133,13 +125,10 @@ class LogProvider extends ChangeNotifier {
         .toList();
   }
 
-  // 3. For MedicationScreen: Get all medication logs
   List<PetLog> getMedications(String petId) {
     return (_logs[petId] ?? []).where((l) => l.type == 'medication').toList();
   }
 
-  // 4. For DailyLogScreen (Calendar): Get events mapped by category
-  // This mimics the specific structure your calendar widget expects
   Map<String, List<Map<String, String>>> getEventsForCalendar(String petId) {
     final Map<String, List<Map<String, String>>> result = {
       'Appointments': [],
@@ -151,7 +140,6 @@ class LogProvider extends ChangeNotifier {
     final logs = _logs[petId] ?? [];
 
     for (var log in logs) {
-      // Map DB types to UI Categories
       String category = 'Other';
       String title = log.details['title'] ?? 'No Title';
       String desc = log.details['desc'] ?? '';
@@ -168,7 +156,7 @@ class LogProvider extends ChangeNotifier {
 
       if (result.containsKey(category)) {
         result[category]!.add({
-          'id': log.logId, // useful for delete actions
+          'id': log.logId,
           'date': DateFormat('yyyy-MM-dd').format(log.date),
           'title': title,
           'desc': desc,
