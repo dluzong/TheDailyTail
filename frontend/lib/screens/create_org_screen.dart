@@ -4,6 +4,7 @@ import '../organization_provider.dart';
 import 'package:provider/provider.dart';
 import '../user_provider.dart';
 
+// Screen for creating a new organization
 class CreateOrgScreen extends StatefulWidget {
   const CreateOrgScreen({super.key});
 
@@ -67,7 +68,7 @@ class _CreateOrgScreenState extends State<CreateOrgScreen> {
           );
 
       if (mounted) {
-        Navigator.of(context).pop(true); // Return true to indicate success
+        Navigator.of(context).pop(true); // Success
       }
     } catch (e) {
       if (mounted) {

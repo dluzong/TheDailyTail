@@ -14,6 +14,7 @@ import 'explore_orgs_screen.dart';
 import 'org_screen.dart';
 import 'profile_screen.dart';
 
+// Main screen for the community board, featuring the post feed, friends posts, search, filters, and organizations
 class CommunityBoardScreen extends StatefulWidget {
   const CommunityBoardScreen({super.key});
 
@@ -53,7 +54,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
-  // For creating new post
+  // For creating new post modal
   List<String> _newPostCategories = ['General'];
 
   @override
@@ -113,6 +114,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     });
   }
 
+  // Sorts search results by relevance to the search term
   List<Map<String, dynamic>> _sortUsersByRelevance(
       List<Map<String, dynamic>> users, String term) {
     final q = term.toLowerCase().trim();
@@ -133,15 +135,16 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     sorted.sort((a, b) {
       final sb = scoreUser(b);
       final sa = scoreUser(a);
-      if (sb != sa) return sb.compareTo(sa);
 
-      // Tiebreak by username then name
+      if (sb != sa) return sb.compareTo(sa);
       final aU = (a['username'] as String? ?? '').toLowerCase();
       final bU = (b['username'] as String? ?? '').toLowerCase();
       final cmpU = aU.compareTo(bU);
+
       if (cmpU != 0) return cmpU;
       final aN = (a['name'] as String? ?? '').toLowerCase();
       final bN = (b['name'] as String? ?? '').toLowerCase();
+
       return aN.compareTo(bN);
     });
     return sorted;
@@ -384,7 +387,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     itemBuilder: (context, index) {
                       final post = posts[index];
                       final providerIndex = postsProvider.posts.indexOf(post);
-                      // Reuse existing card UI by building it inline
                       return Card(
                         elevation: 2,
                         shape: RoundedRectangleBorder(
@@ -683,6 +685,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     );
   }
 
+  // Loads saved filter preferences
   Future<void> _loadSavedFilters() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -699,6 +702,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
     }
   }
 
+  // Saves current filter preferences
   Future<void> _persistFilters() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1091,7 +1095,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
           }).toList();
         }
 
-        // only show organization creation if user is organizer
+        // Only show organization creation if user is organizer
         final isOrganizer = (userProvider.user?.roles ?? const [])
             .map((r) => r.toLowerCase())
             .contains('organizer');
@@ -1862,8 +1866,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       return AnimatedBuilder(
                         animation: tabController,
                         builder: (context, _) {
-                          // If there's no TabController or the Organizations tab (index 2)
-                          // is selected, don't show the create-post FAB.
+                          // If user is on Organizations tab, hide Create Post button
                           if (tabController.index == 2) {
                             return const SizedBox.shrink();
                           }

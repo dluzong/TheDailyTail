@@ -7,6 +7,7 @@ import '../user_provider.dart';
 import 'edit_org_screen.dart';
 import 'org_post_screen.dart';
 
+// Main screen for viewing an organization
 class OrgScreen extends StatefulWidget {
   final Map<String, dynamic> org;
   final bool initiallyJoined;
@@ -471,11 +472,8 @@ class _OrgScreenState extends State<OrgScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Map keys to DB columns
     final orgName = widget.org['name'] ?? 'Unnamed Org';
-
     final memberCount = _memberCount;
-
     final description = widget.org['description'] ?? 'No description provided.';
 
     return Scaffold(
@@ -524,7 +522,6 @@ class _OrgScreenState extends State<OrgScreen> {
         length: 2,
         child: Column(
           children: [
-            // Organization name above search bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
@@ -632,6 +629,7 @@ class _OrgScreenState extends State<OrgScreen> {
     );
   }
 
+  // Widget for displaying a single organization post card
   Widget _buildOrgPostCard(Post post, int index) {
     final theme = Theme.of(context);
     final currentUserId = context.read<UserProvider>().user?.userId;

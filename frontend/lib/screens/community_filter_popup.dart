@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+// A popup that lets users filter community posts by category and sorts by most recent or most popular.
 class CommunityFilterPopup extends StatefulWidget {
   final List<String> categories;
   final String initialSort;
@@ -17,8 +18,9 @@ class CommunityFilterPopup extends StatefulWidget {
   State<CommunityFilterPopup> createState() => _CommunityFilterPopupState();
 }
 
+// Manages the state of selected category filters and sorting
 class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
-  String _sortBy = 'recent'; // default to recent posts
+  String _sortBy = 'recent'; // sort by default
   late Set<String> _selectedCategories;
 
   @override
@@ -222,7 +224,7 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
   }
 }
 
-// vertical list of radio buttons (only allow to select one button at a time)
+// A reusable radio widget that displays the list of options as radio buttons
 class RadioGroup<T> extends StatelessWidget {
   final List<Map<String, String>>
       options;
