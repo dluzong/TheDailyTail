@@ -6,6 +6,7 @@ import '../posts_provider.dart';
 import '../user_provider.dart';
 import '../screens/profile_screen.dart';
 
+// Screen for viewing a single organization post and its comments
 class OrgPostScreen extends StatefulWidget {
   final Post post;
   final ValueChanged<int>? onCommentCountDelta;

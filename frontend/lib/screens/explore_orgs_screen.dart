@@ -5,6 +5,7 @@ import '../organization_provider.dart';
 import '../user_provider.dart';
 import 'org_screen.dart';
 
+// Screen for user to explore existing organizations
 class ExploreOrgsScreen extends StatefulWidget {
   const ExploreOrgsScreen({super.key});
 

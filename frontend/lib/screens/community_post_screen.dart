@@ -6,6 +6,8 @@ import '../posts_provider.dart';
 import '../user_provider.dart';
 import '../screens/profile_screen.dart';
 
+// Separate full-view screen to view a post made in the community board along with its comments
+// Users can add new comments and delete their own comments
 class CommunityPostScreen extends StatefulWidget {
   final int postIndex;
   final bool openKeyboard;
@@ -20,6 +22,7 @@ class CommunityPostScreen extends StatefulWidget {
   State<CommunityPostScreen> createState() => _CommunityPostScreenState();
 }
 
+// Manages the state of the community post screen, asynchronously fetching data for comments
 class _CommunityPostScreenState extends State<CommunityPostScreen> {
   final TextEditingController commentCtrl = TextEditingController();
   final FocusNode commentFocus = FocusNode();
@@ -47,7 +50,6 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
   Future<void> _fetchComments() async {
     final postsProvider = context.read<PostsProvider>();
-    // Guard clause in case index is out of bounds
     if (widget.postIndex >= postsProvider.posts.length) return;
 
     final post = postsProvider.posts[widget.postIndex];
@@ -78,7 +80,6 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     final userProvider = context.read<UserProvider>();
     final postsProvider = context.read<PostsProvider>();
 
-    // Safety check
     if (widget.postIndex >= postsProvider.posts.length) return;
 
     final post = postsProvider.posts[widget.postIndex];
@@ -87,24 +88,18 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     if (user == null) return;
 
     try {
-      // 1. Insert into DB
       await _supabase.from('comments').insert({
         'post_id': post.postId,
         'user_id': user.userId,
         'content': text,
-        'likes': [], // Init empty array
+        'likes': [],
         'created_ts': DateTime.now().toIso8601String(),
       });
-
       commentCtrl.clear();
       if (mounted) {
         FocusScope.of(context).unfocus();
       }
-
-      // 2. Refresh Comments List
       await _fetchComments();
-
-      // 3. Update local post state to reflect new comment count
       postsProvider.incrementCommentCount(widget.postIndex);
     } catch (e) {
       debugPrint('Error adding comment: $e');
@@ -162,7 +157,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
   Widget build(BuildContext context) {
     final postsProvider = Provider.of<PostsProvider>(context);
 
-    // Handle case where post might not exist (e.g. deleted while viewing)
+    // If post doesn't exist or was deleted
     if (widget.postIndex >= postsProvider.posts.length) {
       return Scaffold(
         appBar: AppBar(
