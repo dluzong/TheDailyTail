@@ -1527,7 +1527,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
               // Category Selection
               Text(
                 'Select Categories:',
-                style: GoogleFonts.lato(
+                style: GoogleFonts.inknutAntiqua(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white
@@ -1716,11 +1716,12 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                         children: [
                           Text(
                             'Community',
-                            style: GoogleFonts.lato(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
+                            style: GoogleFonts.inknutAntiqua(
+                              fontSize: 24,
                             ),
                           ),
+                          const SizedBox(height: 6),
+                          const Divider(thickness: 2),
                           const SizedBox(height: 16),
                           Row(
                             children: [
@@ -1823,7 +1824,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                     fontWeight: FontWeight.bold))),
                       ],
                     ),
-                    const Divider(height: 1),
+                    // const Divider(height: 1),
                     Expanded(
                       child: TabBarView(
                         children: [
@@ -1835,7 +1836,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                     ),
                   ],
                 ),
-                Positioned(
+                    Positioned(
                   right: 16,
                   bottom: 16,
                   child: Builder(
@@ -1844,22 +1845,18 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                       return AnimatedBuilder(
                         animation: tabController,
                         builder: (context, _) {
-                          if (tabController.index != 2) {
-                            return FloatingActionButton(
-                              onPressed: _showNewPostModal,
-                              backgroundColor: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? const Color(0xFF4A6B85)
-                                  : const Color(0xFF7496B3),
-                              child: const Icon(Icons.add, color: Colors.white),
-                            );
+                          // If there's no TabController or the Organizations tab (index 2)
+                          // is selected, don't show the create-post FAB.
+                          if (tabController.index == 2) {
+                            return const SizedBox.shrink();
                           }
+
                           return FloatingActionButton(
                             onPressed: _showNewPostModal,
-                            backgroundColor:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF4A6B85)
-                                    : const Color(0xFF7496B3),
+                            backgroundColor: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? const Color(0xFF4A6B85)
+                                : const Color(0xFF7496B3),
                             child: const Icon(Icons.add, color: Colors.white),
                           );
                         },

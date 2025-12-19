@@ -68,9 +68,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Add Medication',
-                    style: TextStyle(
+                    style: GoogleFonts.inknutAntiqua(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -543,8 +543,8 @@ class _MedicationScreenState extends State<MedicationScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Text(
                           'No medications taken on this day.',
-                          style: GoogleFonts.inknutAntiqua(
-                            fontSize: 14,
+                          style: GoogleFonts.lato(
+                            fontSize: 16,
                             color: Theme.of(context).brightness == Brightness.dark 
                               ? Colors.white 
                               : Colors.black54,
@@ -711,13 +711,13 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                           if (med['dose'] != null)
                                             Text(
                                               'Dose: ${med['dose']}',
-                                              style: GoogleFonts.inknutAntiqua(
+                                              style: GoogleFonts.lato(
                                                   fontSize: 12),
                                             ),
                                           if (med['frequency'] != null)
                                             Text(
                                               'Freq: ${med['frequency']}',
-                                              style: GoogleFonts.inknutAntiqua(
+                                              style: GoogleFonts.lato(
                                                   fontSize: 12,
                                                   color: Theme.of(context).brightness == Brightness.dark 
                                                     ? Colors.white70 

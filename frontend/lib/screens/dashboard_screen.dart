@@ -116,8 +116,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 // Dashboard title
                 Text('Dashboard',
-                    style: GoogleFonts.lato(
-                        fontSize: 24, fontWeight: FontWeight.bold)),
+                    style: GoogleFonts.inknutAntiqua(
+                        fontSize: 24)),
                 const SizedBox(height: 6),
                 const Divider(thickness: 2),
                 const SizedBox(height: 16),
@@ -125,7 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 // Dropdown
                 Row(
                   children: [
-                    const Text('Pet: ', style: TextStyle(fontSize: 18)),
+                    Text('Pet: ', style: GoogleFonts.lato(fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 10),
                     DropdownButton<String>(
                       value: currentSelectedId,
@@ -185,7 +185,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const Center(
         child: Text(
           'Please log in to see your dashboard.',
-          style: TextStyle(fontSize: 18),
+          style: TextStyle(fontSize: 20),
         ),
       );
     }
@@ -284,7 +284,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         // Recent log
         Text('Recent Log',
-            style: GoogleFonts.lato(fontSize: 24, fontWeight: FontWeight.bold)),
+            style: GoogleFonts.inknutAntiqua(fontSize: 24)),
         const SizedBox(height: 6),
         const Divider(thickness: 2),
 

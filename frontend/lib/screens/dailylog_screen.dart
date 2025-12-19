@@ -457,10 +457,20 @@ class _DailyLogScreenState extends State<DailyLogScreen> {
                 children: [
                   const SizedBox(height: 8),
 
+                  Text(
+                    'Daily Logs',
+                    style: GoogleFonts.inknutAntiqua(
+                      fontSize: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Divider(thickness: 2),
+                  const SizedBox(height: 16),
+
                   // ---- Pet Dropdown ----
                   Row(
                     children: [
-                      const Text('Pet: ', style: TextStyle(fontSize: 18)),
+                      Text('Pet: ', style: GoogleFonts.lato(fontSize: 20, fontWeight: FontWeight.bold)),
                       const SizedBox(width: 10),
                       // Only show dropdown if we have pets
                       if (pets.isEmpty)
