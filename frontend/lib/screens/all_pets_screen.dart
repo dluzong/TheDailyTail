@@ -6,7 +6,7 @@ class AllPetsScreen extends StatelessWidget {
   final List<pet_list.Pet> pets;
   final String name;
 
-  const AllPetsScreen({Key? key, required this.pets, required this.name}) : super(key: key);
+  const AllPetsScreen({super.key, required this.pets, required this.name});
 
   @override
   Widget build(BuildContext context) {

@@ -10,7 +10,7 @@ class Pet {
   final String name;
   final String species;
   final String breed;
-  final String birthday; // mm/dd/yyyy
+  final String birthday;
   final String sex;
   final double weight;
   final String imageUrl;

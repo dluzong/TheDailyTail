@@ -90,7 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           .upload(fileName, file, fileOptions: const FileOptions(upsert: true));
 
       // Get and return the Public URL
-      debugPrint('Pet image uploaded successfully! ${fileName}');
+      debugPrint('Pet image uploaded successfully! $fileName');
       return Supabase.instance.client.storage
           .from('avatars')
           .getPublicUrl(fileName);

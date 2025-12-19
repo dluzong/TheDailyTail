@@ -279,10 +279,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       builder: (context, logProvider, child) {
                         final petId =
                             context.watch<PetProvider>().selectedPetId;
-                        if (petId == null)
+                        if (petId == null){
                           return const Center(
                               child: Text('Select a pet first'));
-
+                        }
                         final meals =
                             logProvider.getMealsForDate(petId, selectedDate);
 

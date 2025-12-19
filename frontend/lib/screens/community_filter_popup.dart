@@ -25,8 +25,6 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
   void initState() {
     super.initState();
     _sortBy = widget.initialSort;
-    // initialize selected categories from the incoming props so the dialog
-    // reflects the filters that were active when it was opened
     _selectedCategories = Set<String>.from(widget.initialSelectedCategories);
   }
 
@@ -42,7 +40,6 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
   void _resetFilters() {
     setState(() {
-      // reset to the filters that were active when the dialog was opened
       _sortBy = 'recent';
       _selectedCategories = {};
     });
@@ -87,11 +84,8 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                       'Filter',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inknutAntiqua(
-                          
                           fontSize: 22,
-                         
                           fontWeight: FontWeight.w600,
-                         
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white
                               : const Color(0xFF394957)),
@@ -111,13 +105,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Sort By Filtering
               Text('Sort By',
-                 
                   style: GoogleFonts.inknutAntiqua(
-                      
                       fontSize: 16,
-                     
                       fontWeight: FontWeight.w600,
-                     
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
                           : const Color(0xFF394957))),
@@ -134,13 +124,9 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 
               // Category Filtering
               Text('Category',
-                 
                   style: GoogleFonts.inknutAntiqua(
-                      
                       fontSize: 16,
-                     
                       fontWeight: FontWeight.w600,
-                     
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
                           : const Color(0xFF394957))),
@@ -191,7 +177,6 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
                           ),
                           Text(c,
                               style: GoogleFonts.lato(
-                              
                                   color: Theme.of(context).brightness == Brightness.dark
                                   ? Colors.white
                                   : const Color(0xFF394957))),
@@ -240,7 +225,7 @@ class _CommunityFilterPopupState extends State<CommunityFilterPopup> {
 // vertical list of radio buttons (only allow to select one button at a time)
 class RadioGroup<T> extends StatelessWidget {
   final List<Map<String, String>>
-      options; // each map contains 'value' and 'label'
+      options;
   final T groupValue;
   final ValueChanged<T?> onChanged;
 
@@ -274,10 +259,8 @@ class RadioGroup<T> extends StatelessWidget {
                   size: 30,
                 ),
                 const SizedBox(width: 10),
-                Text(label,
-                   
+                Text(label,  
                     style: GoogleFonts.lato(
-                        
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.white
                             : const Color(0xFF394957))),

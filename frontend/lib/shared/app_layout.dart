@@ -39,7 +39,6 @@ class _AppLayoutState extends State<AppLayout> {
   void initState() {
     super.initState();
     currentIndex = widget.currentIndex;
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       precacheImage(
         const AssetImage('assets/dailytail-logotype-white.png'),
@@ -122,9 +121,8 @@ class _AppLayoutState extends State<AppLayout> {
         child: Column(
           children: [
             Container(
-              height: 50,
+              height: 50
             ),
-
             Stack(
               alignment: Alignment.center,
               children: [

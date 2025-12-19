@@ -12,8 +12,8 @@ import 'all_pets_screen.dart';
 import 'community_post_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  final String? otherUsername; // null means viewing own profile
-  final bool shouldAnimate; // whether to use slide-in animation
+  final String? otherUsername;
+  final bool shouldAnimate;
 
   const ProfileScreen({
     super.key,
@@ -290,7 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       case 'visitor':
         return 'Vis.';
       default:
-        return lower.length > 3 ? lower.substring(0, 3) + '.' : lower;
+        return lower.length > 3 ? '${lower.substring(0, 3)}.' : lower;
     }
   }
 
@@ -350,21 +350,19 @@ class _ProfileScreenState extends State<ProfileScreen>
           children: [
             ...List.generate(pets.length, (index) {
               final petMap = pets[index];
-              // Create a temporary Pet object with safe defaults in case data is missing
               final displayPet = pet_provider.Pet(
-                petId: 'mock_$index',
-                userId: 'mock_user',
+                petId: (petMap['id'] ?? petMap['pet_id'] ?? '').toString(),
+                userId: (petMap['user_id'] ?? '').toString(),
                 name: (petMap['name'] ?? 'Unknown').toString(),
                 species: (petMap['species'] ?? 'Dog').toString(),
                 breed: (petMap['breed'] ?? 'Unknown').toString(),
-                birthday:
-                  (petMap['dob'] ?? petMap['birthday'])?.toString() ?? '',
+                birthday: (petMap['dob'] ?? petMap['birthday'])?.toString() ?? '',
                 sex: (petMap['sex'] ?? '').toString(),
                 weight: (petMap['weight'] as num?)?.toDouble() ?? 0.0,
                 imageUrl: (petMap['image_url'] ?? petMap['imageUrl'])?.toString() ?? '',
                 status: petMap['status']?.toString() ?? 'owned',
-                savedMeals: [],
-                savedMedications: [],
+                savedMeals: (petMap['saved_meals'] as List?)?.cast<Map<String, dynamic>>() ?? [],
+                savedMedications: (petMap['saved_medications'] as List?)?.cast<Map<String, dynamic>>() ?? [],
               );
 
               return Padding(
@@ -438,7 +436,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ? (currentUser?.userId ?? '')
         : (_otherUserData?['user_id']?.toString() ?? '');
 
-      // Filter by immutable userId so username changes don't break matching
       final userPosts = targetUserId.isEmpty
         ? <Post>[]
         : postsProvider.posts
@@ -466,7 +463,6 @@ class _ProfileScreenState extends State<ProfileScreen>
               SizedBox(height: size.height * 0.02),
           itemBuilder: (context, index) {
             final post = userPosts[index];
-            // Find real index for toggleLike
             final realIndex = postsProvider.posts.indexOf(post);
 
             return Card(
@@ -709,15 +705,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                           ],
                         ),
+                        // Profile Picture
                         child: CircleAvatar(
                           radius: avatarSize / 2,
                           backgroundColor: const Color(0xFF7496B3),
-                          // If URL exists and is not empty, load image. Otherwise null.
                           backgroundImage: (profileImageUrl != null &&
                                   profileImageUrl.isNotEmpty)
                               ? NetworkImage(profileImageUrl)
                               : null,
-                          // Only show the Icon child if we DON'T have an image
                           child: (profileImageUrl == null ||
                                   profileImageUrl.isEmpty)
                               ? Icon(
@@ -734,6 +729,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // User's Name
                               Text(
                                 name.length > 15 ? '${name.substring(0, 15)}...' : name,
                                 style: GoogleFonts.inknutAntiqua(
@@ -744,6 +740,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
+                              // Username
                               Text(
                                 username.length > 25 ? '${username.substring(0, 25)}...' : username,
                                 style: GoogleFonts.inknutAntiqua(
@@ -757,6 +754,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
+                              // User Tags
                               LayoutBuilder(
                                 builder: (context, constraints) {
                                   return SizedBox(
@@ -777,7 +775,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   );
                                 },
                               ),
-                              // Follow button for other users' profiles (smaller, inline)
+                              // Follow button (only for other users' profiles)
                               if (!_isOwnProfile) ...[
                                 const SizedBox(height: 16),
                                 Consumer<UserProvider>(
@@ -816,7 +814,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         decoration: BoxDecoration(
                                           color: isFollowing
                                               ? const Color(0xFF7496B3)
-                                                  .withOpacity(0.3)
+                                                  .withValues(alpha: 0.3)
                                               : Colors.transparent,
                                           borderRadius:
                                               BorderRadius.circular(14),
@@ -1204,7 +1202,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                           return ListTile(
                             onTap: () {
-                              Navigator.of(context).pop(); // Close dialog
+                              Navigator.of(context).pop();
                               // Check if this is the current user's own account
                               final isOwnAccount = currentUserId != null &&
                                   visitorUserId == currentUserId;
@@ -1367,7 +1365,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                           return ListTile(
                             onTap: () {
-                              Navigator.of(context).pop(); // Close dialog
+                              Navigator.of(context).pop();
                               // Check if this is the current user's own account
                               final isOwnAccount = currentUserId != null &&
                                   visitedUserId == currentUserId;
