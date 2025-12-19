@@ -39,7 +39,6 @@ class _AppLayoutState extends State<AppLayout> {
   void initState() {
     super.initState();
     currentIndex = widget.currentIndex;
-    // Precache logo images to prevent loading delay
     WidgetsBinding.instance.addPostFrameCallback((_) {
       precacheImage(
         const AssetImage('assets/dailytail-logotype-white.png'),
@@ -106,8 +105,6 @@ class _AppLayoutState extends State<AppLayout> {
     setState(() => currentIndex = 4);
   }
 
-  // Removed unused _openSettings to satisfy analyzer
-
   @override
   Widget build(BuildContext context) {
     final double bottomInset = MediaQuery.of(context).padding.bottom;
@@ -126,20 +123,8 @@ class _AppLayoutState extends State<AppLayout> {
         child: Column(
           children: [
             Container(
-              height: 50,
-              // color: Theme.of(context).brightness == Brightness.dark
-              //     ? const Color(0xFF3A5A75)
-              //     : outerBlue,
+              height: 50
             ),
-
-            // Top bar
-            // Container(
-            //   height: 100,
-            //   width: double.infinity,
-            //   color: Theme.of(context).brightness == Brightness.dark
-            //       ? const Color(0xFF4A6B85)
-            //       : innerBlue,
-            //   padding: const EdgeInsets.symmetric(horizontal: 16),
             Stack(
               alignment: Alignment.center,
               children: [

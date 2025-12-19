@@ -1453,7 +1453,7 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
             color: Theme.of(context).brightness == Brightness.dark
                 ? const Color(0xFF121212)
                 : Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
           ),
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1824,7 +1824,6 @@ class _CommunityBoardScreenState extends State<CommunityBoardScreen> {
                                     fontWeight: FontWeight.bold))),
                       ],
                     ),
-                    // const Divider(height: 1),
                     Expanded(
                       child: TabBarView(
                         children: [

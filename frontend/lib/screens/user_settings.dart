@@ -21,7 +21,6 @@ class UserSettingsScreen extends StatefulWidget {
 
 class _UserSettingsScreenState extends State<UserSettingsScreen>
     with SingleTickerProviderStateMixin {
-  // We can access Supabase directly for auth actions like signOut
   final _supabase = Supabase.instance.client;
 
   late AnimationController _fadeController;
@@ -31,7 +30,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
   bool _isDirty = false;
 
-  // User tags/roles selection (local state; persisted in future)
+  // User Tags
   final List<String> _availableTags = const [
     'owner',
     'organizer',
@@ -107,23 +106,19 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     super.dispose();
   }
 
-  /// Uploads the local file to Supabase Storage and returns the Public URL
   Future<String?> _uploadProfileImage(File imageFile) async {
     try {
       final userId = _supabase.auth.currentUser!.id;
-      // Create a unique file path: user_id/timestamp.jpg
       final fileExt = imageFile.path.split('.').last;
       final fileName =
           '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
-      // Upload to the 'avatars' bucket
       await _supabase.storage.from('avatars').upload(
             fileName,
             imageFile,
             fileOptions: const FileOptions(upsert: true),
           );
 
-      // Get the Public URL
       final imageUrl = _supabase.storage.from('avatars').getPublicUrl(fileName);
 
       return imageUrl;
@@ -140,36 +135,27 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
   Future<void> _deleteOldImage(String oldUrl) async {
     try {
-      // 1. Parse the URL to find the path relative to the bucket
       final uri = Uri.parse(oldUrl);
       final pathSegments = uri.pathSegments;
-      // pathSegments usually looks like: ['storage', 'v1', 'object', 'public', 'avatars', 'user_id', 'filename.jpg']
-
-      // We need everything after 'avatars'
       final avatarIndex = pathSegments.indexOf('avatars');
       if (avatarIndex == -1 || avatarIndex + 1 >= pathSegments.length) return;
 
       final filePath = pathSegments.sublist(avatarIndex + 1).join('/');
 
-      // 2. Delete the file
       if (filePath.isNotEmpty) {
         await _supabase.storage.from('avatars').remove([filePath]);
         debugPrint('Deleted old image: $filePath');
       }
     } catch (e) {
-      // Don't stop the app if deletion fails, just log it
       debugPrint('Error deleting old image: $e');
     }
   }
 
-  // formerly _saveDataOnly
   Future<void> _saveUserProfile({bool shouldPop = false}) async {
-    // 1. Validate inputs locally first
     _username = _usernameController.text.trim();
     _name = _nameController.text.trim();
     _bio = _bioController.text.trim();
 
-    // Regex check
     if (_username !=
         _username.replaceAll(RegExp(r'[!@#$%^&*()+=:;,?/<>\s-]'), '')) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -181,7 +167,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     }
 
     try {
-      // 2. HANDLE IMAGE UPLOAD)
       String? finalPhotoUrl = _profilePicturePath;
 
       if (_profilePicturePath != null &&
@@ -209,17 +194,14 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
           return;
         }
 
-        // Delete old image if successful
         if (oldPhotoUrl.isNotEmpty && oldPhotoUrl.startsWith('http')) {
           await _deleteOldImage(oldPhotoUrl);
         }
         finalPhotoUrl = uploadedUrl;
 
-        // Update local state to the web URL
         if (mounted) setState(() => _profilePicturePath = finalPhotoUrl);
       }
 
-      // 3. UPDATE DATABASE
       if (!mounted) return;
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.updateUserProfile(
@@ -240,7 +222,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
               duration: Duration(seconds: 1)),
         );
 
-        // 4. HANDLE NAVIGATION (Logic from _saveSettings)
         if (shouldPop) {
           Navigator.of(context).pop();
         }
@@ -267,7 +248,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         petId: result['id'] as String? ?? '',
         userId: result['userId'] as String? ?? '',
         name: result['name'] as String? ?? '',
-        species: result['type'] as String? ?? 'Dog', // Map 'type' to 'species'
+        species: result['type'] as String? ?? 'Dog',
         breed: result['breed'] as String? ?? '',
         birthday: result['birthday'] as String? ?? '',
         sex: (result['sex'] as String? ?? '').toLowerCase(),
@@ -284,7 +265,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
       await context.read<pet_provider.PetProvider>().addPet(newPet);
 
       if (mounted) {
-        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Pet added successfully!')),
         );
@@ -301,7 +281,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
   Future<void> _editPetInfo(pet_provider.Pet originalPet) async {
     debugPrint(
-        "DEBUG: Original Pet ID: ${originalPet.petId}"); // Check your console
+        "DEBUG: Original Pet ID: ${originalPet.petId}");
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -336,7 +316,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         petId: originalPet.petId,
         userId: originalPet.userId,
         name: result['name'] ?? originalPet.name,
-        species: originalPet.species, // Preserve existing species
+        species: originalPet.species,
         breed: result['breed'] ?? originalPet.breed,
         birthday: result['birthday'] as String? ?? originalPet.birthday,
         sex: (result['sex'] as String? ?? originalPet.sex).toLowerCase(),
@@ -344,18 +324,17 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
             ? (result['weight'] as num).toDouble()
             : double.tryParse(result['weight']?.toString() ?? '') ??
                 originalPet.weight,
-        imageUrl: finalImageUrl, // Use the public URL, not local path
+        imageUrl: finalImageUrl,
         savedMeals: originalPet.savedMeals,
         savedMedications: originalPet.savedMedications,
         status: originalPet.status,
       );
       debugPrint(
-          "DEBUG: Sending Update for ID: ${updatedPet.petId}"); // Check this too
+          "DEBUG: Sending Update for ID: ${updatedPet.petId}");
 
       await context.read<pet_provider.PetProvider>().updatePet(updatedPet);
 
       if (mounted) {
-        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pet updated successfully!'),
@@ -424,7 +403,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
 
     if (action == 'save') {
       await _saveUserProfile(shouldPop: true);
-      return false; // _saveSettings pops automatically on success
+      return false;
     }
 
     if (action == 'discard') return true;
@@ -440,7 +419,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         if (!didPop) {
           final shouldPop = await _onWillPop();
           if (shouldPop && mounted) {
-            // ignore: use_build_context_synchronously
             Navigator.of(context).pop();
           }
         }
@@ -483,7 +461,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         body: SingleChildScrollView(
           child: Column(
             children: [
-              // Body content
               Container(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF1E1E1E)
@@ -569,7 +546,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
                             trailing: Switch(
                               value: themeProvider.isDarkMode,
                               onChanged: (_) => themeProvider.toggleTheme(),
-                              activeColor: Theme.of(context).brightness ==
+                              activeThumbColor: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? const Color(0xFF4A6B85)
                                   : const Color(0xFF7496B3),
@@ -633,7 +610,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 200),
                   ],
                 ),
               ),
@@ -717,7 +694,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         });
       },
       onMarkDirty: () async {
-        // Ensure state update completes before saving
         await Future.microtask(() {});
         if (mounted) _saveUserProfile();
       },
@@ -747,7 +723,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
         });
       },
       onMarkDirty: () async {
-        // Ensure state update completes before saving
         await Future.microtask(() {});
         if (mounted) _saveUserProfile();
       },
@@ -759,18 +734,18 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
       context: context,
       pets: _pets,
       onAddNewPet: () async {
-        Navigator.pop(context); // Close dialog to navigate
+        Navigator.pop(context);
         await _addNewPet();
         if (mounted) {
-          _showPetsDialog(); // Re-open dialog to show updated list
+          _showPetsDialog();
         }
       },
       onEditPet: (index) => _editPetInfo(_pets[index]),
       onRemovePet: (index) async {
-        Navigator.pop(context); // Close dialog
+        Navigator.pop(context);
         await _removePet(_pets[index].petId);
         if (mounted) {
-          _showPetsDialog(); // Re-open dialog to show updated list
+          _showPetsDialog();
         }
       },
     );
@@ -781,7 +756,6 @@ class _UserSettingsScreenState extends State<UserSettingsScreen>
     final should = await UserSettingsDialogs.showLogoutDialog(context);
 
     if (should == true) {
-      // Use provider's robust logout to clear session and cache
       await context.read<UserProvider>().logout();
       if (mounted) {
         ScaffoldMessenger.of(context)
