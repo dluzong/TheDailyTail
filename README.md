@@ -8,10 +8,21 @@ The Daily Tail is a centralized, cross-platform mobile application that brings t
 
 ## Features
 
-- Manage multiple pet profiles (name, breed, age, weight, sex)
-- Daily logs for meals, medications, vaccinations 
-- Dashboard with quick pet overview and recent activity
-- Community board with global feed and organiztion specific feeds
+- Sign Up and Log In with your own account with synchronous data
+  - Supports Google quick sign up
+  - Onboarding screens for new users
+- Manage multiple pet profiles
+  - Add and modify pet name, breed, birthday, weight, sex, etc.
+  - Pet profiles are displayed on user profile for other users to view
+- Daily logs
+  - Save frequent pet meals, medications
+  - Add events to calendar for appointments, events, vaccinations, other
+- Dashboard
+  - View individual pet information and their recent activity
+- Community board
+  - View posts and filter results (to friends, organizations, recents, topics)
+  - Find new users to follow and/or view their profiles
+  - Create/Find new organizations to join
 
 ## Tech Stack / Tools Used
 
@@ -21,13 +32,13 @@ The Daily Tail is a centralized, cross-platform mobile application that brings t
 
 ## Project Structure
 
-frontend/
-├── android/        # Android-specific files
-├── ios/            # iOS-specific files
-├── lib/            # Application source code
-│   ├── screens/    # UI screens
-│   └── shared/     # Shared resources
-├── ios/            # iOS-specific files
+frontend/\
+├── android/        # Android-specific files\
+├── ios/            # iOS-specific files\
+├── lib/            # Application source code\
+│   ├── screens/    # UI screens\
+│   └── shared/     # Shared resources\
+├── ios/            # iOS-specific files\
 └── pubspec.yaml    # Flutter dependencies
 
 ## Getting Started
@@ -97,6 +108,3 @@ flutter run -d macos
 - If CocoaPods warns about platform or base configurations: open `ios/Podfile` and ensure `platform :ios, '13.0'` is set, then run `pod install` in `ios/`.
 - If you see merge conflicts in `ios/Podfile.lock`, resolve the conflict, then run `pod install` and commit the resolved file.
 - If you run into build or dependency errors, run `flutter clean` to clear out cache and rebuild the app.
-
-
-
